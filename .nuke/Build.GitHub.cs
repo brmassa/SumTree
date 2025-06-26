@@ -106,12 +106,12 @@ partial class Build
         .OnlyWhenStatic(() => HasNewCommits)
         .Executes(() =>
         {
-            var commitMessage = $"chore: Automatic commit creation in {Date} [skip ci]";
+            // var commitMessage = $"chore: Automatic commit creation in {Date} [skip ci]";
 
             // Use Git commands to commit changes locally
-            GitTasks.Git($"add .");
-            GitTasks.Git($"commit -m \"{commitMessage}\"");
-            GitTasks.Git($"push origin HEAD");
+            GitTasks.Git("add .");
+            GitTasks.Git($"""commit -m "chore: Automatic commit creation in {Date} [skip ci]" """);
+            GitTasks.Git("push origin HEAD");
 
             Log.Information(
                 "Commit in branch {branch} created and pushed",

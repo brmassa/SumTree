@@ -108,6 +108,10 @@ partial class Build
         {
             // var commitMessage = $"chore: Automatic commit creation in {Date} [skip ci]";
 
+            // Configure git user for CI/CD environment
+            GitTasks.Git("config user.name \"GitHub Actions\"");
+            GitTasks.Git("config user.email \"actions@github.com\"");
+
             // Use Git commands to commit changes locally
             GitTasks.Git("add .");
             GitTasks.Git($"""commit -m "chore: Automatic commit creation in {Date} [skip ci]" """);

@@ -18,7 +18,7 @@ name: weekly-release
 
 on:
   schedule:
-    - cron: "21 16 * * 4"
+    - cron: "35 16 * * 4"
   workflow_dispatch:
 
 jobs:

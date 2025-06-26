@@ -39,7 +39,7 @@ namespace SumTree.Nuke;
     AutoGenerate = false, // Disable because it`s too buggy
     OnPushTags = ["v*"],
     OnPushBranches = ["main"],
-    InvokedTargets = [nameof(Pack), nameof(Publish)],
+    InvokedTargets = [nameof(Restore), nameof(Pack), nameof(Publish)],
     ImportSecrets = [nameof(NugetApiKey)]
 )]
 
@@ -50,7 +50,7 @@ namespace SumTree.Nuke;
     On = [GitHubActionsTrigger.WorkflowDispatch],
     FetchDepth = 0,
     AutoGenerate = false, // Disable because it`s too buggy
-    InvokedTargets = [nameof(Pack), nameof(Publish)],
+    InvokedTargets = [nameof(Restore), nameof(Pack), nameof(Publish)],
     ImportSecrets = [nameof(NugetApiKey)]
 )]
 internal sealed partial class Build : NukeBuild

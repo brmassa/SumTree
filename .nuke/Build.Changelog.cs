@@ -55,7 +55,7 @@ partial class Build
 
             fileContents = InsertTextAtIndex(fileContents, newVersionSection, UnreleasedSection,
                 UnreleasedSection.Length + 1);
-            fileContents = InsertTextAtIndex(fileContents, linkReference, $"[{previousVersion}]:", 0);
+            fileContents = InsertLinkReference(fileContents, linkReference, previousVersion);
 
             fileContents = UpdateUnreleasedLink(fileContents, unreleasedLink, previousVersion);
 
@@ -72,16 +72,61 @@ partial class Build
         var linkInsertIndex = fileContents.LastIndexOf(reference, StringComparison.CurrentCulture);
         if (linkInsertIndex == -1)
         {
-            throw new InvalidOperationException("Could not find the correct position to insert the new text.");
+            throw new InvalidOperationException($"Could not find the reference '{reference}' to insert the new text.");
         }
 
         return fileContents.Insert(linkInsertIndex + charDelta, newText);
     }
 
+    private string InsertLinkReference(string fileContents, string linkReference, string previousVersion)
+    {
+        // Try to find the previous version link reference
+        var previousVersionLinkPattern = $"[{previousVersion}]:";
+        var linkInsertIndex = fileContents.LastIndexOf(previousVersionLinkPattern, StringComparison.CurrentCulture);
+
+        if (linkInsertIndex != -1)
+        {
+            // Insert after the previous version link
+            return InsertTextAtIndex(fileContents, linkReference, previousVersionLinkPattern, 0);
+        }
+
+        // If previous version link not found, try to find any link reference and insert before it
+        var linkPattern = @"[";
+        var anyLinkIndex = fileContents.LastIndexOf(linkPattern, StringComparison.CurrentCulture);
+
+        if (anyLinkIndex != -1)
+        {
+            // Find the start of the line containing the link
+            var lineStart = fileContents.LastIndexOf('\n', anyLinkIndex) + 1;
+            return fileContents.Insert(lineStart, linkReference);
+        }
+
+        // If no links found, append at the end
+        return fileContents + Environment.NewLine + linkReference.TrimEnd();
+    }
+
     private string UpdateUnreleasedLink(string fileContents, string unreleasedLink, string previousVersion)
     {
-        var oldUnreleasedLink = $@"[Unreleased]: {GetVersionLink($"v{previousVersion}", "HEAD")}";
-        return fileContents.Replace(oldUnreleasedLink, unreleasedLink, StringComparison.InvariantCulture);
+        // Try to find and replace the existing unreleased link
+        var unreleasedLinkPattern = "[Unreleased]:";
+        var unreleasedIndex = fileContents.IndexOf(unreleasedLinkPattern, StringComparison.CurrentCulture);
+
+        if (unreleasedIndex == -1)
+        {
+            // If no unreleased link found, append it
+            return fileContents + Environment.NewLine + unreleasedLink;
+        }
+
+        // Find the end of the line containing the unreleased link
+        var lineEnd = fileContents.IndexOf('\n', unreleasedIndex);
+        if (lineEnd == -1)
+        {
+            lineEnd = fileContents.Length;
+        }
+
+        // Replace the entire unreleased link line
+        var oldLine = fileContents.Substring(unreleasedIndex, lineEnd - unreleasedIndex);
+        return fileContents.Replace(oldLine, unreleasedLink.TrimEnd(), StringComparison.InvariantCulture);
     }
 
     private string GetPreviousVersion()

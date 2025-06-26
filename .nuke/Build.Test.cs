@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
-using Nuke.Common.Tools.Coverlet;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.ReportGenerator;
 using Serilog;

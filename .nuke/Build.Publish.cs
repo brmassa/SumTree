@@ -20,6 +20,8 @@ partial class Build
 
     [Parameter("Include source package (default: true)")] public readonly bool IncludeSource = true;
 
+    [Parameter] [Secret] string NugetApiKey;
+
     /// <summary>
     /// Creates NuGet packages for the library
     /// </summary>
@@ -43,8 +45,6 @@ partial class Build
                 .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg)
             );
         });
-
-    string NugetApiKey;
 
     /// <summary>
     /// Publishes NuGet packages to nuget.org

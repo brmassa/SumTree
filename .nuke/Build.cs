@@ -14,7 +14,7 @@ namespace SumTree.Nuke;
     GitHubActionsImage.UbuntuLatest,
     GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = false,
+    AutoGenerate = false, // Disable because it`s too buggy
     On = [GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest],
     InvokedTargets = [nameof(TestReport), nameof(Compile), nameof(Restore), nameof(Pack)]
 )]
@@ -25,7 +25,7 @@ namespace SumTree.Nuke;
     GitHubActionsImage.UbuntuLatest,
     GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = false,
+    AutoGenerate = false, // Disable because it`s too buggy
     OnCronSchedule = "0 16 * * 4", // Thursday 16:00 UTC = 13:00 BRT
     OnPushBranches = ["main"],
     InvokedTargets = [nameof(Test), nameof(GitHubCreateRelease)]
@@ -36,7 +36,7 @@ namespace SumTree.Nuke;
     "publish-on-tag",
     GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = false,
+    AutoGenerate = false, // Disable because it`s too buggy
     OnPushTags = ["v*"],
     OnPushBranches = ["main"],
     InvokedTargets = [nameof(Pack), nameof(Publish)],
@@ -49,7 +49,7 @@ namespace SumTree.Nuke;
     GitHubActionsImage.UbuntuLatest,
     On = [GitHubActionsTrigger.WorkflowDispatch],
     FetchDepth = 0,
-    AutoGenerate = false,
+    AutoGenerate = false, // Disable because it`s too buggy
     InvokedTargets = [nameof(Pack), nameof(Publish)],
     ImportSecrets = [nameof(NugetApiKey)]
 )]

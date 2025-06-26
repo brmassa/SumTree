@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tools.Coverlet;
@@ -15,37 +16,49 @@ namespace SumTree.Nuke;
 partial class Build
 {
     private static AbsolutePath CoverageDirectory => RootDirectory / "coverage";
-    private static AbsolutePath CoverageResultFile => CoverageDirectory / "coverage.xml";
     private static AbsolutePath CoverageReportDirectory => CoverageDirectory / "report";
     private static AbsolutePath CoverageReportSummaryDirectory => CoverageReportDirectory / "Summary.txt";
 
+    private AbsolutePath GetCoverageResultFile()
+    {
+        // Find the coverage.cobertura.xml file in the subdirectories
+        var coverageFiles = CoverageDirectory.GlobFiles("**/coverage.cobertura.xml");
+        return coverageFiles.FirstOrDefault() ?? CoverageDirectory / "coverage.xml";
+    }
+
     private Target Test => td => td
         .After(Compile)
-        .Produces(CoverageResultFile)
         .Executes(() =>
+        {
+            _ = CoverageDirectory.CreateDirectory();
             DotNetTasks.DotNetTest(settings => settings
-                    .SetProjectFile(Solution.SumTree_Tests)
-                    .SetConfiguration(ConfigurationSet)
-
-                    // Test Coverage
-                    .SetResultsDirectory(CoverageDirectory)
-                    .SetCoverletOutput(CoverageResultFile)
-                    .SetCoverletOutputFormat(CoverletOutputFormat.cobertura)
-                    .SetExcludeByFile("**/*.g.cs") // Exclude source generated files
-                // .EnableCollectCoverage()
-            )
-        );
+                .SetProjectFile(Solution.SumTree_Tests)
+                .SetConfiguration(ConfigurationSet)
+                .SetResultsDirectory(CoverageDirectory)
+                .SetDataCollector("XPlat Code Coverage")
+                .SetLoggers("trx")
+                .AddProperty("CollectCoverage", "true")
+                .AddProperty("CoverletOutputFormat", "cobertura")
+                .AddProperty("ExcludeByFile", "**/*.g.cs")
+            );
+        });
 
     public Target TestReport => td => td
         .DependsOn(Test)
-        .Consumes(Test, CoverageResultFile)
         .Executes(() =>
         {
+            var coverageResultFile = GetCoverageResultFile();
+            if (!coverageResultFile.FileExists())
+            {
+                Log.Error("Coverage file not found: {0}", coverageResultFile);
+                return;
+            }
+
             _ = CoverageReportDirectory.CreateDirectory();
             _ = ReportGeneratorTasks.ReportGenerator(s => s
                 .SetTargetDirectory(CoverageReportDirectory)
                 .SetReportTypes(ReportTypes.Html, ReportTypes.TextSummary)
-                .SetReports(CoverageResultFile)
+                .SetReports(coverageResultFile)
             );
             var summaryText = CoverageReportSummaryDirectory.ReadAllLines();
             Log.Information(string.Join(Environment.NewLine, summaryText));

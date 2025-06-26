@@ -48,3 +48,5 @@ jobs:
         with:
           name: coverage.xml
           path: coverage/coverage.xml
+    permissions:
+      contents: write

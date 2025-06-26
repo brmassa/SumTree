@@ -2,11 +2,11 @@
 
 ![logo](logo.png)
 
-[![Build Status](https://github.com/brmassa/SumTree/actions/workflows/dotnet.yml/badge.svg)](https://github.com/brmassa/SumTree/actions)
+[![Build Status](https://github.com/brmassa/SumTree/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/brmassa/SumTree/actions)
 [![License](https://img.shields.io/github/license/brmassa/SumTree.svg)](https://github.com/brmassa/SumTree/LICENSE)
 [![NuGet](https://img.shields.io/nuget/v/BrunoMassa.SumTree.svg)](https://www.nuget.org/packages/BrunoMassa.SumTree)
 [![downloads](https://img.shields.io/nuget/dt/BrunoMassa.SumTree)](https://www.nuget.org/packages/BrunoMassa.SumTree)
-![Size](https://img.shields.io/github/repo-size/brmassa/SumTree.svg) 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C0AE5SC)
 
 ## What is this?
 
@@ -250,16 +250,16 @@ SumTree<char> balanced = unbalancedTree.Balanced();
 
 ## Comparison with .NET Built-in Types
 
-| Operation | String | StringBuilder | List&lt;T&gt; | ImmutableList&lt;T&gt; | SumTree&lt;T&gt; |
-|-----------|--------|---------------|------------|-------------------|---------------|
-| Concat | O(n) | O(1)* | O(n) | O(log n) | **O(log n)** |
-| Insert | O(n) | O(n) | O(n) | O(log n) | **O(log n)** |
-| Remove | O(n) | O(n) | O(n) | O(log n) | **O(log n)** |
-| IndexOf | O(n) | O(n) | O(n) | O(n) | **O(n)** |
-| Random Access | O(1) | O(1) | O(1) | O(log n) | **O(log n)** |
-| Memory Usage | High | Medium | High | High | **Low** |
-| Immutable | ✓ | ✗ | ✗ | ✓ | **✓** |
-| Summary Queries | ✗ | ✗ | ✗ | ✗ | **✓** |
+| Operation       | SumTree\<T\> | Rope\<T\>    | String | StringBuilder | List\<T\> | ImmutableList\<T\> |
+|-----------------|--------------|--------------|--------|---------------|-----------|--------------------|
+| Concat          | **O(log n)** | O(log n)     | O(n)   | O(1)*         | O(n)      | O(log n)           |
+| Insert          | **O(log n)** | O(log n)     | O(n)   | O(n)          | O(n)      | O(log n)           |
+| Remove          | **O(log n)** | O(log n)     | O(n)   | O(n)          | O(n)      | O(log n)           |
+| IndexOf         | O(n)         | O(n)         | O(n)   | O(n)          | O(n)      | O(n)               |
+| Random Access   | O(log n)     | O(log n)     | O(1)   | O(1)          | O(1)      | O(log n)           |
+| Memory Usage    | **Low**      | Low          | High   | Medium        | High      | High               |
+| Immutable       | ✓            | ✓            | ✓      | ✗             | ✗         | ✓                  |
+| Summary Queries | **✓**        | ✗            | ✗      | ✗             | ✗         | ✗                  |
 
 *StringBuilder concat is amortized O(1) but requires mutation
 

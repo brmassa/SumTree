@@ -16,7 +16,7 @@
 
 name: continuous-integration
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   ubuntu-latest:
@@ -28,24 +28,23 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
-      - name: 'Cache: .nuke/temp, ~/.nuget/packages'
+          dotnet-version: "9.0.x"
+      - name: "Cache: .nuke/temp, ~/.nuget/packages"
         uses: actions/cache@v4
         with:
           path: |
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
-      - name: 'Run: TestReport, Compile, Restore, Pack'
+      - name: "Run: TestReport, Compile, Restore, Pack"
         run: ./build.cmd TestReport Compile Restore Pack
-      - name: 'Publish: coverage.xml'
+      - name: "Publish: coverage.xml"
         uses: actions/upload-artifact@v4
         with:
           name: coverage.xml
           path: coverage/coverage.xml
-      - name: 'Publish: packages'
+      - name: "Publish: packages"
         uses: actions/upload-artifact@v4
         with:
           name: packages
           path: packages
-  

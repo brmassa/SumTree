@@ -18,7 +18,8 @@ name: weekly-release
 
 on:
   schedule:
-    - cron: '0 16 * * 4'
+    - cron: "21 16 * * 4"
+  workflow_dispatch:
 
 jobs:
   ubuntu-latest:
@@ -30,19 +31,19 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
-      - name: 'Cache: .nuke/temp, ~/.nuget/packages'
+          dotnet-version: "9.0.x"
+      - name: "Cache: .nuke/temp, ~/.nuget/packages"
         uses: actions/cache@v4
         with:
           path: |
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
-      - name: 'Run: Test, GitHubCreateRelease'
+      - name: "Run: Test, GitHubCreateRelease"
         run: ./build.cmd Test GitHubCreateRelease
         env:
           GitHubToken: ${{ secrets.GITHUB_TOKEN }}
-      - name: 'Publish: coverage.xml'
+      - name: "Publish: coverage.xml"
         uses: actions/upload-artifact@v4
         with:
           name: coverage.xml

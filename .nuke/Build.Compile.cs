@@ -4,6 +4,8 @@ using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Utilities.Collections;
 using Serilog;
 
+namespace SumTree.Nuke;
+
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the build process.

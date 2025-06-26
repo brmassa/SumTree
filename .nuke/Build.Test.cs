@@ -6,6 +6,8 @@ using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.ReportGenerator;
 using Serilog;
 
+namespace SumTree.Nuke;
+
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the build process.
@@ -22,14 +24,14 @@ partial class Build
         .Produces(CoverageResultFile)
         .Executes(() =>
             DotNetTasks.DotNetTest(settings => settings
-                .SetProjectFile(Solution.SumTree_Tests)
-                .SetConfiguration(ConfigurationSet)
+                    .SetProjectFile(Solution.SumTree_Tests)
+                    .SetConfiguration(ConfigurationSet)
 
-                // Test Coverage
-                .SetResultsDirectory(CoverageDirectory)
-                .SetCoverletOutput(CoverageResultFile)
-                .SetCoverletOutputFormat(CoverletOutputFormat.cobertura)
-                .SetExcludeByFile("**/*.g.cs") // Exclude source generated files
+                    // Test Coverage
+                    .SetResultsDirectory(CoverageDirectory)
+                    .SetCoverletOutput(CoverageResultFile)
+                    .SetCoverletOutputFormat(CoverletOutputFormat.cobertura)
+                    .SetExcludeByFile("**/*.g.cs") // Exclude source generated files
                 // .EnableCollectCoverage()
             )
         );

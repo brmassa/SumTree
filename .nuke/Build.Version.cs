@@ -9,6 +9,8 @@ using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.GitVersion;
 using Serilog;
 
+namespace SumTree.Nuke;
+
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the versioning using GitVersion.

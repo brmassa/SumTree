@@ -1,8 +1,9 @@
-using System;
 using System.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tools.DotNet;
+
+namespace SumTree.Nuke;
 
 /// <summary>
 /// This is the main build file for the project.
@@ -23,7 +24,7 @@ partial class Build
     /// Creates NuGet packages for the library
     /// </summary>
     private Target Pack => td => td
-        .DependsOn(Compile)
+        .DependsOn(Compile, ExtractChangelogLatestVersion)
         .Produces(PackageDir / "*.zip")
         .Executes(() =>
         {
@@ -34,6 +35,7 @@ partial class Build
                 .SetVersion(CurrentVersion)
                 .SetAssemblyVersion(CurrentVersion)
                 .SetInformationalVersion(CurrentVersion)
+                .SetPackageReleaseNotes(ChangelogLatestVersion)
                 .SetNoBuild(true)
                 .SetNoRestore(true)
                 .SetIncludeSymbols(IncludeSymbols)

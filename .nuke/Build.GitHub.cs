@@ -6,6 +6,8 @@ using Nuke.Common;
 using Nuke.Common.Tools.Git;
 using Serilog;
 
+namespace SumTree.Nuke;
+
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible integrating the GitHub CI/CD.
@@ -30,7 +32,7 @@ partial class Build
     /// </summary>
     /// <see href="https://docs.github.com/en/rest/releases/releases#create-a-release"/>
     public Target GitHubCreateRelease => td => td
-        .DependsOn(GitHubCreateTag, ExtractUnreleasedChangelog)
+        .DependsOn(GitHubCreateTag, ExtractChangelogUnreleased)
         .OnlyWhenStatic(() => HasNewCommits)
         .Requires(() => GitHubToken)
         .Executes(async () =>

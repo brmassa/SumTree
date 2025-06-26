@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using Nuke.Common.Tooling;
 
+namespace SumTree.Nuke;
+
 [TypeConverter(typeof(TypeConverter<Configuration>))]
 public class Configuration : Enumeration
 {

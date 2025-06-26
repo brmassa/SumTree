@@ -1,9 +1,8 @@
-using Microsoft.Build.Utilities;
-using NuGet.Packaging;
 using Nuke.Common;
 using Nuke.Common.CI;
 using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.Tools.TestCloud;
+
+namespace SumTree.Nuke;
 
 /// <summary>
 /// This is the main build file for the project.
@@ -15,7 +14,7 @@ using Nuke.Common.Tools.TestCloud;
     GitHubActionsImage.UbuntuLatest,
     GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = true,
+    AutoGenerate = false,
     On = [GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest],
     InvokedTargets = [nameof(TestReport), nameof(Compile), nameof(Restore), nameof(Pack)]
 )]
@@ -26,7 +25,7 @@ using Nuke.Common.Tools.TestCloud;
     GitHubActionsImage.UbuntuLatest,
     GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = true,
+    AutoGenerate = false,
     OnCronSchedule = "0 16 * * 4", // Thursday 16:00 UTC = 13:00 BRT
     OnPushBranches = ["main"],
     InvokedTargets = [nameof(Test), nameof(GitHubCreateRelease)]
@@ -37,7 +36,7 @@ using Nuke.Common.Tools.TestCloud;
     "publish-on-tag",
     GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = true,
+    AutoGenerate = false,
     OnPushTags = ["v*"],
     OnPushBranches = ["main"],
     InvokedTargets = [nameof(Pack), nameof(Publish)],
@@ -50,7 +49,7 @@ using Nuke.Common.Tools.TestCloud;
     GitHubActionsImage.UbuntuLatest,
     On = [GitHubActionsTrigger.WorkflowDispatch],
     FetchDepth = 0,
-    AutoGenerate = true,
+    AutoGenerate = false,
     InvokedTargets = [nameof(Pack), nameof(Publish)],
     ImportSecrets = [nameof(NugetApiKey)]
 )]

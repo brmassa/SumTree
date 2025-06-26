@@ -6,6 +6,8 @@ using JetBrains.Annotations;
 using Nuke.Common;
 using Serilog;
 
+namespace SumTree.Nuke;
+
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the updating the Changelog.
@@ -105,7 +107,7 @@ partial class Build
 
     [CanBeNull] string ChangelogUnreleased;
 
-    private Target ExtractUnreleasedChangelog => td => td
+    private Target ExtractChangelogUnreleased => td => td
         .Before(UpdateChangelog)
         .Executes(() =>
         {
@@ -167,7 +169,8 @@ partial class Build
             : string.Join(Environment.NewLine, changelogLines);
     }
 
-    private Target ExtractLatestChangelog => td => td
+    [PublicAPI]
+    private Target ExtractChangelogLatestVersion => td => td
         .Executes(() =>
         {
             if (!File.Exists(ChangelogFile))

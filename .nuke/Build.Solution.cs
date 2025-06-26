@@ -1,6 +1,8 @@
 using Nuke.Common;
 using Nuke.Common.ProjectModel;
 
+namespace SumTree.Nuke;
+
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the solution-wide variables.

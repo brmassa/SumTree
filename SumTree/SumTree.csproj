@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
-        <PackageId>BrunoMassa.SumTree</PackageId>
+        <PackageId>com.BrunoMassa.SumTree</PackageId>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Copyright>©️ 2025 Bruno Massa</Copyright>
         <PackageProjectUrl>https://github.com/brmassa/SumTree</PackageProjectUrl>

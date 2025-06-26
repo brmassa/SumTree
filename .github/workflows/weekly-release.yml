@@ -17,9 +17,6 @@
 name: weekly-release
 
 on:
-  push:
-    branches:
-      - main
   schedule:
     - cron: '0 16 * * 4'
 
@@ -31,6 +28,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
       - name: 'Cache: .nuke/temp, ~/.nuget/packages'
         uses: actions/cache@v4
         with:

@@ -142,6 +142,10 @@
           "type": "boolean",
           "description": "Include symbols package (default: true)"
         },
+        "NugetApiKey": {
+          "type": "string",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
         "PackageDirectory": {
           "type": "string",
           "description": "Output directory for NuGet packages (default: ./packages)"

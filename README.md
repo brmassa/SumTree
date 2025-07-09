@@ -4,8 +4,8 @@
 
 [![Build Status](https://github.com/brmassa/SumTree/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/brmassa/SumTree/actions)
 [![License](https://img.shields.io/github/license/brmassa/SumTree.svg)](https://github.com/brmassa/SumTree/LICENSE)
-[![NuGet](https://img.shields.io/nuget/v/BrunoMassa.SumTree.svg)](https://www.nuget.org/packages/BrunoMassa.SumTree)
-[![downloads](https://img.shields.io/nuget/dt/BrunoMassa.SumTree)](https://www.nuget.org/packages/BrunoMassa.SumTree)
+[![NuGet](https://img.shields.io/nuget/v/com.BrunoMassa.SumTree.svg)](https://www.nuget.org/packages/BrunoMassa.SumTree)
+[![downloads](https://img.shields.io/nuget/dt/com.BrunoMassa.SumTree)](https://www.nuget.org/packages/BrunoMassa.SumTree)
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C0AE5SC)
 
 ## What is this?
@@ -419,4 +419,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Author:** Bruno Massa  
 **Repository:** https://github.com/brmassa/SumTree  
-**Package:** https://www.nuget.org/packages/BrunoMassa.SumTree
+**Package:** https://www.nuget.org/packages/com.BrunoMassa.SumTree

@@ -16,7 +16,8 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// <summary>
     /// Maximum tree depth allowed.
     /// </summary>
-    public const int MaxTreeDepth = 46;
+    private const int MaxTreeDepth = 46;
+    private static readonly ThreadLocal<int> BalancedCallDepth = new(() => 0);
 
     /// <summary>
     /// Defines the maximum depth discrepancy between left and right to cause a re-split of one side when balancing.
@@ -491,19 +492,27 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
     private T GetElementAtIndex(long index)
     {
-        if (IsNode)
+        var current = this;
+        var currentIndex = index;
+
+        while (current.IsNode)
         {
-            var leftLength = Left.Length;
-            if (index < leftLength)
-                return Left.GetElementAtIndex(index);
+            var leftLength = current.Left.Length;
+            if (currentIndex < leftLength)
+            {
+                current = current.Left;
+            }
             else
-                return Right.GetElementAtIndex(index - leftLength);
+            {
+                current = current.Right;
+                currentIndex -= leftLength;
+            }
         }
 
         // Leaf node
-        return data switch
+        return current.data switch
         {
-            ReadOnlyMemory<T> memory => memory.Span[(int)index],
+            ReadOnlyMemory<T> memory => memory.Span[(int)currentIndex],
             ValueTuple<T> single => single.Item1,
             _ => throw new InvalidOperationException("Invalid data type")
         };
@@ -511,29 +520,54 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
     private (SumTree<T> Left, SumTree<T> Right) SplitAtInternal(long index)
     {
-        if (IsNode)
+        var current = this;
+        var currentIndex = index;
+        var leftParts = new List<SumTree<T>>();
+        var rightParts = new List<SumTree<T>>();
+
+        while (current.IsNode)
         {
-            var leftLength = Left.Length;
-            if (index <= leftLength)
+            var leftLength = current.Left.Length;
+            if (currentIndex <= leftLength)
             {
-                var (ll, lr) = Left.SplitAt(index);
-                return (ll, Concat(lr, Right));
+                // Split will happen in left subtree
+                rightParts.Add(current.Right);
+                current = current.Left;
             }
             else
             {
-                var (rl, rr) = Right.SplitAt(index - leftLength);
-                return (Concat(Left, rl), rr);
+                // Split will happen in right subtree
+                leftParts.Add(current.Left);
+                current = current.Right;
+                currentIndex -= leftLength;
             }
         }
 
-        // Leaf node
-        return data switch
+        // Now we have a leaf node, split it
+        var (leafLeft, leafRight) = current.data switch
         {
-            ReadOnlyMemory<T> memory => SplitMemory(memory, (int)index),
-            ValueTuple<T> when index == 0 => (Empty.WithDimensions(dimensions), this),
-            ValueTuple<T> => (this, Empty.WithDimensions(dimensions)),
+            ReadOnlyMemory<T> memory => SplitMemory(memory, (int)currentIndex),
+            ValueTuple<T> single => currentIndex == 0
+                ? (Empty.WithDimensions(dimensions), current)
+                : (current, Empty.WithDimensions(dimensions)),
             _ => throw new InvalidOperationException("Invalid data type")
         };
+
+        // Combine left parts with leaf left
+        var left = leafLeft;
+        for (int i = leftParts.Count - 1; i >= 0; i--)
+        {
+            left = ConcatDirect(leftParts[i], left);
+        }
+
+        // Combine leaf right with right parts
+        var right = leafRight;
+        for (int i = rightParts.Count - 1; i >= 0; i--)
+        {
+            right = ConcatDirect(right, rightParts[i]);
+        }
+
+        return (left, right);
     }
 
     private (SumTree<T> Left, SumTree<T> Right) SplitMemory(ReadOnlyMemory<T> memory, int index)
@@ -573,7 +607,32 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             summaries
         );
 
-        return isBalanced ? result : result.Balanced();
+        return result;
+    }
+
+    private static SumTree<T> ConcatDirect(SumTree<T> left, SumTree<T> right)
+    {
+        if (left.IsEmpty) return right;
+        if (right.IsEmpty) return left;
+
+        var newLength = left.Length + right.Length;
+        var newDepth = Math.Max(left.Depth, right.Depth) + 1;
+        var newBufferCount = left.BufferCount + right.BufferCount;
+        var isBalanced = CalculateIsBalanced(newLength, newDepth);
+
+        // Merge dimensions
+        var dimensions = MergeDimensions(left.dimensions, right.dimensions);
+        var summaries = dimensions != null ? ComputeCombinedSummaries(left, right, dimensions) : null;
+
+        return new SumTree<T>(
+            new ValueTuple<SumTree<T>, SumTree<T>>(left, right),
+            newLength,
+            newDepth,
+            newBufferCount,
+            isBalanced,
+            dimensions,
+            summaries
+        );
     }
 
     private SumTree<T> WithDimensions(Dictionary<Type, object>? newDimensions)
@@ -590,13 +649,8 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
     private SumTree<T> Balanced()
     {
-        if (IsBalanced || IsEmpty) return this;
-
-        // Implement tree balancing logic similar to Rope
-        var leaves = new List<SumTree<T>>();
-        CollectLeaves(leaves);
-
-        return CombineLeaves(leaves, dimensions);
+        // Completely disable balancing to prevent infinite recursion
+        return this;
     }
 
     private void CollectLeaves(List<SumTree<T>> leaves)
@@ -614,24 +668,31 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
     private IEnumerable<T> EnumerateElements()
     {
-        if (IsNode)
+        var stack = new Stack<SumTree<T>>();
+        stack.Push(this);
+
+        while (stack.Count > 0)
         {
-            foreach (var element in Left.EnumerateElements())
-                yield return element;
-            foreach (var element in Right.EnumerateElements())
-                yield return element;
-        }
-        else
-        {
-            switch (data)
+            var current = stack.Pop();
+
+            if (current.IsNode)
             {
-                case ReadOnlyMemory<T> memory:
-                    for (int i = 0; i < memory.Length; i++)
-                        yield return memory.Span[i];
-                    break;
-                case ValueTuple<T> single:
-                    yield return single.Item1;
-                    break;
+                // Push right first, then left (so left is processed first)
+                stack.Push(current.Right);
+                stack.Push(current.Left);
+            }
+            else
+            {
+                switch (current.data)
+                {
+                    case ReadOnlyMemory<T> memory:
+                        for (int i = 0; i < memory.Length; i++)
+                            yield return memory.Span[i];
+                        break;
+                    case ValueTuple<T> single:
+                        yield return single.Item1;
+                        break;
+                }
             }
         }
     }
@@ -675,13 +736,25 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return -1;
     }
 
-    private TSummary GetSummaryForDimension<TSummary>(ISummaryDimension<T, TSummary> dimension)
+    /// <summary>
+    /// Gets the summary for the specified dimension.
+    /// </summary>
+    /// <typeparam name="TSummary">The type of the summary.</typeparam>
+    /// <param name="dimension">The dimension to compute the summary for.</param>
+    /// <returns>The summary for the dimension.</returns>
+    public TSummary GetSummary<TSummary>(ISummaryDimension<T, TSummary> dimension)
         where TSummary : IEquatable<TSummary>
     {
         if (summaries != null && summaries.TryGetValue(typeof(TSummary), out var summary))
             return (TSummary)summary;
 
         return ComputeSummaryForTree(dimension);
+    }
+
+    private TSummary GetSummaryForDimension<TSummary>(ISummaryDimension<T, TSummary> dimension)
+        where TSummary : IEquatable<TSummary>
+    {
+        return GetSummary(dimension);
     }
 
     private TSummary ComputeSummaryForTree<TSummary>(ISummaryDimension<T, TSummary> dimension)
@@ -895,18 +968,14 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         if (leaves.Count == 0) return Empty;
         if (leaves.Count == 1) return leaves[0];
 
-        // Implement balanced tree construction from leaves
-        var queue = new Queue<SumTree<T>>(leaves);
-
-        while (queue.Count > 1)
+        // Simple left-to-right combining without balancing to prevent recursion
+        var result = leaves[0];
+        for (int i = 1; i < leaves.Count; i++)
         {
-            var left = queue.Dequeue();
-            var right = queue.Dequeue();
-            var combined = Concat(left, right);
-            queue.Enqueue(combined);
+            result = ConcatDirect(result, leaves[i]);
         }
 
-        return queue.Dequeue();
+        return result;
     }
 
     /// <summary>

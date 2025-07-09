@@ -51,7 +51,7 @@ public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<Lin
     {
         var totalLines = left.Lines + right.Lines;
         var lastLineChars =
-            left.Lines > 0 ? right.LastLineCharacters : left.LastLineCharacters + right.LastLineCharacters;
+            right.Lines > 0 ? right.LastLineCharacters : left.LastLineCharacters + right.LastLineCharacters;
         var totalChars = left.TotalCharacters + right.TotalCharacters;
 
         return new LineNumberSummary(totalLines, lastLineChars, totalChars);
@@ -139,16 +139,36 @@ public class LineNumberDimension : SummaryDimensionBase<char, LineNumberSummary>
 
         for (int i = 0; i < elements.Length; i++)
         {
-            if (elements[i] == '\n')
+            char ch = elements[i];
+
+            if (ch == '\n')
             {
                 lines++;
                 lastLineCharacters = 0;
+            }
+            else if (ch == '\r')
+            {
+                // Handle \r\n as a single line break
+                if (i + 1 < elements.Length && elements[i + 1] == '\n')
+                {
+                    lines++;
+                    lastLineCharacters = 0;
+                    i++; // Skip the \n part of \r\n
+                }
+                else
+                {
+                    // Standalone \r is treated as a line break
+                    lines++;
+                    lastLineCharacters = 0;
+                }
             }
             else
             {
                 lastLineCharacters++;
             }
         }
+
+
 
         return new LineNumberSummary(lines, lastLineCharacters, totalCharacters);
     }

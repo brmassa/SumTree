@@ -123,6 +123,13 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         var startIndex = FindIndexForPosition(startPosition);
         var endIndex = FindIndexForPosition(endCursor.Position);
 
+        // For Bias.Left, we want to include the target position in the slice
+        // So we need to add 1 to the end index if we're not at the end
+        if (bias == Bias.Left && endIndex < _tree.Length)
+        {
+            endIndex++;
+        }
+
         if (startIndex >= endIndex) return SumTree<T>.Empty;
 
         return _tree.Slice(startIndex, endIndex - startIndex);
@@ -151,12 +158,19 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
 
         while (!IsAtStart)
         {
-            if (!PreviousInternal()) break;
-
+            // Check if the current position satisfies the predicate before moving
             if (predicate(_position))
             {
                 return true;
             }
+
+            if (!PreviousInternal()) break;
+        }
+
+        // Check the start position as well
+        if (predicate(_position))
+        {
+            return true;
         }
 
         // Restore position if not found
@@ -171,9 +185,19 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
 
         while (!_atEnd)
         {
-            if (predicate(_position))
+            // Check if including the current character would satisfy the predicate
+            var currentItem = Item;
+            if (currentItem != null)
             {
-                return true;
+                var itemSummary = _dimension.SummarizeElement(currentItem);
+                var positionAfterItem = _dimension.Combine(_position, itemSummary);
+
+                if (predicate(positionAfterItem))
+                {
+                    // The current character satisfies the predicate, so return true
+                    // without advancing the cursor
+                    return true;
+                }
             }
 
             if (!NextInternal()) break;
@@ -255,6 +279,7 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
             var item = current.Tree.ElementAt(current.Index - 1);
             var itemSummary = _dimension.SummarizeElement(item);
             _position = _dimension.Combine(_position, itemSummary);
+
         }
 
         if (current.Index < current.Tree.Length)
@@ -284,34 +309,93 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
     {
         if (_stack.Count == 0) return false;
 
-        var current = _stack.Pop();
-        current.Index--;
-
-        if (current.Index >= 0)
+        var current = _stack.Peek();
+        if (current.Index > 0)
         {
-            // Update position
-            var item = current.Tree.ElementAt(current.Index);
-            var itemSummary = _dimension.SummarizeElement(item);
-            _position = _dimension.Combine(_position, itemSummary);
+            // Move backward within current leaf
+            var updated = _stack.Pop();
+            updated.Index--;
 
-            _stack.Push(current);
+            // Recalculate position from start of current leaf
+            var leafPosition = updated.Position;
+            for (var i = 0; i < updated.Index; i++)
+            {
+                var item = updated.Tree.ElementAt(i);
+                var itemSummary = _dimension.SummarizeElement(item);
+                leafPosition = _dimension.Combine(leafPosition, itemSummary);
+            }
+
+            _position = leafPosition;
+            _stack.Push(updated);
             return true;
         }
 
-        // Move to previous sibling or parent
-        while (_stack.Count > 1)
+        // Need to move to previous node
+        if (_stack.Count == 0) return false;
+
+        _stack.Pop(); // Remove current leaf
+
+        // Navigate up the tree to find previous position
+        while (_stack.Count > 0)
         {
             var parent = _stack.Pop();
-            parent.Index--;
-
-            if (parent.Index >= 0)
+            if (parent.Index > 0)
             {
+                // Go to previous child
+                parent.Index--;
                 _stack.Push(parent);
+
+                // Navigate to rightmost position in the previous subtree
+                NavigateToRightmostLeaf();
                 return true;
             }
         }
 
+        // Reached the start
         return false;
+    }
+
+    private void NavigateToRightmostLeaf()
+    {
+        while (_stack.Count > 0)
+        {
+            var current = _stack.Peek();
+            if (current.Tree.IsNode)
+            {
+                var entry = _stack.Pop();
+                if (entry.Index == 0)
+                {
+                    // Go to left child
+                    _stack.Push(new StackEntry(current.Tree.Left, 0, entry.Position));
+                }
+                else
+                {
+                    // Go to right child
+                    var leftSummary = current.Tree.Left.GetSummary(_dimension);
+                    var leftEnd = _dimension.Combine(entry.Position, leftSummary);
+                    _stack.Push(new StackEntry(current.Tree.Right, 1, leftEnd));
+                }
+            }
+            else
+            {
+                // Reached a leaf, position at the last element
+                var leaf = _stack.Pop();
+                var lastIndex = (int)leaf.Tree.Length - 1;
+
+                // Calculate position up to (but not including) last element
+                var leafPosition = leaf.Position;
+                for (var i = 0; i < lastIndex; i++)
+                {
+                    var item = leaf.Tree.ElementAt(i);
+                    var itemSummary = _dimension.SummarizeElement(item);
+                    leafPosition = _dimension.Combine(leafPosition, itemSummary);
+                }
+
+                _position = leafPosition;
+                _stack.Push(new StackEntry(leaf.Tree, lastIndex, leafPosition));
+                break;
+            }
+        }
     }
 
     private void SeekInternal(TDimension target, Bias bias)
@@ -352,9 +436,9 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         {
             // Find position in leaf
             var leafPosition = currentPosition;
-            int index = 0;
+            var index = 0;
 
-            for (int i = 0; i < tree.Length; i++)
+            for (var i = 0; i < tree.Length; i++)
             {
                 var item = tree.ElementAt(i);
                 var itemSummary = _dimension.SummarizeElement(item);

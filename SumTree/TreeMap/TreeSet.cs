@@ -100,7 +100,7 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if the element was added, false if it already existed.</returns>
     public bool Add(T item)
     {
-        bool existed = _map.ContainsKey(item);
+        var existed = _map.ContainsKey(item);
         _map.Insert(item, Marker);
         return !existed;
     }
@@ -117,6 +117,7 @@ public class TreeSet<T> : IEnumerable<T>
             _map.Remove(item);
             return true;
         }
+
         return false;
     }
 
@@ -163,32 +164,37 @@ public class TreeSet<T> : IEnumerable<T>
     /// <summary>
     /// Gets the first element in the set.
     /// </summary>
-    /// <returns>The first element, or default if the set is empty.</returns>
-    public T? First()
+    /// <returns>The first element, or null if the set is empty.</returns>
+    public Maybe<T> First()
     {
-        var first = _map.First();
-        return first.HasValue ? first.Value.Key : default;
+        if (_map.IsEmpty)
+            return Maybe<T>.None;
+
+        return new Maybe<T>(_map.First()!.Value.Key);
     }
 
     /// <summary>
     /// Gets the last element in the set.
     /// </summary>
-    /// <returns>The last element, or default if the set is empty.</returns>
-    public T? Last()
+    /// <returns>The last element, or null if the set is empty.</returns>
+    public Maybe<T> Last()
     {
-        var last = _map.Last();
-        return last.HasValue ? last.Value.Key : default;
+        if (_map.IsEmpty)
+            return Maybe<T>.None;
+
+        return new Maybe<T>(_map.Last()!.Value.Key);
     }
+
 
     /// <summary>
     /// Finds the element with the greatest value less than or equal to the specified element.
     /// </summary>
     /// <param name="item">The element to search for.</param>
     /// <returns>The closest element, or default if not found.</returns>
-    public T? Closest(T item)
+    public Maybe<T> Closest(T item)
     {
         var closest = _map.Closest(item);
-        return closest.HasValue ? closest.Value.Key : default;
+        return closest.HasValue ? new Maybe<T>(closest.Value.Key) : Maybe<T>.None;
     }
 
     /// <summary>
@@ -206,6 +212,7 @@ public class TreeSet<T> : IEnumerable<T>
                 result.Add(item);
             }
         }
+
         return result;
     }
 
@@ -224,6 +231,7 @@ public class TreeSet<T> : IEnumerable<T>
                 result.Add(item);
             }
         }
+
         return result;
     }
 
@@ -239,10 +247,12 @@ public class TreeSet<T> : IEnumerable<T>
         {
             result.Add(item);
         }
+
         foreach (var item in other)
         {
             result.Add(item);
         }
+
         return result;
     }
 
@@ -261,6 +271,7 @@ public class TreeSet<T> : IEnumerable<T>
                 result.Add(item);
             }
         }
+
         foreach (var item in other)
         {
             if (!this.Contains(item))
@@ -268,6 +279,7 @@ public class TreeSet<T> : IEnumerable<T>
                 result.Add(item);
             }
         }
+
         return result;
     }
 
@@ -328,4 +340,18 @@ public class TreeSet<T> : IEnumerable<T>
     {
         return GetEnumerator();
     }
+}
+
+public readonly struct Maybe<T>
+{
+    public bool HasValue { get; }
+    public T Value { get; }
+
+    public Maybe(T value)
+    {
+        HasValue = true;
+        Value = value;
+    }
+
+    public static Maybe<T> None => new();
 }

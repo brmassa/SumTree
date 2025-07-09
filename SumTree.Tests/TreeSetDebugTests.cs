@@ -15,7 +15,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 10 items
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             set.Add(i);
         }
@@ -31,7 +31,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 100 items
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             set.Add(i);
         }
@@ -48,7 +48,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 1000 items
-        for (int i = 0; i < 1000; i++)
+        for (var i = 0; i < 1000; i++)
         {
             set.Add(i);
         }
@@ -65,7 +65,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 10 items
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             set.Add(i);
         }
@@ -74,7 +74,7 @@ public class TreeSetDebugTests
         Assert.AreEqual(10, items.Count);
 
         // Check ordering
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             Assert.AreEqual(i, items[i]);
         }
@@ -86,7 +86,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 100 items
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             set.Add(i);
         }
@@ -95,7 +95,7 @@ public class TreeSetDebugTests
         Assert.AreEqual(100, items.Count);
 
         // Check ordering
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             Assert.AreEqual(i, items[i]);
         }
@@ -107,13 +107,13 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 100 items
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             set.Add(i);
         }
 
         // Remove half the items
-        for (int i = 0; i < 50; i++)
+        for (var i = 0; i < 50; i++)
         {
             set.Remove(i);
         }
@@ -130,7 +130,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add items one by one and check count
-        for (int i = 0; i < 50; i++)
+        for (var i = 0; i < 50; i++)
         {
             set.Add(i);
             Assert.AreEqual(i + 1, set.Count);
@@ -155,7 +155,7 @@ public class TreeSetDebugTests
         var items = set.ToList();
         Assert.AreEqual(100, items.Count);
 
-        for (int i = 0; i < 100; i++)
+        for (var i = 0; i < 100; i++)
         {
             Assert.AreEqual(i, items[i]);
         }
@@ -167,9 +167,9 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add same numbers multiple times
-        for (int round = 0; round < 3; round++)
+        for (var round = 0; round < 3; round++)
         {
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 var added = set.Add(i);
                 if (round == 0)
@@ -185,7 +185,7 @@ public class TreeSetDebugTests
 
         Assert.AreEqual(10, set.Count);
         var items = set.ToList();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             Assert.AreEqual(i, items[i]);
         }
@@ -197,7 +197,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 5000 items
-        for (int i = 0; i < 500; i++)
+        for (var i = 0; i < 500; i++)
         {
             set.Add(i);
         }
@@ -214,7 +214,7 @@ public class TreeSetDebugTests
         var set = new TreeSet<int>();
 
         // Add 8000 items
-        for (int i = 0; i < 8000; i++)
+        for (var i = 0; i < 8000; i++)
         {
             set.Add(i);
         }

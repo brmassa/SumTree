@@ -34,8 +34,7 @@ public class TreeSetTests
     [TestMethod]
     public void Add_DuplicateItem_ShouldReturnFalse()
     {
-        var set = new TreeSet<int>();
-        set.Add(1);
+        var set = new TreeSet<int> { 1 };
 
         var added = set.Add(1);
 
@@ -46,11 +45,12 @@ public class TreeSetTests
     [TestMethod]
     public void Add_MultipleItems_ShouldMaintainOrder()
     {
-        var set = new TreeSet<int>();
-
-        set.Add(3);
-        set.Add(1);
-        set.Add(2);
+        var set = new TreeSet<int>
+        {
+            3,
+            1,
+            2
+        };
 
         var items = set.ToList();
         Assert.AreEqual(3, items.Count);
@@ -62,9 +62,11 @@ public class TreeSetTests
     [TestMethod]
     public void Remove_ExistingItem_ShouldReturnTrue()
     {
-        var set = new TreeSet<int>();
-        set.Add(1);
-        set.Add(2);
+        var set = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
         var removed = set.Remove(1);
 
@@ -86,8 +88,7 @@ public class TreeSetTests
     [TestMethod]
     public void Contains_ExistingItem_ShouldReturnTrue()
     {
-        var set = new TreeSet<int>();
-        set.Add(1);
+        var set = new TreeSet<int> { 1 };
 
         Assert.IsTrue(set.Contains(1));
     }
@@ -103,9 +104,11 @@ public class TreeSetTests
     [TestMethod]
     public void Clear_ShouldRemoveAllItems()
     {
-        var set = new TreeSet<int>();
-        set.Add(1);
-        set.Add(2);
+        var set = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
         set.Clear();
 
@@ -117,7 +120,7 @@ public class TreeSetTests
     public void Extend_ShouldAddMultipleItems()
     {
         var set = new TreeSet<int>();
-        var items = new[] { 3, 1, 2, 1 }; // Include duplicate
+        int[] items = [3, 1, 2, 1]; // Include duplicate
 
         set.Extend(items);
 
@@ -130,11 +133,13 @@ public class TreeSetTests
     [TestMethod]
     public void IterateFrom_ShouldStartFromSpecifiedItem()
     {
-        var set = new TreeSet<int>();
-        set.Add(1);
-        set.Add(2);
-        set.Add(3);
-        set.Add(4);
+        var set = new TreeSet<int>
+        {
+            1,
+            2,
+            3,
+            4
+        };
 
         var items = set.IterateFrom(2).ToList();
 
@@ -147,14 +152,16 @@ public class TreeSetTests
     [TestMethod]
     public void First_ShouldReturnFirstItem()
     {
-        var set = new TreeSet<int>();
-        set.Add(3);
-        set.Add(1);
-        set.Add(2);
+        var set = new TreeSet<int>
+        {
+            3,
+            1,
+            2
+        };
 
         var first = set.First();
 
-        Assert.AreEqual(1, first);
+        Assert.AreEqual(1, first.Value);
     }
 
     [TestMethod]
@@ -164,20 +171,22 @@ public class TreeSetTests
 
         var first = set.First();
 
-        Assert.IsNull(first);
+        Assert.AreEqual(false, first.HasValue);
     }
 
     [TestMethod]
     public void Last_ShouldReturnLastItem()
     {
-        var set = new TreeSet<int>();
-        set.Add(3);
-        set.Add(1);
-        set.Add(2);
+        var set = new TreeSet<int>
+        {
+            3,
+            1,
+            2
+        };
 
         var last = set.Last();
 
-        Assert.AreEqual(3, last);
+        Assert.AreEqual(3, last.Value);
     }
 
     [TestMethod]
@@ -187,46 +196,54 @@ public class TreeSetTests
 
         var last = set.Last();
 
-        Assert.IsNull(last);
+        Assert.AreEqual(false, last.HasValue);
     }
 
     [TestMethod]
     public void Closest_ShouldReturnClosestItem()
     {
-        var set = new TreeSet<int>();
-        set.Add(1);
-        set.Add(3);
-        set.Add(5);
+        var set = new TreeSet<int>
+        {
+            1,
+            3,
+            5
+        };
 
         var closest = set.Closest(2);
 
-        Assert.AreEqual(1, closest);
+        Assert.AreEqual(1, closest.Value);
     }
 
     [TestMethod]
-    public void Closest_NoSmallerItem_ShouldReturnNull()
+    public void Closest_NoSmallerItem_ShouldReturnFalse()
     {
-        var set = new TreeSet<int>();
-        set.Add(3);
-        set.Add(5);
+        var set = new TreeSet<int>
+        {
+            3,
+            5
+        };
 
         var closest = set.Closest(1);
 
-        Assert.IsNull(closest);
+        Assert.AreEqual(false, closest.HasValue);
     }
 
     [TestMethod]
     public void Except_ShouldReturnDifference()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
-        set1.Add(3);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(2);
-        set2.Add(3);
-        set2.Add(4);
+        var set2 = new TreeSet<int>
+        {
+            2,
+            3,
+            4
+        };
 
         var difference = set1.Except(set2);
 
@@ -237,15 +254,19 @@ public class TreeSetTests
     [TestMethod]
     public void Intersect_ShouldReturnIntersection()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
-        set1.Add(3);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(2);
-        set2.Add(3);
-        set2.Add(4);
+        var set2 = new TreeSet<int>
+        {
+            2,
+            3,
+            4
+        };
 
         var intersection = set1.Intersect(set2);
 
@@ -257,13 +278,17 @@ public class TreeSetTests
     [TestMethod]
     public void Union_ShouldReturnUnion()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(2);
-        set2.Add(3);
+        var set2 = new TreeSet<int>
+        {
+            2,
+            3
+        };
 
         var union = set1.Union(set2);
 
@@ -276,15 +301,19 @@ public class TreeSetTests
     [TestMethod]
     public void SymmetricExcept_ShouldReturnSymmetricDifference()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
-        set1.Add(3);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(2);
-        set2.Add(3);
-        set2.Add(4);
+        var set2 = new TreeSet<int>
+        {
+            2,
+            3,
+            4
+        };
 
         var symmetricDiff = set1.SymmetricExcept(set2);
 
@@ -298,14 +327,18 @@ public class TreeSetTests
     [TestMethod]
     public void IsSubsetOf_TrueCase_ShouldReturnTrue()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(1);
-        set2.Add(2);
-        set2.Add(3);
+        var set2 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
         Assert.IsTrue(set1.IsSubsetOf(set2));
     }
@@ -313,14 +346,18 @@ public class TreeSetTests
     [TestMethod]
     public void IsSubsetOf_FalseCase_ShouldReturnFalse()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(4);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            4
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(1);
-        set2.Add(2);
-        set2.Add(3);
+        var set2 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
         Assert.IsFalse(set1.IsSubsetOf(set2));
     }
@@ -328,14 +365,18 @@ public class TreeSetTests
     [TestMethod]
     public void IsSupersetOf_TrueCase_ShouldReturnTrue()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
-        set1.Add(3);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(1);
-        set2.Add(2);
+        var set2 = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
         Assert.IsTrue(set1.IsSupersetOf(set2));
     }
@@ -343,14 +384,18 @@ public class TreeSetTests
     [TestMethod]
     public void IsSupersetOf_FalseCase_ShouldReturnFalse()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(1);
-        set2.Add(2);
-        set2.Add(3);
+        var set2 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
         Assert.IsFalse(set1.IsSupersetOf(set2));
     }
@@ -358,13 +403,17 @@ public class TreeSetTests
     [TestMethod]
     public void Overlaps_TrueCase_ShouldReturnTrue()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(2);
-        set2.Add(3);
+        var set2 = new TreeSet<int>
+        {
+            2,
+            3
+        };
 
         Assert.IsTrue(set1.Overlaps(set2));
     }
@@ -372,13 +421,17 @@ public class TreeSetTests
     [TestMethod]
     public void Overlaps_FalseCase_ShouldReturnFalse()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(3);
-        set2.Add(4);
+        var set2 = new TreeSet<int>
+        {
+            3,
+            4
+        };
 
         Assert.IsFalse(set1.Overlaps(set2));
     }
@@ -386,15 +439,19 @@ public class TreeSetTests
     [TestMethod]
     public void SetEquals_TrueCase_ShouldReturnTrue()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
-        set1.Add(3);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(3);
-        set2.Add(1);
-        set2.Add(2);
+        var set2 = new TreeSet<int>
+        {
+            3,
+            1,
+            2
+        };
 
         Assert.IsTrue(set1.SetEquals(set2));
     }
@@ -402,14 +459,18 @@ public class TreeSetTests
     [TestMethod]
     public void SetEquals_FalseCase_ShouldReturnFalse()
     {
-        var set1 = new TreeSet<int>();
-        set1.Add(1);
-        set1.Add(2);
+        var set1 = new TreeSet<int>
+        {
+            1,
+            2
+        };
 
-        var set2 = new TreeSet<int>();
-        set2.Add(1);
-        set2.Add(2);
-        set2.Add(3);
+        var set2 = new TreeSet<int>
+        {
+            1,
+            2,
+            3
+        };
 
         Assert.IsFalse(set1.SetEquals(set2));
     }
@@ -417,7 +478,7 @@ public class TreeSetTests
     [TestMethod]
     public void FromOrderedEntries_ShouldCreateSetFromOrderedData()
     {
-        var entries = new[] { 1, 2, 3, 2, 1 }; // Include duplicates
+        int[] entries = [1, 2, 3, 2, 1]; // Include duplicates
 
         var set = new TreeSet<int>(entries);
 
@@ -430,10 +491,12 @@ public class TreeSetTests
     [TestMethod]
     public void Enumeration_ShouldIterateInOrder()
     {
-        var set = new TreeSet<int>();
-        set.Add(3);
-        set.Add(1);
-        set.Add(2);
+        var set = new TreeSet<int>
+        {
+            3,
+            1,
+            2
+        };
 
         var items = new List<int>();
         foreach (var item in set)
@@ -450,10 +513,12 @@ public class TreeSetTests
     [TestMethod]
     public void StringItems_ShouldMaintainLexicographicOrder()
     {
-        var set = new TreeSet<string>();
-        set.Add("zebra");
-        set.Add("apple");
-        set.Add("banana");
+        var set = new TreeSet<string>
+        {
+            "zebra",
+            "apple",
+            "banana"
+        };
 
         var items = set.ToList();
 
@@ -469,7 +534,7 @@ public class TreeSetTests
         var set = new TreeSet<int>();
 
         // Add 10,000 items
-        for (int i = 0; i < 10000; i++)
+        for (var i = 0; i < 10000; i++)
         {
             set.Add(i);
         }
@@ -482,7 +547,7 @@ public class TreeSetTests
         Assert.IsTrue(set.Contains(9999));
 
         // Remove half the items
-        for (int i = 0; i < 5000; i++)
+        for (var i = 0; i < 5000; i++)
         {
             set.Remove(i);
         }
@@ -496,8 +561,7 @@ public class TreeSetTests
     public void EmptySet_Operations_ShouldHandleGracefully()
     {
         var emptySet = new TreeSet<int>();
-        var otherSet = new TreeSet<int>();
-        otherSet.Add(1);
+        var otherSet = new TreeSet<int> { 1 };
 
         Assert.IsTrue(emptySet.Except(otherSet).IsEmpty);
         Assert.IsTrue(emptySet.Intersect(otherSet).IsEmpty);

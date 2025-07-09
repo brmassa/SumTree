@@ -388,7 +388,7 @@ public class SumTreeTests
     [TestMethod]
     public void CombineMultipleSumTrees()
     {
-        var trees = new[] { "Hello".ToSumTree(), " ".ToSumTree(), "World".ToSumTree(), "!".ToSumTree() };
+        SumTree<char>[] trees = ["Hello".ToSumTree(), " ".ToSumTree(), "World".ToSumTree(), "!".ToSumTree()];
         var combined = trees.Combine();
         Assert.AreEqual("Hello World!", combined.ToString());
     }
@@ -396,7 +396,7 @@ public class SumTreeTests
     [TestMethod]
     public void CombineEmpty()
     {
-        var trees = new SumTree<char>[] { };
+        SumTree<char>[] trees = [];
         var combined = trees.Combine();
         Assert.IsTrue(combined.IsEmpty);
     }
@@ -694,11 +694,11 @@ public class SumTreeTests
     }
 
     [DataTestMethod]
-    [DataRow(new[] { 'a', 'b', 'c', 'a', 'a' }, 3)]
-    [DataRow(new[] { 'x', 'y', 'z' }, 0)]
-    [DataRow(new[] { 'a', 'a', 'a', 'a' }, 4)]
+    [DataRow(new char[] { 'a', 'b', 'c', 'a', 'a' }, 3)]
+    [DataRow(new char[] { 'x', 'y', 'z' }, 0)]
+    [DataRow(new char[] { 'a', 'a', 'a', 'a' }, 4)]
     [DataRow(new char[] { }, 0)]
-    [DataRow(new[] { 'a' }, 1)]
+    [DataRow(new char[] { 'a' }, 1)]
     public void CustomDimension_ShouldWork(char[] elements, int expectedCount)
     {
         var dimension = new TestCountDimension();

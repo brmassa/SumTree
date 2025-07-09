@@ -296,7 +296,7 @@ public static class EditOperations
         var sortedEdits = edits.OrderBy(e => e.Key).ToList();
 
         // Check for conflicts
-        for (int i = 0; i < sortedEdits.Count - 1; i++)
+        for (var i = 0; i < sortedEdits.Count - 1; i++)
         {
             if (sortedEdits[i].ConflictsWith(sortedEdits[i + 1]))
             {
@@ -307,7 +307,7 @@ public static class EditOperations
 
         // Apply edits in reverse order to maintain position validity
         var result = tree;
-        for (int i = sortedEdits.Count - 1; i >= 0; i--)
+        for (var i = sortedEdits.Count - 1; i >= 0; i--)
         {
             result = sortedEdits[i].Apply(result);
         }
@@ -350,7 +350,7 @@ public static class EditOperations
 
         // Apply adjusted edits in reverse order
         var result = tree;
-        for (int i = adjustedEdits.Count - 1; i >= 0; i--)
+        for (var i = adjustedEdits.Count - 1; i >= 0; i--)
         {
             result = adjustedEdits[i].Apply(result);
         }

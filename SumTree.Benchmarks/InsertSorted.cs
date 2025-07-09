@@ -25,7 +25,7 @@ public class InsertSorted
     {
         var rope = Rope<long>.Empty;
         var comparer = Comparer<long>.Default;
-        for (int i = 0; i < RandomLongs.Length; i++)
+        for (var i = 0; i < RandomLongs.Length; i++)
         {
             rope = rope.InsertSorted(RandomLongs[i], comparer);
         }
@@ -38,7 +38,7 @@ public class InsertSorted
     {
         var comparer = Comparer<long>.Default;
         var queue = new PriorityQueue<long, long>(comparer);
-        for (int i = 0; i < RandomLongs.Length; i++)
+        for (var i = 0; i < RandomLongs.Length; i++)
         {
             queue.Enqueue(i, RandomLongs[i]);
         }
@@ -59,7 +59,7 @@ public class InsertSorted
     {
         var rope = Rope<float>.Empty;
         var comparer = Comparer<float>.Default;
-        for (int i = 0; i < RandomFloats.Length; i++)
+        for (var i = 0; i < RandomFloats.Length; i++)
         {
             rope = rope.InsertSorted(RandomFloats[i], comparer);
         }
@@ -72,7 +72,7 @@ public class InsertSorted
     {
         var comparer = Comparer<float>.Default;
         var queue = new PriorityQueue<long, float>(comparer);
-        for (int i = 0; i < RandomFloats.Length; i++)
+        for (var i = 0; i < RandomFloats.Length; i++)
         {
             queue.Enqueue(i, RandomFloats[i]);
         }

@@ -16,7 +16,7 @@ public class AddRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToRope();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             s = s.AddRange(lorem);
         }
@@ -26,7 +26,7 @@ public class AddRange
     public void StringBuilder()
     {
         var s = new StringBuilder(BenchmarkData.LoremIpsum);
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             s.Append(BenchmarkData.LoremIpsum);
         }
@@ -36,7 +36,7 @@ public class AddRange
     public void ListOfChar()
     {
         var s = new List<char>(BenchmarkData.LoremIpsum);
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             s.AddRange(BenchmarkData.LoremIpsum);
         }
@@ -47,7 +47,7 @@ public class AddRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTree();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToAdd = BenchmarkData.LoremIpsum.ToSumTree();
             s = s.AddRange(loremToAdd);
@@ -59,7 +59,7 @@ public class AddRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTreeWithLines();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToAdd = BenchmarkData.LoremIpsum.ToSumTreeWithLines();
             s = s.AddRange(loremToAdd);
@@ -71,7 +71,7 @@ public class AddRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTree(new BracketCountDimension());
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToAdd = BenchmarkData.LoremIpsum.ToSumTree(new BracketCountDimension());
             s = s.AddRange(loremToAdd);
@@ -83,7 +83,7 @@ public class AddRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTreeWithLinesAndBrackets();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToAdd = BenchmarkData.LoremIpsum.ToSumTreeWithLinesAndBrackets();
             s = s.AddRange(loremToAdd);

@@ -149,12 +149,12 @@ public class TreeMapTests
     public void Extend_ShouldAddMultipleItems()
     {
         var map = new TreeMap<int, string>();
-        var items = new[]
-        {
+        KeyValuePair<int, string>[] items =
+        [
             new KeyValuePair<int, string>(1, "one"),
             new KeyValuePair<int, string>(2, "two"),
             new KeyValuePair<int, string>(3, "three")
-        };
+        ];
 
         map.Extend(items);
 
@@ -390,12 +390,12 @@ public class TreeMapTests
     [TestMethod]
     public void FromOrderedEntries_ShouldCreateMapFromOrderedData()
     {
-        var entries = new[]
-        {
+        KeyValuePair<int, string>[] entries =
+        [
             new KeyValuePair<int, string>(1, "one"),
             new KeyValuePair<int, string>(2, "two"),
             new KeyValuePair<int, string>(3, "three")
-        };
+        ];
 
         var map = new TreeMap<int, string>(entries);
 
@@ -447,7 +447,7 @@ public class TreeMapTests
         var map = new TreeMap<int, string>();
 
         // Insert 10,000 items
-        for (int i = 0; i < 10000; i++)
+        for (var i = 0; i < 10000; i++)
         {
             map.Insert(i, $"value_{i}");
         }
@@ -460,7 +460,7 @@ public class TreeMapTests
         Assert.AreEqual("value_9999", map.Get(9999));
 
         // Remove half the items
-        for (int i = 0; i < 5000; i++)
+        for (var i = 0; i < 5000; i++)
         {
             map.Remove(i);
         }

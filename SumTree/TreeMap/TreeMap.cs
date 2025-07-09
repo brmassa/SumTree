@@ -209,7 +209,7 @@ public class TreeMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
     {
         var startIndex = FindInsertionIndex(fromKey);
 
-        for (long i = startIndex; i < _tree.Length; i++)
+        for (var i = startIndex; i < _tree.Length; i++)
         {
             var entry = _tree.ElementAt(i);
             yield return new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
@@ -336,11 +336,11 @@ public class TreeMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
     private long FindInsertionIndex(TKey key)
     {
         long left = 0;
-        long right = _tree.Length;
+        var right = _tree.Length;
 
         while (left < right)
         {
-            long mid = left + (right - left) / 2;
+            var mid = left + (right - left) / 2;
             var entry = _tree.ElementAt(mid);
 
             if (entry.Key.CompareTo(key) < 0)

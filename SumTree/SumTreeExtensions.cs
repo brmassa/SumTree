@@ -79,7 +79,7 @@ public static class SumTreeExtensions
     public static SumTree<T> Join<T>(this IEnumerable<SumTree<T>> trees, T separator) where T : IEquatable<T>
     {
         var result = SumTree<T>.Empty;
-        bool first = true;
+        var first = true;
 
         foreach (var tree in trees)
         {
@@ -99,7 +99,7 @@ public static class SumTreeExtensions
         where T : IEquatable<T>
     {
         var result = SumTree<T>.Empty;
-        bool first = true;
+        var first = true;
 
         foreach (var tree in trees)
         {
@@ -218,8 +218,8 @@ public static class SumTreeExtensions
 
         for (long i = 0; i <= treeArray.Length - patternArray.Length; i++)
         {
-            bool found = true;
-            for (int j = 0; j < patternArray.Length; j++)
+            var found = true;
+            for (var j = 0; j < patternArray.Length; j++)
             {
                 if (!treeArray[i + j].Equals(patternArray[j]))
                 {
@@ -252,8 +252,8 @@ public static class SumTreeExtensions
 
         for (long i = 0; i <= treeArray.Length - patternArray.Length; i++)
         {
-            bool found = true;
-            for (int j = 0; j < patternArray.Length; j++)
+            var found = true;
+            for (var j = 0; j < patternArray.Length; j++)
             {
                 if (!comparer.Equals(treeArray[i + j], patternArray[j]))
                 {
@@ -322,8 +322,8 @@ public static class SumTreeExtensions
 
         for (long i = treeArray.Length - patternArray.Length; i >= 0; i--)
         {
-            bool found = true;
-            for (int j = 0; j < patternArray.Length; j++)
+            var found = true;
+            for (var j = 0; j < patternArray.Length; j++)
             {
                 if (!treeArray[i + j].Equals(patternArray[j]))
                 {
@@ -356,8 +356,8 @@ public static class SumTreeExtensions
 
         for (long i = treeArray.Length - patternArray.Length; i >= 0; i--)
         {
-            bool found = true;
-            for (int j = 0; j < patternArray.Length; j++)
+            var found = true;
+            for (var j = 0; j < patternArray.Length; j++)
             {
                 if (!comparer.Equals(treeArray[i + j], patternArray[j]))
                 {
@@ -546,7 +546,7 @@ public static class SumTreeExtensions
 
         // Convert to array, replace, then create new SumTree to avoid balancing issues
         var array = tree.ToArray();
-        for (int i = 0; i < array.Length; i++)
+        for (var i = 0; i < array.Length; i++)
         {
             if (array[i].Equals(oldValue))
                 array[i] = newValue;
@@ -641,7 +641,7 @@ public static class SumTreeExtensions
 
         try
         {
-            for (int i = 0; i < list.Count; i++)
+            for (var i = 0; i < list.Count; i++)
             {
                 buffer[i] = list[i];
             }

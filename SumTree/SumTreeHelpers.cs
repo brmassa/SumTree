@@ -122,7 +122,7 @@ public static class SumTreeHelpers
 
         // Find the end of the line
         var lineEnd = sumTree.Length;
-        for (long i = lineStart; i < sumTree.Length; i++)
+        for (var i = lineStart; i < sumTree.Length; i++)
         {
             if (sumTree.ElementAt(i) == '\n')
             {

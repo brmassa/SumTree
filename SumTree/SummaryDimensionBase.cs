@@ -22,7 +22,7 @@ public abstract class SummaryDimensionBase<T, TSummary> : ISummaryDimension<T, T
             return Identity;
 
         var summary = this.SummarizeElement(elements[0]);
-        for (int i = 1; i < elements.Length; i++)
+        for (var i = 1; i < elements.Length; i++)
         {
             summary = this.Combine(summary, this.SummarizeElement(elements[i]));
         }
@@ -63,7 +63,7 @@ public abstract class SummaryDimensionBase<T, TSummary> : ISummaryDimension<T, T
             return Identity;
 
         var result = summaries[0];
-        for (int i = 1; i < summaries.Length; i++)
+        for (var i = 1; i < summaries.Length; i++)
         {
             result = this.Combine(result, summaries[i]);
         }
@@ -82,7 +82,7 @@ public abstract class SummaryDimensionBase<T, TSummary> : ISummaryDimension<T, T
             return Identity;
 
         var result = summaries[0];
-        for (int i = 1; i < summaries.Length; i++)
+        for (var i = 1; i < summaries.Length; i++)
         {
             result = this.Combine(result, summaries[i]);
         }

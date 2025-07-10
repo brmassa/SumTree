@@ -7,7 +7,7 @@
         <Copyright>©️ 2025 Bruno Massa</Copyright>
         <PackageProjectUrl>https://github.com/brmassa/SumTree</PackageProjectUrl>
         <RepositoryUrl>https://github.com/brmassa/SumTree.git</RepositoryUrl>
-        <Version>0.1.0-18</Version>
+        <Version>0.1.0-19</Version>
         <Authors>Bruno Massa</Authors>
         <Description>
             C# implementation of SumTree - a high-performance data structure that directly incorporates Rope structure

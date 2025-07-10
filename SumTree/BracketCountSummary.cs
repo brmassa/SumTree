@@ -219,7 +219,7 @@ public class BracketCountDimension : SummaryDimensionBase<char, BracketCountSumm
         int openSquare = 0, closeSquare = 0;
         int openCurly = 0, closeCurly = 0;
 
-        for (int i = 0; i < elements.Length; i++)
+        for (var i = 0; i < elements.Length; i++)
         {
             switch (elements[i])
             {

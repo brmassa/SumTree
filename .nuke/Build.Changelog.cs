@@ -175,7 +175,7 @@ partial class Build
         var endIndex = -1;
 
         // Find the Unreleased section
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             if (lines[i].Equals(UnreleasedSection, StringComparison.OrdinalIgnoreCase))
             {
@@ -190,7 +190,7 @@ partial class Build
         }
 
         // Find the end of Unreleased section (next ## heading)
-        for (int i = startIndex + 1; i < lines.Length; i++)
+        for (var i = startIndex + 1; i < lines.Length; i++)
         {
             if (lines[i].StartsWith("## "))
             {
@@ -237,7 +237,7 @@ partial class Build
         var endIndex = -1;
 
         // Find the first version section (skip Unreleased)
-        for (int i = 0; i < lines.Length; i++)
+        for (var i = 0; i < lines.Length; i++)
         {
             if (lines[i].StartsWith("## v[") && lines[i].Contains("][]"))
             {
@@ -252,7 +252,7 @@ partial class Build
         }
 
         // Find the end of this version section (next ## heading or end of content sections)
-        for (int i = startIndex + 1; i < lines.Length; i++)
+        for (var i = startIndex + 1; i < lines.Length; i++)
         {
             if (lines[i].StartsWith("## ") || lines[i].StartsWith("[") && lines[i].Contains("]: "))
             {

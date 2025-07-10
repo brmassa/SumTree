@@ -36,13 +36,16 @@ public class SumTreeTests
     public void NotEndsWith() => Assert.IsFalse("ny ".ToSumTree().EndsWith("n".ToSumTree()));
 
     [TestMethod]
-    public void ConcatenatedNotEndsWith() => Assert.IsFalse(("ny".ToSumTree() + " ".ToSumTree()).EndsWith("n".ToSumTree()));
+    public void ConcatenatedNotEndsWith() =>
+        Assert.IsFalse(("ny".ToSumTree() + " ".ToSumTree()).EndsWith("n".ToSumTree()));
 
     [TestMethod]
-    public void HashCodesForTheSameStringMatch() => Assert.AreEqual("The girls sing".ToSumTree().GetHashCode(), "The girls sing".ToSumTree().GetHashCode());
+    public void HashCodesForTheSameStringMatch() => Assert.AreEqual("The girls sing".ToSumTree().GetHashCode(),
+        "The girls sing".ToSumTree().GetHashCode());
 
     [TestMethod]
-    public void HashCodesForTheConcatenatedStringMatch() => Assert.AreEqual(("The girls".ToSumTree() + " sing".ToSumTree()).GetHashCode(), "The girls sing".ToSumTree().GetHashCode());
+    public void HashCodesForTheConcatenatedStringMatch() => Assert.AreEqual(
+        ("The girls".ToSumTree() + " sing".ToSumTree()).GetHashCode(), "The girls sing".ToSumTree().GetHashCode());
 
     [TestMethod]
     public void StartsWith() => Assert.IsTrue("abcd".ToSumTree().StartsWith("ab".ToSumTree()));
@@ -71,7 +74,8 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    public void ConvertingToString() => Assert.AreEqual(new string("The ghosts say boo dee boo".ToSumTree().ToArray()), "The ghosts say boo dee boo");
+    public void ConvertingToString() => Assert.AreEqual(new string("The ghosts say boo dee boo".ToSumTree().ToArray()),
+        "The ghosts say boo dee boo");
 
     [TestMethod]
     public void ReplaceElement()
@@ -125,18 +129,18 @@ public class SumTreeTests
     [TestMethod]
     public void StructuralEqualsOperator()
     {
-        Assert.IsTrue(new SumTree<char>('t') == new SumTree<char>('t'));
-        Assert.IsTrue(SumTree<char>.Empty + "test".ToSumTree() == "t".ToSumTree() + "est".ToSumTree());
-        Assert.IsTrue("t".ToSumTree() + "est".ToSumTree() == "t".ToSumTree() + "est".ToSumTree());
-        Assert.IsTrue("te".ToSumTree() + "st".ToSumTree() == "t".ToSumTree() + "est".ToSumTree());
-        Assert.IsTrue("tes".ToSumTree() + "t".ToSumTree() == "t".ToSumTree() + "est".ToSumTree());
-        Assert.IsTrue("test".ToSumTree() + SumTree<char>.Empty == "t".ToSumTree() + "est".ToSumTree());
+        Assert.AreEqual(new SumTree<char>('t'), new SumTree<char>('t'));
+        Assert.AreEqual(SumTree<char>.Empty + "test".ToSumTree(), "t".ToSumTree() + "est".ToSumTree());
+        Assert.AreEqual("t".ToSumTree() + "est".ToSumTree(), "t".ToSumTree() + "est".ToSumTree());
+        Assert.AreEqual("te".ToSumTree() + "st".ToSumTree(), "t".ToSumTree() + "est".ToSumTree());
+        Assert.AreEqual("tes".ToSumTree() + "t".ToSumTree(), "t".ToSumTree() + "est".ToSumTree());
+        Assert.AreEqual("test".ToSumTree() + SumTree<char>.Empty, "t".ToSumTree() + "est".ToSumTree());
 
-        Assert.IsTrue("t".ToSumTree() + "est".ToSumTree() == SumTree<char>.Empty + "test".ToSumTree());
-        Assert.IsTrue("t".ToSumTree() + "est".ToSumTree() == "t".ToSumTree() + "est".ToSumTree());
-        Assert.IsTrue("t".ToSumTree() + "est".ToSumTree() == "te".ToSumTree() + "st".ToSumTree());
-        Assert.IsTrue("t".ToSumTree() + "est".ToSumTree() == "tes".ToSumTree() + "t".ToSumTree());
-        Assert.IsTrue("t".ToSumTree() + "est".ToSumTree() == "test".ToSumTree() + SumTree<char>.Empty);
+        Assert.AreEqual("t".ToSumTree() + "est".ToSumTree(), SumTree<char>.Empty + "test".ToSumTree());
+        Assert.AreEqual("t".ToSumTree() + "est".ToSumTree(), "t".ToSumTree() + "est".ToSumTree());
+        Assert.AreEqual("t".ToSumTree() + "est".ToSumTree(), "te".ToSumTree() + "st".ToSumTree());
+        Assert.AreEqual("t".ToSumTree() + "est".ToSumTree(), "tes".ToSumTree() + "t".ToSumTree());
+        Assert.AreEqual("t".ToSumTree() + "est".ToSumTree(), "test".ToSumTree() + SumTree<char>.Empty);
     }
 
     [TestMethod]
@@ -165,7 +169,8 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    public void StructuralNotEqualsOperator() => Assert.IsTrue("a".ToSumTree() + "bc".ToSumTree() != "ab".ToSumTree() + "bc".ToSumTree());
+    public void StructuralNotEqualsOperator() =>
+        Assert.IsTrue("a".ToSumTree() + "bc".ToSumTree() != "ab".ToSumTree() + "bc".ToSumTree());
 
     [TestMethod]
     public void EmptySumTreeNotEqualToNull() => Assert.IsFalse(SumTree<char>.Empty.Equals(null!));
@@ -174,29 +179,39 @@ public class SumTreeTests
     public void EmptySumTreeEqualsEmptySumTree() => Assert.IsTrue(SumTree<char>.Empty.Equals(SumTree<char>.Empty));
 
     [TestMethod]
-    public void CreateVeryLargeSumTreeFromArray() => Assert.IsTrue(Enumerable.Range(0, SumTree<char>.MaxLeafLength * 4).Select(i => i.ToString()[0]).SequenceEqual(new SumTree<char>(Enumerable.Range(0, SumTree<char>.MaxLeafLength * 4).Select(i => i.ToString()[0]).ToArray())));
+    public void CreateVeryLargeSumTreeFromArray() => Assert.IsTrue(Enumerable.Range(0, SumTree<char>.MaxLeafLength * 4)
+        .Select(i => i.ToString()[0])
+        .SequenceEqual(new SumTree<char>(Enumerable.Range(0, SumTree<char>.MaxLeafLength * 4)
+            .Select(i => i.ToString()[0]).ToArray())));
 
     [TestMethod]
-    public void CreateVeryLargeSumTreeToSumTree() => Assert.IsTrue(Enumerable.Range(0, SumTree<int>.MaxLeafLength * 40).SequenceEqual(Enumerable.Range(0, SumTree<int>.MaxLeafLength * 40).ToSumTree()));
+    public void CreateVeryLargeSumTreeToSumTree() => Assert.IsTrue(Enumerable.Range(0, SumTree<int>.MaxLeafLength * 40)
+        .SequenceEqual(Enumerable.Range(0, SumTree<int>.MaxLeafLength * 40).ToSumTree()));
 
     [TestMethod]
-    public void CreateVeryLargeSumTreeFromListToSumTree() => Assert.IsTrue(Enumerable.Range(0, SumTree<int>.MaxLeafLength * 40).SequenceEqual(Enumerable.Range(0, SumTree<int>.MaxLeafLength * 40).ToList().ToSumTree()));
+    public void CreateVeryLargeSumTreeFromListToSumTree() => Assert.IsTrue(Enumerable
+        .Range(0, SumTree<int>.MaxLeafLength * 40)
+        .SequenceEqual(Enumerable.Range(0, SumTree<int>.MaxLeafLength * 40).ToList().ToSumTree()));
 
     [TestMethod]
-    public void InsertSortedEmpty() => Assert.IsTrue(SumTree<int>.Empty.InsertSorted(1, Comparer<int>.Default).SequenceEqual(
-        [1]));
+    public void InsertSortedEmpty() => Assert.IsTrue(SumTree<int>.Empty.InsertSorted(1, Comparer<int>.Default)
+        .SequenceEqual(
+            [1]));
 
     [TestMethod]
-    public void InsertSorted() => Assert.IsTrue(new[] { 0, 1, 3, 4, 5 }.ToSumTree().InsertSorted(2, Comparer<int>.Default).SequenceEqual(
-        [0, 1, 2, 3, 4, 5]));
+    public void InsertSorted() => Assert.IsTrue(new[] { 0, 1, 3, 4, 5 }.ToSumTree()
+        .InsertSorted(2, Comparer<int>.Default).SequenceEqual(
+            [0, 1, 2, 3, 4, 5]));
 
     [TestMethod]
-    public void InsertSortedStart() => Assert.IsTrue(new[] { 0, 1, 2, 3, 4, 5 }.ToSumTree().InsertSorted(-1, Comparer<int>.Default).SequenceEqual(
-        [-1, 0, 1, 2, 3, 4, 5]));
+    public void InsertSortedStart() => Assert.IsTrue(new[] { 0, 1, 2, 3, 4, 5 }.ToSumTree()
+        .InsertSorted(-1, Comparer<int>.Default)
+        .SequenceEqual([-1, 0, 1, 2, 3, 4, 5]));
 
     [TestMethod]
-    public void InsertSortedEnd() => Assert.IsTrue(new[] { 0, 1, 2, 3, 4, 5 }.ToSumTree().InsertSorted(6, Comparer<int>.Default).SequenceEqual(
-        [0, 1, 2, 3, 4, 5, 6]));
+    public void InsertSortedEnd() => Assert.IsTrue(new[] { 0, 1, 2, 3, 4, 5 }.ToSumTree()
+        .InsertSorted(6, Comparer<int>.Default)
+        .SequenceEqual([0, 1, 2, 3, 4, 5, 6]));
 
     [TestMethod]
     public void StructuralHashCodeEquivalence()
@@ -240,7 +255,8 @@ public class SumTreeTests
     public void IndexOfSumTree()
     {
         Assert.AreEqual("y".IndexOf("y", StringComparison.Ordinal), "y".ToSumTree().IndexOf("y".ToSumTree()));
-        Assert.AreEqual("def abcdefgh".IndexOf("def", StringComparison.Ordinal), new SumTree<char>("def abcd".ToSumTree(), "efgh".ToSumTree()).IndexOf("def".ToSumTree()));
+        Assert.AreEqual("def abcdefgh".IndexOf("def", StringComparison.Ordinal),
+            new SumTree<char>("def abcd".ToSumTree(), "efgh".ToSumTree()).IndexOf("def".ToSumTree()));
 
         Assert.AreEqual(0, "test".ToSumTree().IndexOf(new SumTree<char>("test".ToSumTree(), SumTree<char>.Empty)));
         Assert.AreEqual(0, new SumTree<char>("test".ToSumTree(), SumTree<char>.Empty).IndexOf("test".ToSumTree()));
@@ -250,18 +266,21 @@ public class SumTreeTests
 
         Assert.AreEqual(
             "The quick brown fox jumped over a lazy dog.".IndexOf("ed over a", StringComparison.Ordinal),
-            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).IndexOf("ed over a".ToSumTree()));
+            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).IndexOf(
+                "ed over a".ToSumTree()));
 
         Assert.AreEqual(
             "The quick brown fox jumped over a lazy dog.".IndexOf("he quick", StringComparison.Ordinal),
-            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).IndexOf("he quick".ToSumTree()));
+            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).IndexOf(
+                "he quick".ToSumTree()));
     }
 
     [TestMethod]
     public void IndexOfElement()
     {
         Assert.AreEqual("y".IndexOf('y'), "y".ToSumTree().IndexOf('y'));
-        Assert.AreEqual("def abcdefgh".IndexOf('e'), new SumTree<char>("def abcd".ToSumTree(), "efgh".ToSumTree()).IndexOf('e'));
+        Assert.AreEqual("def abcdefgh".IndexOf('e'),
+            new SumTree<char>("def abcd".ToSumTree(), "efgh".ToSumTree()).IndexOf('e'));
         Assert.AreEqual(0, "test".ToSumTree().IndexOf('t'));
         Assert.AreEqual(0, new SumTree<char>("tes".ToSumTree(), "t".ToSumTree()).IndexOf('t'));
         Assert.AreEqual(
@@ -274,10 +293,12 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    public void IndexOfInOverlap() => Assert.AreEqual(4, ("abcdef".ToSumTree() + "ghijklm".ToSumTree()).IndexOf("efgh".ToSumTree()));
+    public void IndexOfInOverlap() =>
+        Assert.AreEqual(4, ("abcdef".ToSumTree() + "ghijklm".ToSumTree()).IndexOf("efgh".ToSumTree()));
 
     [TestMethod]
-    public void IndexOfInRight() => Assert.AreEqual(6, ("abcdef".ToSumTree() + "ghijklm".ToSumTree()).IndexOf("ghi".ToSumTree()));
+    public void IndexOfInRight() =>
+        Assert.AreEqual(6, ("abcdef".ToSumTree() + "ghijklm".ToSumTree()).IndexOf("ghi".ToSumTree()));
 
     [TestMethod]
     public void ConcatenateIndexOfElement() => Assert.AreEqual(2, ("ab".ToSumTree() + "c".ToSumTree()).IndexOf('c'));
@@ -288,19 +309,24 @@ public class SumTreeTests
         Assert.AreEqual("y".LastIndexOf('y'), "y".ToSumTree().LastIndexOf('y'));
         Assert.AreEqual(
             "The quick brown fox jumped over a lazy dog.".LastIndexOf("ed over a", StringComparison.Ordinal),
-            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf("ed over a".ToSumTree()));
+            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf(
+                "ed over a".ToSumTree()));
         Assert.AreEqual(
             "The quick brown fox jumped over a lazy dog.".LastIndexOf("he quick", StringComparison.Ordinal),
-            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf("he quick".ToSumTree()));
+            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf(
+                "he quick".ToSumTree()));
         Assert.AreEqual(
             "The quick brown fox jumped over a lazy dog.".LastIndexOf(" ", StringComparison.Ordinal),
-            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf(" ".ToSumTree()));
+            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf(
+                " ".ToSumTree()));
         Assert.AreEqual(
             "The quick brown fox jumped over a lazy dog.".LastIndexOf("Th", StringComparison.Ordinal),
-            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf("Th".ToSumTree()));
+            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf(
+                "Th".ToSumTree()));
         Assert.AreEqual(
             "The quick brown fox jumped over a lazy dog.".LastIndexOf(".", StringComparison.Ordinal),
-            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf(".".ToSumTree()));
+            ("Th".ToSumTree() + "e".ToSumTree() + " quick brown fox jumped over a lazy dog.".ToSumTree()).LastIndexOf(
+                ".".ToSumTree()));
     }
 
     [TestMethod]
@@ -308,9 +334,12 @@ public class SumTreeTests
     {
         Assert.AreEqual("y".LastIndexOf('y'), "y".ToSumTree().LastIndexOf('y'));
         Assert.AreEqual("abc abc".LastIndexOf('c'), "abc abc".ToSumTree().LastIndexOf('c'));
-        Assert.AreEqual("abc abc".LastIndexOf('a'), new SumTree<char>("abc a".ToSumTree(), "bc".ToSumTree()).LastIndexOf('a'));
-        Assert.AreEqual("abc abc".LastIndexOf('a'), new SumTree<char>("abc ".ToSumTree(), "abc".ToSumTree()).LastIndexOf('a'));
-        Assert.AreEqual("abc abc".LastIndexOf('x'), new SumTree<char>("abc ".ToSumTree(), "abc".ToSumTree()).LastIndexOf('x'));
+        Assert.AreEqual("abc abc".LastIndexOf('a'),
+            new SumTree<char>("abc a".ToSumTree(), "bc".ToSumTree()).LastIndexOf('a'));
+        Assert.AreEqual("abc abc".LastIndexOf('a'),
+            new SumTree<char>("abc ".ToSumTree(), "abc".ToSumTree()).LastIndexOf('a'));
+        Assert.AreEqual("abc abc".LastIndexOf('x'),
+            new SumTree<char>("abc ".ToSumTree(), "abc".ToSumTree()).LastIndexOf('x'));
     }
 
     [TestMethod]
@@ -359,7 +388,7 @@ public class SumTreeTests
     [TestMethod]
     public void CombineMultipleSumTrees()
     {
-        var trees = new[] { "Hello".ToSumTree(), " ".ToSumTree(), "World".ToSumTree(), "!".ToSumTree() };
+        SumTree<char>[] trees = ["Hello".ToSumTree(), " ".ToSumTree(), "World".ToSumTree(), "!".ToSumTree()];
         var combined = trees.Combine();
         Assert.AreEqual("Hello World!", combined.ToString());
     }
@@ -367,7 +396,7 @@ public class SumTreeTests
     [TestMethod]
     public void CombineEmpty()
     {
-        var trees = new SumTree<char>[] { };
+        SumTree<char>[] trees = [];
         var combined = trees.Combine();
         Assert.IsTrue(combined.IsEmpty);
     }
@@ -452,7 +481,8 @@ public class SumTreeTests
         Assert.AreEqual(-1, text.IndexOf(pattern));
 
         // Case-insensitive - should find
-        var caseInsensitive = EqualityComparer<char>.Create((x, y) => char.ToLower(x) == char.ToLower(y), c => char.ToLower(c).GetHashCode());
+        var caseInsensitive = EqualityComparer<char>.Create((x, y) => char.ToLower(x) == char.ToLower(y),
+            c => char.ToLower(c).GetHashCode());
         Assert.AreEqual(0, text.IndexOf(pattern, caseInsensitive));
     }
 
@@ -664,11 +694,11 @@ public class SumTreeTests
     }
 
     [DataTestMethod]
-    [DataRow(new[] { 'a', 'b', 'c', 'a', 'a' }, 3)]
-    [DataRow(new[] { 'x', 'y', 'z' }, 0)]
-    [DataRow(new[] { 'a', 'a', 'a', 'a' }, 4)]
+    [DataRow(new char[] { 'a', 'b', 'c', 'a', 'a' }, 3)]
+    [DataRow(new char[] { 'x', 'y', 'z' }, 0)]
+    [DataRow(new char[] { 'a', 'a', 'a', 'a' }, 4)]
     [DataRow(new char[] { }, 0)]
-    [DataRow(new[] { 'a' }, 1)]
+    [DataRow(new char[] { 'a' }, 1)]
     public void CustomDimension_ShouldWork(char[] elements, int expectedCount)
     {
         var dimension = new TestCountDimension();

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased][]
 
-## v[0.1.0-18][] 2025-07-03
+- Added cursor, TreeMap and TreeSet
 
 ## v[0.1.0-15][] 2025-06-26
 

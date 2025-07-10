@@ -11,6 +11,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SumTree.Benchmarks", "SumTr
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", ".nuke\_build.csproj", "{D2953136-7230-42D6-9C33-780E873DECE9}"
 EndProject
+
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +32,7 @@ Global
 		{F120DA12-DA4F-4CD0-B822-0277D15277B0}.Debug|Any CPU.Build.0 = Release|Any CPU
 		{D2953136-7230-42D6-9C33-780E873DECE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D2953136-7230-42D6-9C33-780E873DECE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

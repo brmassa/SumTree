@@ -15,7 +15,7 @@ public class InsertRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToRope();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             s = s.InsertRange(321, lorem);
         }
@@ -28,7 +28,7 @@ public class InsertRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToCharArray();
         var s = new List<char>(lorem);
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             s.InsertRange(321, lorem);
         }
@@ -40,7 +40,7 @@ public class InsertRange
     public void StringBuilder()
     {
         var s = new StringBuilder(BenchmarkData.LoremIpsum);
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             s.Insert(321, BenchmarkData.LoremIpsum);
         }
@@ -53,7 +53,7 @@ public class InsertRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTree();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToInsert = BenchmarkData.LoremIpsum.AsMemory();
             s = s.InsertRange(321, loremToInsert);
@@ -65,7 +65,7 @@ public class InsertRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTreeWithLines();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToInsert = BenchmarkData.LoremIpsum.AsMemory();
             s = s.InsertRange(321, loremToInsert);
@@ -77,7 +77,7 @@ public class InsertRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTree(new BracketCountDimension());
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToInsert = BenchmarkData.LoremIpsum.AsMemory();
             s = s.InsertRange(321, loremToInsert);
@@ -89,7 +89,7 @@ public class InsertRange
     {
         var lorem = BenchmarkData.LoremIpsum.ToSumTreeWithLinesAndBrackets();
         var s = lorem;
-        for (int i = 0; i < EditCount; i++)
+        for (var i = 0; i < EditCount; i++)
         {
             var loremToInsert = BenchmarkData.LoremIpsum.AsMemory();
             s = s.InsertRange(321, loremToInsert);

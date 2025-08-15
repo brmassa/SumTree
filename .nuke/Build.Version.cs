@@ -22,19 +22,39 @@ partial class Build
     [GitVersion] private readonly GitVersion GitVersion;
 
     /// <summary>
-    /// The current version, using GitVersion.
+    /// The current version, using GitVersion with fallback.
     /// </summary>
-    private string VersionFull => GitVersion?.SemVer ?? "1.0.0";
+    private string VersionFull
+    {
+        get
+        {
+            if (GitVersion?.MajorMinorPatch != null)
+            {
+                var gitVersionValue = GitVersion.MajorMinorPatch;
+                var calculatedVersion = CalculateNextVersion();
 
-    /// <summary>
-    /// The current version for use in build systems, using GitVersion.
-    /// </summary>
-    private string CurrentVersion => GitVersion?.AssemblySemVer ?? "1.0.0.0";
+                // Use fallback if GitVersion gives unreasonable result (0.x.x when we have tagged releases > 1.0)
+                if (gitVersionValue.StartsWith("0.") && !calculatedVersion.StartsWith("0."))
+                {
+                    Log.Warning("GitVersion returned {GitVersion} but fallback calculated {Fallback}. Using fallback.",
+                        gitVersionValue, calculatedVersion);
+                    return calculatedVersion;
+                }
 
-    private string VersionMajor => GitVersion?.Major.ToString(CultureInfo.InvariantCulture) ?? "1";
+                Log.Debug("Using GitVersion: {Version}", gitVersionValue);
+                return gitVersionValue;
+            }
+
+            var fallbackVersion = CalculateNextVersion();
+            Log.Debug("Using fallback version calculation: {Version}", fallbackVersion);
+            return fallbackVersion;
+        }
+    }
+
+    private string VersionMajor => GitVersion?.Major.ToString(CultureInfo.InvariantCulture) ?? GetFallbackMajor();
 
     private string VersionMajorMinor =>
-        $"{GitVersion?.Major ?? 1}.{GitVersion?.Minor ?? 0}";
+        GitVersion != null ? $"{GitVersion.Major}.{GitVersion.Minor}" : GetFallbackMajorMinor();
 
     /// <summary>
     /// The version in a format that can be used as a tag.
@@ -44,11 +64,140 @@ partial class Build
     /// <summary>
     /// Checks if there are new commits since the last tag.
     /// </summary>
-    private bool HasNewCommits => GitVersion?.CommitsSinceVersionSource != "0";
+    private bool HasNewCommits => GitVersion != null ? GitVersion.CommitsSinceVersionSource != "0" : GetCommitsSinceLastTag() > 0;
 
-    private string CurrentTag => $"v{VersionFull}";
+    private string CurrentVersion;
 
-    private string CurrentFullVersion => VersionFull;
+    private string CurrentTag
+    {
+        get
+        {
+            if (CurrentVersion != null)
+                return CurrentVersion;
+
+            try
+            {
+                CurrentVersion = GitTasks.Git("describe --tags --abbrev=0")
+                    .FirstOrDefault().Text;
+            }
+            catch
+            {
+                CurrentVersion = "v1.0.0";
+            }
+
+            return CurrentVersion;
+        }
+    }
+
+    private string CurrentFullVersion => CurrentTag.TrimStart('v');
+
+    /// <summary>
+    /// Calculates the next version by incrementing from the last tag
+    /// </summary>
+    private string CalculateNextVersion()
+    {
+        var commitsSinceTag = GetCommitsSinceLastTag();
+        Log.Debug("Commits since last tag: {Count}", commitsSinceTag);
+
+        if (commitsSinceTag == 0)
+        {
+            Log.Debug("No commits since tag, returning current version: {Version}", CurrentFullVersion);
+            return CurrentFullVersion;
+        }
+
+        var currentVersion = CurrentFullVersion;
+        Log.Debug("Current tag version: {Version}", currentVersion);
+        var parts = currentVersion.Split('.');
+
+        if (parts.Length >= 2)
+        {
+            if (int.TryParse(parts[0], out var major) && int.TryParse(parts[1], out var minor))
+            {
+                // Increment minor version for new commits
+                var nextVersion = $"{major}.{minor + 1}.0";
+                Log.Debug("Calculated next version: {Version}", nextVersion);
+                return nextVersion;
+            }
+        }
+
+        // Fallback to current version if parsing fails
+        Log.Warning("Could not parse version {Version}, returning as-is", currentVersion);
+        return currentVersion;
+    }
+
+    /// <summary>
+    /// Gets the number of commits since the last tag
+    /// </summary>
+    private int GetCommitsSinceLastTag()
+    {
+        try
+        {
+            // Count commits between tag and HEAD
+            var commitCountText = GitTasks.Git($"rev-list --count {CurrentTag}..HEAD")
+                .FirstOrDefault().Text;
+
+            if (int.TryParse(commitCountText, out var directCount))
+                return directCount;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Could not calculate commits since last tag");
+        }
+
+        return 1; // Assume there are changes if we can't determine
+    }
+
+    /// <summary>
+    /// Gets fallback major version when GitVersion is not available.
+    /// </summary>
+    private string GetFallbackMajor()
+    {
+        var version = CurrentFullVersion;
+        var parts = version.Split('.');
+        return parts.Length > 0 ? parts[0] : "1";
+    }
+
+    /// <summary>
+    /// Gets fallback major.minor version when GitVersion is not available.
+    /// </summary>
+    private string GetFallbackMajorMinor()
+    {
+        var version = CurrentFullVersion;
+        var parts = version.Split('.');
+        if (parts.Length >= 2)
+            return $"{parts[0]}.{parts[1]}";
+        return parts.Length == 1 ? $"{parts[0]}.0" : "1.0";
+    }
+
+    /// <summary>
+    /// Gets version from environment variables (useful for CI/CD).
+    /// </summary>
+    private string GetEnvironmentVersion()
+    {
+        // Check for GitHub Actions tag reference
+        var githubRef = Environment.GetEnvironmentVariable("GITHUB_REF");
+        if (!string.IsNullOrEmpty(githubRef) && githubRef.StartsWith("refs/tags/"))
+        {
+            var tag = githubRef.Substring("refs/tags/".Length);
+            if (tag.StartsWith("v") && IsValidVersion(tag.Substring(1)))
+                return tag;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Validates if a string is a valid semantic version.
+    /// </summary>
+    private bool IsValidVersion(string version)
+    {
+        if (string.IsNullOrEmpty(version)) return false;
+
+        var parts = version.Split('.');
+        if (parts.Length < 2 || parts.Length > 4) return false;
+
+        return parts.Take(3).All(part => int.TryParse(part, out _));
+    }
 
     /// <summary>
     /// Prints the current version.
@@ -59,6 +208,20 @@ partial class Build
             Log.Information("Current version:  {Version}", CurrentFullVersion);
             Log.Information("Current tag:      {Version}", CurrentTag);
             Log.Information("Next version:     {Version}", VersionFull);
+
+            if (GitVersion == null)
+            {
+                Log.Warning("GitVersion is not available - using fallback version from git tags");
+                var envVersion = GetEnvironmentVersion();
+                if (envVersion != null)
+                {
+                    Log.Information("Environment version detected: {Version}", envVersion);
+                }
+            }
+            else
+            {
+                Log.Information("GitVersion available - commits since last version: {Commits}", GitVersion.CommitsSinceVersionSource);
+            }
         });
 
     /// <summary>
@@ -71,11 +234,19 @@ partial class Build
         {
             Log.Information("Next version:    {Version}", TagName);
 
-            // If there are no new commits since the last tag, skip tag creation
-            // Nuke will stop here and not execute any of the following targets
-            Log.Information(HasNewCommits
-                ? $"There are {GitVersion?.CommitsSinceVersionSource ?? "unknown"} new commits since last tag."
-                : "No new commits since last tag. Skipping tag creation.");
+            if (GitVersion != null)
+            {
+                // If there are no new commits since the last tag, skip tag creation
+                // Nuke will stop here and not execute any of the following targets
+                Log.Information(HasNewCommits
+                    ? $"There are {GitVersion.CommitsSinceVersionSource} new commits since last tag."
+                    : "No new commits since last tag. Skipping tag creation.");
+            }
+            else
+            {
+                Log.Warning("GitVersion not available - continuing with CI/CD pipeline");
+                Log.Information("Using fallback versioning strategy");
+            }
         });
 
     /// <summary>
@@ -87,21 +258,23 @@ partial class Build
         {
             Log.Information("Projects: {ProjectsCount}",
                 Solution.Projects.Count);
-            List<string> projectsVersioned = [Solution.SumTree];
-            Solution.Projects
-                // Filter logic
-                .Where(p => projectsVersioned.Contains(p.Path))
-                .ToList()
-                .ForEach(project =>
-                {
-                    Log.Information(
-                        "{project}:\tfrom {version} to {VersionFull}",
-                        project.Name,
-                        project.GetProperty("Version"), VersionFull);
-                    var msbuildProject = project.GetMSBuildProject();
-                    msbuildProject.SetProperty("Version", VersionFull);
-                    msbuildProject.Save(project.Path);
-                });
+
+            var projectsToVersion = new List<Project>
+            {
+                Solution.SumTree,
+            };
+
+            projectsToVersion.ForEach(project =>
+            {
+                if (project == null) return;
+                Log.Information(
+                    "{project}:\tfrom {version} to {VersionFull}",
+                    project.Name,
+                    project.GetProperty("Version"), VersionFull);
+                var msbuildProject = project.GetMSBuildProject();
+                msbuildProject.SetProperty("Version", VersionFull);
+                msbuildProject.Save(project.Path);
+            });
         });
 
     public Target CreateCommit => td => td

@@ -21,20 +21,21 @@ SumTree is a high-performance, immutable data structure that combines the effici
 * **Versatile**: Works with any type `T`, not just text
 
 **Replace these types with better performance:**
-- `string` (for text editing scenarios)
-- `T[]` (for immutable arrays with fast edits)
-- `List<T>` (for functional-style list operations)
-- `ImmutableList<T>` (with much better performance)
-- `StringBuilder` (for complex text construction)
+
+* `string` (for text editing scenarios)
+* `T[]` (for immutable arrays with fast edits)
+* `List<T>` (for functional-style list operations)
+* `ImmutableList<T>` (with much better performance)
+* `StringBuilder` (for complex text construction)
 
 ## How does it work?
 
 SumTree is a C# implementation that directly integrates Rope structure with summary dimensions. Based on the paper [Ropes: an Alternative to Strings](https://www.cs.rit.edu/usr/local/pub/jeh/courses/QUARTERS/FP/Labs/CedarRope/rope-paper.pdf), but enhanced with:
 
-- **Summary Dimensions**: Efficiently track computed properties (line numbers, bracket counts, custom metrics)
-- **Zero-Copy Operations**: Structural sharing means edits create new views without copying data
-- **Cache-Friendly**: Arrays of elements with subdivision only on edits for better CPU cache performance
-- **Automatic Balancing**: Tree rebalances using Fibonacci heuristics for optimal performance
+* **Summary Dimensions**: Efficiently track computed properties (line numbers, bracket counts, custom metrics)
+* **Zero-Copy Operations**: Structural sharing means edits create new views without copying data
+* **Cache-Friendly**: Arrays of elements with subdivision only on edits for better CPU cache performance
+* **Automatic Balancing**: Tree rebalances using Fibonacci heuristics for optimal performance
 
 ## How do I use it?
 
@@ -230,38 +231,43 @@ SumTree<char> balanced = unbalancedTree.Balanced();
 ## Key Features
 
 ### Performance Benefits
-- **O(log n)** random access and edits
-- **O(log n)** concatenation and splitting
-- **O(n)** sequential iteration with excellent cache locality
-- **Zero-copy** operations through structural sharing
-- **Automatic balancing** maintains performance over time
+
+* **O(log n)** random access and edits
+* **O(log n)** concatenation and splitting
+* **O(n)** sequential iteration with excellent cache locality
+* **Zero-copy** operations through structural sharing
+* **Automatic balancing** maintains performance over time
 
 ### Rich Summary System
-- **Line/Column Tracking**: Built-in support for text editor scenarios
-- **Bracket Matching**: Track parentheses, brackets, and braces automatically
-- **Custom Dimensions**: Define your own summary computations
-- **Efficient Queries**: Summary data maintained incrementally during edits
+
+* **Line/Column Tracking**: Built-in support for text editor scenarios
+* **Bracket Matching**: Track parentheses, brackets, and braces automatically
+* **Custom Dimensions**: Define your own summary computations
+* **Efficient Queries**: Summary data maintained incrementally during edits
 
 ### Developer Experience
-- **String-like API**: `SumTree<char>` behaves like `string` but with better performance
-- **LINQ Integration**: Full support for `Select`, `Where`, `Aggregate`, etc.
-- **Value Semantics**: Structural equality and hash codes work as expected
-- **Thread Safe**: Immutable design means safe concurrent access
+
+* **String-like API**: `SumTree<char>` behaves like `string` but with better performance
+* **LINQ Integration**: Full support for `Select`, `Where`, `Aggregate`, etc.
+* **Value Semantics**: Structural equality and hash codes work as expected
+* **Thread Safe**: Immutable design means safe concurrent access
 
 ## Comparison with .NET Built-in Types
 
-| Operation       | SumTree\<T\> | Rope\<T\>    | String | StringBuilder | List\<T\> | ImmutableList\<T\> |
-|-----------------|--------------|--------------|--------|---------------|-----------|--------------------|
-| Concat          | **O(log n)** | O(log n)     | O(n)   | O(1)*         | O(n)      | O(log n)           |
-| Insert          | **O(log n)** | O(log n)     | O(n)   | O(n)          | O(n)      | O(log n)           |
-| Remove          | **O(log n)** | O(log n)     | O(n)   | O(n)          | O(n)      | O(log n)           |
-| IndexOf         | O(n)         | O(n)         | O(n)   | O(n)          | O(n)      | O(n)               |
-| Random Access   | O(log n)     | O(log n)     | O(1)   | O(1)          | O(1)      | O(log n)           |
-| Memory Usage    | **Low**      | Low          | High   | Medium        | High      | High               |
-| Immutable       | ✓            | ✓            | ✓      | ✗             | ✗         | ✓                  |
-| Summary Queries | **✓**        | ✗            | ✗      | ✗             | ✗         | ✗                  |
+| Operation       | SumTree\<T>  | Rope\<T> | String | StringBuilder    | List\<T> | ImmutableList\<T> |
+| --------------- | ------------ | -------- | ------ | ---------------- | -------- | ----------------- |
+| Concat          | **O(log n)** | O(log n) | O(n)   | Amortized O(1)\* | O(n)     | O(log n)          |
+| Insert          | **O(log n)** | O(log n) | O(n)   | O(n)             | O(n)     | O(log n + k)†     |
+| Remove          | **O(log n)** | O(log n) | O(n)   | O(n)             | O(n)     | O(log n + k)†     |
+| IndexOf         | **O(n)**     | O(n)     | O(n)   | O(n)             | O(n)     | O(n)              |
+| Random Access   | **O(log n)** | O(log n) | O(1)   | O(1)             | O(1)     | O(log n)          |
+| Memory Usage    | **Low**\*    | Low\*    | High   | Medium           | High     | High              |
+| Immutable       | **✓**        | ✓        | ✓      | ✗                | ✗        | ✓                 |
+| Summary Queries | **✓**        | ✗        | ✗      | ✗                | ✗        | ✗                 |
 
-*StringBuilder concat is amortized O(1) but requires mutation
+* Low: Lower than flat arrays for edits (no full-copy), but has per-node pointer/struct overhead.
+* StringBuilder concat is amortized O(1) for appends but still O(n) when converting to string.
+† k = size of the modified leaf chunk, which can make it slightly slower than pure log time.
 
 ## Advanced Examples
 
@@ -401,10 +407,10 @@ public class CodeMetrics
 
 SumTree is designed for high-performance scenarios where traditional string/list operations become bottlenecks:
 
-- **Text Editors**: Handle large documents with efficient line-based operations
-- **Code Analysis**: Parse and analyze source code with built-in bracket tracking
-- **Data Processing**: Work with large immutable collections without copying overhead
-- **Collaborative Editing**: Share data structures safely across threads/processes
+* **Text Editors**: Handle large documents with efficient line-based operations
+* **Code Analysis**: Parse and analyze source code with built-in bracket tracking
+* **Data Processing**: Work with large immutable collections without copying overhead
+* **Collaborative Editing**: Share data structures safely across threads/processes
 
 ## License and Acknowledgements
 
@@ -412,10 +418,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgements
 
-- Original Rope paper by Boehm, Atkinson, and Plass
-- Inspired by modern text editor data structures like those in VS Code and Xi Editor
-- Built on the foundation of efficient immutable data structures
-- C# [Rope](https://github.com/FlatlinerDOA/Rope) implementation by Andrew Chisholm
+* Original Rope paper by Boehm, Atkinson, and Plass
+* Inspired by modern text editor data structures like those in VS Code and Xi Editor
+* Built on the foundation of efficient immutable data structures
+* C# [Rope](https://github.com/FlatlinerDOA/Rope) implementation by Andrew Chisholm
 
 **Author:** Bruno Massa  
 **Repository:** https://github.com/brmassa/SumTree  

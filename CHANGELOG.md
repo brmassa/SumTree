@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased][]
 
+- slightly changed in the README
 - Fix escaping the CHANGELOG when creating releases
 
 ## v[0.1.0-19][] 2025-07-10

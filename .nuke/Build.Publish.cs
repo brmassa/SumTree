@@ -30,6 +30,13 @@ partial class Build
         .Produces(PackageDir / "*.zip")
         .Executes(() =>
         {
+            // Escape the release notes string
+            var escapedReleaseNotes = (ChangelogLatestVersion ?? string.Empty)
+                                      .Replace("\"", "\\\"")
+                                      .Replace("\r", "")
+                                      .Replace("\n", "\\n")
+                                      .Replace(",", "_");
+            
             DotNetTasks.DotNetPack(s => s
                 .SetProject(Solution.SumTree)
                 .SetConfiguration(ConfigurationSet)
@@ -37,7 +44,7 @@ partial class Build
                 .SetVersion(CurrentVersion)
                 .SetAssemblyVersion(CurrentVersion)
                 .SetInformationalVersion(CurrentVersion)
-                .SetPackageReleaseNotes(ChangelogLatestVersion)
+                .SetPackageReleaseNotes(escapedReleaseNotes)
                 .SetNoBuild(true)
                 .SetNoRestore(true)
                 .SetIncludeSymbols(IncludeSymbols)

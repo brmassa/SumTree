@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased][]
 
+## v[1.0.1][] 2025-08-16
+
 - slightly changed in the README
 - Fix escaping the CHANGELOG when creating releases
 
@@ -25,4 +27,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.0-15]: https://github.com/brmassa/SumTree/compare/v1.0.0...v0.1.0-15
 [0.1.0-18]: https://github.com/brmassa/SumTree/compare/v1.0.0...v0.1.0-18
 [0.1.0-19]: https://github.com/brmassa/SumTree/compare/v1.0.0...v0.1.0-19
-[Unreleased]: https://github.com/brmassa/SumTree/compare/v0.1.0-19...HEAD
+[1.0.1]: https://github.com/brmassa/SumTree/compare/v1.0.0...v1.0.1
+[Unreleased]: https://github.com/brmassa/SumTree/compare/v1.0.1...HEAD

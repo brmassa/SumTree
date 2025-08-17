@@ -9,14 +9,13 @@
         <RepositoryUrl>https://github.com/brmassa/SumTree.git</RepositoryUrl>
         <Version>1.0.1</Version>
         <Authors>Bruno Massa</Authors>
-        <Description>
-            C# implementation of SumTree - a high-performance data structure that directly incorporates Rope structure
-            with summary dimensions. This version eliminates the composition overhead by directly implementing
-            the tree structure with integrated summary computation for maximum performance.
-            Ideal for text editors and applications requiring efficient querying based on computed summaries.
-        </Description>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
 
 </Project>

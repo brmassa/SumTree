@@ -32,11 +32,11 @@ partial class Build
         {
             // Escape the release notes string
             var escapedReleaseNotes = (ChangelogLatestVersion ?? string.Empty)
-                                      .Replace("\"", "\\\"")
-                                      .Replace("\r", "")
-                                      .Replace("\n", "\\n")
-                                      .Replace(",", "_");
-            
+                .Replace("\"", "\\\"")
+                .Replace("\r", "")
+                .Replace("\n", "\\n")
+                .Replace(",", "_");
+
             DotNetTasks.DotNetPack(s => s
                 .SetProject(Solution.SumTree)
                 .SetConfiguration(ConfigurationSet)

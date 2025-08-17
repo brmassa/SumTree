@@ -133,13 +133,13 @@ public class LineNumberDimension : SummaryDimensionBase<char, LineNumberSummary>
         if (elements.IsEmpty)
             return Identity;
 
-        int lines = 0;
-        int lastLineCharacters = 0;
-        int totalCharacters = elements.Length;
+        var lines = 0;
+        var lastLineCharacters = 0;
+        var totalCharacters = elements.Length;
 
-        for (int i = 0; i < elements.Length; i++)
+        for (var i = 0; i < elements.Length; i++)
         {
-            char ch = elements[i];
+            var ch = elements[i];
 
             if (ch == '\n')
             {

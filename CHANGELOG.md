@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased][]
 
+## v[1.0.2][] 2025-08-17
+
 ## v[1.0.1][] 2025-08-16
 
 - slightly changed in the README
@@ -27,5 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.0-15]: https://github.com/brmassa/SumTree/compare/v1.0.0...v0.1.0-15
 [0.1.0-18]: https://github.com/brmassa/SumTree/compare/v1.0.0...v0.1.0-18
 [0.1.0-19]: https://github.com/brmassa/SumTree/compare/v1.0.0...v0.1.0-19
+[1.0.2]: https://github.com/brmassa/SumTree/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/brmassa/SumTree/compare/v1.0.0...v1.0.1
-[Unreleased]: https://github.com/brmassa/SumTree/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/brmassa/SumTree/compare/v1.0.2...HEAD

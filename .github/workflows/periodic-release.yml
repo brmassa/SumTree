@@ -40,7 +40,7 @@ jobs:
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
       - name: "Run: Test, GitHubCreateReleaseAndPublish"
-        run: ./build.cmd Test GitHubCreateReleaseAndPublish
+        run: ./build.cmd Restore Test GitHubCreateReleaseAndPublish
         env:
           GitHubToken: ${{ secrets.GITHUB_TOKEN }}
           NugetApiKey: ${{ secrets.NUGET_API_KEY }}

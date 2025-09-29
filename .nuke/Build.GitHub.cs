@@ -144,4 +144,11 @@ partial class Build
         Log.Information("GitHub API call: {url}", apiUrl);
         return apiUrl;
     }
+
+    /// <summary>
+    /// Combined target that creates a GitHub release and publishes to NuGet (if there are new commits)
+    /// </summary>
+    public Target GitHubCreateReleaseAndPublish => td => td
+        .DependsOn(GitHubCreateRelease, PublishOnNewCommits)
+        .OnlyWhenStatic(() => HasNewCommits);
 }

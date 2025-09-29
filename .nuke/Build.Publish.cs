@@ -74,4 +74,59 @@ partial class Build
                 );
             }
         });
+
+    /// <summary>
+    /// Creates NuGet packages for the library (only when there are new commits)
+    /// </summary>
+    public Target PackOnNewCommits => td => td
+        .DependsOn(Compile, ExtractChangelogLatestVersion)
+        .OnlyWhenStatic(() => HasNewCommits)
+        .Produces(PackageDir / "*.zip")
+        .Executes(() =>
+        {
+            // Escape the release notes string
+            var escapedReleaseNotes = (ChangelogLatestVersion ?? string.Empty)
+                .Replace("\"", "\\\"")
+                .Replace("\r", "")
+                .Replace("\n", "\\n")
+                .Replace(",", "_");
+
+            DotNetTasks.DotNetPack(s => s
+                .SetProject(Solution.SumTree)
+                .SetConfiguration(ConfigurationSet)
+                .SetOutputDirectory(PackageDir)
+                .SetVersion(CurrentVersion)
+                .SetAssemblyVersion(CurrentVersion)
+                .SetInformationalVersion(CurrentVersion)
+                .SetPackageReleaseNotes(escapedReleaseNotes)
+                .SetNoBuild(true)
+                .SetNoRestore(true)
+                .SetIncludeSymbols(IncludeSymbols)
+                .SetIncludeSource(IncludeSource)
+                .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg)
+            );
+        });
+
+    /// <summary>
+    /// Publishes NuGet packages to nuget.org (only when there are new commits)
+    /// </summary>
+    public Target PublishOnNewCommits => td => td
+        .DependsOn(PackOnNewCommits)
+        .OnlyWhenStatic(() => HasNewCommits)
+        .Requires(() => !string.IsNullOrEmpty(NugetApiKey))
+        .Executes(() =>
+        {
+            var packageFiles = PackageDir.GlobFiles("*.nupkg")
+                .Where(x => !x.Name.EndsWith(".symbols.nupkg"));
+
+            foreach (var packageFile in packageFiles)
+            {
+                DotNetTasks.DotNetNuGetPush(s => s
+                    .SetTargetPath(packageFile)
+                    .SetSource("https://api.nuget.org/v3/index.json")
+                    .SetApiKey(NugetApiKey)
+                    .SetSkipDuplicate(true)
+                );
+            }
+        });
 }

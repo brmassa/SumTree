@@ -14,7 +14,7 @@
 # </auto-generated>
 # ------------------------------------------------------------------------------
 
-name: weekly-release
+name: periodic-release
 
 on:
   schedule:
@@ -39,14 +39,20 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
-      - name: "Run: Test, GitHubCreateRelease"
-        run: ./build.cmd Test GitHubCreateRelease
+      - name: "Run: Test, GitHubCreateReleaseAndPublish"
+        run: ./build.cmd Test GitHubCreateReleaseAndPublish
         env:
           GitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          NugetApiKey: ${{ secrets.NUGET_API_KEY }}
       - name: "Publish: coverage.xml"
         uses: actions/upload-artifact@v4
         with:
           name: coverage.xml
           path: coverage/coverage.xml
+      - name: "Publish: packages"
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: packages
     permissions:
       contents: write

@@ -66,7 +66,12 @@ partial class Build
     /// </summary>
     private bool HasNewCommits => GitVersion != null ? GitVersion.CommitsSinceVersionSource != "0" : GetCommitsSinceLastTag() > 0;
 
-    private string CurrentVersion;
+    private string _currentVersion;
+    public string CurrentVersion
+    {
+        get => _currentVersion;
+        set => _currentVersion = value.StartsWith("v") ? value[1..] : value;
+    }
 
     private string CurrentTag
     {

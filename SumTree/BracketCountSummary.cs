@@ -5,6 +5,7 @@ namespace SumTree;
 /// Tracks raw occurrences, including those inside strings and comments. Equal counts
 /// do not establish valid nesting; syntax-aware matching and folding require further analysis.
 /// </summary>
+/// <remarks>Counters and totals are signed 32-bit values; composition and totals throw on overflow.</remarks>
 public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IComparable<BracketCountSummary>
 {
     /// <summary>
@@ -75,13 +76,13 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
     /// <param name="left">The left summary.</param>
     /// <param name="right">The right summary.</param>
     /// <returns>The combined summary.</returns>
-    public static BracketCountSummary operator +(BracketCountSummary left, BracketCountSummary right) => new BracketCountSummary(
+    public static BracketCountSummary operator +(BracketCountSummary left, BracketCountSummary right) => checked(new BracketCountSummary(
             left.OpenParentheses + right.OpenParentheses,
             left.CloseParentheses + right.CloseParentheses,
             left.OpenSquareBrackets + right.OpenSquareBrackets,
             left.CloseSquareBrackets + right.CloseSquareBrackets,
             left.OpenCurlyBraces + right.OpenCurlyBraces,
-            left.CloseCurlyBraces + right.CloseCurlyBraces);
+            left.CloseCurlyBraces + right.CloseCurlyBraces));
 
     /// <summary>
     /// Gets the zero/identity summary (no brackets).
@@ -113,18 +114,21 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
     /// <summary>
     /// Gets the total number of open brackets of all types.
     /// </summary>
-    public int TotalOpenBrackets => OpenParentheses + OpenSquareBrackets + OpenCurlyBraces;
+    public int TotalOpenBrackets => checked(OpenParentheses + OpenSquareBrackets + OpenCurlyBraces);
 
     /// <summary>
     /// Gets the total number of close brackets of all types.
     /// </summary>
-    public int TotalCloseBrackets => CloseParentheses + CloseSquareBrackets + CloseCurlyBraces;
+    public int TotalCloseBrackets => checked(CloseParentheses + CloseSquareBrackets + CloseCurlyBraces);
 
     /// <summary>
     /// Checks whether open and close counts are equal for each bracket type.
     /// This does not validate order or nesting: ")(" and "([)]" both have equal counts.
     /// </summary>
-    public bool IsBalanced => ParenthesesBalance == 0 && SquareBracketsBalance == 0 && CurlyBracesBalance == 0;
+    public bool IsBalanced => HasEqualCounts;
+
+    /// <summary>Open and close counts agree for each type; neither order nor nesting is validated.</summary>
+    public bool HasEqualCounts => ParenthesesBalance == 0 && SquareBracketsBalance == 0 && CurlyBracesBalance == 0;
 
     public bool Equals(BracketCountSummary other)
     {

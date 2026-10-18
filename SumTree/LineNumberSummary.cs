@@ -4,6 +4,10 @@ namespace SumTree;
 /// Summary for tracking line numbers and character positions in text.
 /// Useful for text editors to quickly navigate to specific lines.
 /// </summary>
+/// <remarks>
+/// Character counts are UTF-16 code units. Counters are signed 32-bit values;
+/// composition throws OverflowException when a counter exceeds that range.
+/// </remarks>
 public readonly struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<LineNumberSummary>
 {
     /// <summary>
@@ -73,11 +77,11 @@ public readonly struct LineNumberSummary : IEquatable<LineNumberSummary>, ICompa
             return left;
         }
 
-        var totalLines = left.Lines + right.Lines -
-                         (left.EndsWithCarriageReturn && right.StartsWithLineFeed ? 1 : 0);
+        var totalLines = checked(left.Lines + right.Lines -
+                         (left.EndsWithCarriageReturn && right.StartsWithLineFeed ? 1 : 0));
         var lastLineChars =
-            right.Lines > 0 ? right.LastLineCharacters : left.LastLineCharacters + right.LastLineCharacters;
-        var totalChars = left.TotalCharacters + right.TotalCharacters;
+            right.Lines > 0 ? right.LastLineCharacters : checked(left.LastLineCharacters + right.LastLineCharacters);
+        var totalChars = checked(left.TotalCharacters + right.TotalCharacters);
 
         return new LineNumberSummary(totalLines, lastLineChars, totalChars,
             left.StartsWithLineFeed, right.EndsWithCarriageReturn);

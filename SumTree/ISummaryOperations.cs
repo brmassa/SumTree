@@ -5,6 +5,7 @@ namespace SumTree;
 /// Combine must be associative and Identity must be a two-sided identity. Span summaries
 /// must equal the combination of their element summaries, including across chunk boundaries.
 /// Operations must be pure and thread-safe; elements and summaries must remain immutable.
+/// Choose a counter range and overflow policy that preserve these laws for supported inputs.
 /// Runtime summary registration remains available through SumTree&lt;T&gt;.
 /// </remarks>
 public interface ISummaryOperations<T, TSummary> where TSummary : struct

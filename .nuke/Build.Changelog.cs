@@ -17,7 +17,7 @@ partial class Build
     [Parameter("Repository compare link")]
     public string RepositoryCompareLink = "https://github.com/brmassa/SumTree/compare/";
 
-    [Parameter("Changelog file")] public string ChangelogFile { get; set; } = "CHANGELOG.md";
+    [Parameter("Changelog file")] public string ChangelogFile { get; set; } = "docs/CHANGELOG.md";
 
     private const string UnreleasedSection = "## [Unreleased][]";
 

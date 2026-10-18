@@ -161,8 +161,8 @@ public static class SumTreeHelpers
         // Get the summary up to the specified index
         var summary = sumTree.GetRangeSummary(0, index, LineNumberDimension.Instance);
 
-        var line = summary.Lines + 1; // Convert to 1-based
-        var column = summary.LastLineCharacters + 1; // Convert to 1-based
+        var line = checked(summary.Lines + 1); // Convert to 1-based
+        var column = checked(summary.LastLineCharacters + 1); // Convert to 1-based
 
         return (line, column);
     }
@@ -227,8 +227,11 @@ public static class SumTreeHelpers
     /// </summary>
     /// <param name="sumTree">The SumTree to check.</param>
     /// <param name="index">The index to check up to.</param>
-    /// <returns>True if brackets are balanced, false otherwise.</returns>
-    public static bool AreBracketsBalanced(this SumTree<char> sumTree, long index)
+    /// <returns>True if raw counts are equal for each type. Compatibility alias for HaveEqualBracketCounts.</returns>
+    public static bool AreBracketsBalanced(this SumTree<char> sumTree, long index) => sumTree.HaveEqualBracketCounts(index);
+
+    /// <summary>Checks raw count equality in [0, index); does not validate order, nesting, or syntax.</summary>
+    public static bool HaveEqualBracketCounts(this SumTree<char> sumTree, long index)
     {
         if (index < 0 || index > sumTree.Length)
         {
@@ -236,7 +239,7 @@ public static class SumTreeHelpers
         }
 
         var summary = sumTree.GetRangeSummary(0, index, BracketCountDimension.Instance);
-        return summary.IsBalanced;
+        return summary.HasEqualCounts;
     }
 
     /// <summary>
@@ -244,22 +247,22 @@ public static class SumTreeHelpers
     /// </summary>
     /// <param name="sumTree">The SumTree to insert into.</param>
     /// <param name="line">The line number (1-based).</param>
-    /// <param name="column">The column number (1-based).</param>
+    /// <param name="column">The UTF-16 insertion column (1-based), at most the line length plus one.</param>
     /// <param name="text">The text to insert.</param>
     /// <returns>A new SumTree with the text inserted.</returns>
     public static SumTree<char> InsertAtLineColumn(this SumTree<char> sumTree, int line, int column, string text)
     {
+        if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
         var lineStart = sumTree.FindLineStart(line);
         if (lineStart == -1)
         {
             throw new ArgumentOutOfRangeException(nameof(line), "Line number not found.");
         }
-
-        var insertIndex = lineStart + column - 1; // Convert to 0-based index
-        if (insertIndex > sumTree.Length)
-        {
-            insertIndex = sumTree.Length;
-        }
+        var lineEnd = sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= line);
+        if (lineEnd < 0) lineEnd = sumTree.Length;
+        if ((long)column - 1 > lineEnd - lineStart)
+            throw new ArgumentOutOfRangeException(nameof(column), "Column exceeds the line's insertion positions.");
+        var insertIndex = lineStart + column - 1;
 
         return sumTree.InsertRange(insertIndex, text.AsMemory());
     }
@@ -284,7 +287,7 @@ public static class SumTreeHelpers
         if (sumTree.HasDimension<LineNumberSummary>())
         {
             var lineSummary = sumTree.GetSummary<LineNumberSummary>();
-            diagnostics.Add($"Lines: {lineSummary.Lines + 1}"); // +1 for 1-based counting
+            diagnostics.Add($"Lines: {lineSummary.Lines + 1L}"); // +1 for 1-based counting
             diagnostics.Add($"LastLineChars: {lineSummary.LastLineCharacters}");
             diagnostics.Add($"TotalChars: {lineSummary.TotalCharacters}");
         }

@@ -8,7 +8,7 @@ public static class TypedTextExtensions
         where TOps : struct, ISummaryOperations<char, TextSummary>
     {
         var summary = tree.GetPrefixSummary(index).Lines;
-        return (summary.Lines + 1, summary.LastLineCharacters + 1);
+        return (checked(summary.Lines + 1), checked(summary.LastLineCharacters + 1));
     }
 
     public static long FindLineStart<TOps>(this SumTree<char, TextSummary, TOps> tree, int lineNumber)

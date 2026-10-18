@@ -8,16 +8,16 @@ namespace Benchmarks;
 [MemoryDiagnoser]
 public class CreateNewWithLength10
 {
-    private char[] array = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    readonly char[] _array = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
     [Benchmark(Description = "string.ToRope()")]
     public void RopeOfCharFromString() => _ = "0123456789".ToRope();
 
     [Benchmark(Description = "new Rope<char>(array)")]
-    public void RopeOfCharFromArray() => _ = new Rope<char>(this.array);
+    public void RopeOfCharFromArray() => _ = new Rope<char>(_array);
 
     [Benchmark(Description = "new List<char>(array)")]
-    public void ListOfCharFromArray() => _ = new List<char>(this.array);
+    public void ListOfCharFromArray() => _ = new List<char>(_array);
 
     [Benchmark(Description = "new StringBuilder(string)")]
     public void StringBuilder() => _ = new StringBuilder("0123456789");
@@ -27,7 +27,7 @@ public class CreateNewWithLength10
     public void SumTreeFromString() => _ = "0123456789".ToSumTree();
 
     [Benchmark(Description = "SumTree from array")]
-    public void SumTreeFromArray() => _ = this.array.ToSumTree();
+    public void SumTreeFromArray() => _ = _array.ToSumTree();
 
     [Benchmark(Description = "SumTree with Lines")]
     public void SumTreeWithLines() => _ = "0123456789".ToSumTreeWithLines();

@@ -19,12 +19,14 @@ public abstract class SummaryDimensionBase<T, TSummary> : ISummaryDimension<T, T
     public virtual TSummary SummarizeSpan(ReadOnlySpan<T> elements)
     {
         if (elements.IsEmpty)
+        {
             return Identity;
+        }
 
-        var summary = this.SummarizeElement(elements[0]);
+        var summary = SummarizeElement(elements[0]);
         for (var i = 1; i < elements.Length; i++)
         {
-            summary = this.Combine(summary, this.SummarizeElement(elements[i]));
+            summary = Combine(summary, SummarizeElement(elements[i]));
         }
 
         return summary;
@@ -43,10 +45,14 @@ public abstract class SummaryDimensionBase<T, TSummary> : ISummaryDimension<T, T
     public virtual int Compare(TSummary left, TSummary right)
     {
         if (left is IComparable<TSummary> comparableLeft)
+        {
             return comparableLeft.CompareTo(right);
+        }
 
         if (left is IComparable comparableGeneric && right is IComparable)
+        {
             return comparableGeneric.CompareTo(right);
+        }
 
         throw new NotSupportedException(
             $"Summary type {typeof(TSummary).Name} does not implement IComparable<T> or IComparable");
@@ -60,12 +66,14 @@ public abstract class SummaryDimensionBase<T, TSummary> : ISummaryDimension<T, T
     protected TSummary CombineMany(params TSummary[] summaries)
     {
         if (summaries.Length == 0)
+        {
             return Identity;
+        }
 
         var result = summaries[0];
         for (var i = 1; i < summaries.Length; i++)
         {
-            result = this.Combine(result, summaries[i]);
+            result = Combine(result, summaries[i]);
         }
 
         return result;
@@ -79,12 +87,14 @@ public abstract class SummaryDimensionBase<T, TSummary> : ISummaryDimension<T, T
     protected TSummary CombineMany(ReadOnlySpan<TSummary> summaries)
     {
         if (summaries.IsEmpty)
+        {
             return Identity;
+        }
 
         var result = summaries[0];
         for (var i = 1; i < summaries.Length; i++)
         {
-            result = this.Combine(result, summaries[i]);
+            result = Combine(result, summaries[i]);
         }
 
         return result;

@@ -33,7 +33,9 @@ public class MapKeyDimension<TKey, TValue> : ISummaryDimension<MapEntry<TKey, TV
     public MapKey<TKey> SummarizeSpan(ReadOnlySpan<MapEntry<TKey, TValue>> elements)
     {
         if (elements.IsEmpty)
+        {
             return Identity;
+        }
 
         // For a sorted map, we want the last (greatest) key in the span
         return new MapKey<TKey>(elements[elements.Length - 1].Key);

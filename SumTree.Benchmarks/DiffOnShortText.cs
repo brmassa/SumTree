@@ -16,11 +16,11 @@ public class DiffOnShortText
 
     public DiffOnShortText()
     {
-        this.DiffOptions = DiffOptions<char>.LineLevel with
+        DiffOptions = DiffOptions<char>.LineLevel with
         {
             TimeoutSeconds = 0
         };
-        this.DiffMatchPatch = new diff_match_patch()
+        DiffMatchPatch = new diff_match_patch()
         {
             Diff_Timeout = 0
         };
@@ -29,12 +29,12 @@ public class DiffOnShortText
     [Benchmark]
     public void RopeDiff()
     {
-        _ = BenchmarkData.ShortDiffText1.Diff(BenchmarkData.ShortDiffText2, this.DiffOptions);
+        _ = BenchmarkData.ShortDiffText1.Diff(BenchmarkData.ShortDiffText2, DiffOptions);
     }
 
     [Benchmark]
     public void DiffMatchPatchDiff()
     {
-        this.DiffMatchPatch.diff_main(BenchmarkData.ShortDiffText1, BenchmarkData.ShortDiffText2);
+        DiffMatchPatch.diff_main(BenchmarkData.ShortDiffText1, BenchmarkData.ShortDiffText2);
     }
 }

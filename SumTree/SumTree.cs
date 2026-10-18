@@ -17,20 +17,20 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// <summary>
     /// Maximum tree depth allowed.
     /// </summary>
-    private const int MaxTreeDepth = 46;
+    const int MaxTreeDepth = 46;
 
     /// <summary>
     /// Maximum depth discrepancy between left and right to cause a re-split of one side when balancing.
     /// </summary>
-    private const int MaxDepthImbalance = 4;
+    const int MaxDepthImbalance = 4;
 
     /// <summary>
     /// Maximum number of bytes before the GC puts buffers on the large object heap.
     /// </summary>
-    private const int LargeObjectHeapBytes = 85_000 - 24;
+    const int LargeObjectHeapBytes = 85_000 - 24;
 
     [ThreadStatic]
-    private static int t_balancedCallDepth;
+static int t_balancedCallDepth;
 
     /// <summary>
     /// Static size of the maximum length of a leaf node. This is calculated to never require Large Object Heap allocations.
@@ -45,16 +45,16 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// <summary>
     /// Defines the minimum lengths the leaves should be in relation to the depth of the tree.
     /// </summary>
-    private static readonly int[] s_fibonacciPlusTwo =
-        Enumerable.Range(0, MaxTreeDepth).Select(d => Fibonacci(d) + 2).ToArray();
+    static readonly int[] s_fibonacciPlusTwo =
+        [.. Enumerable.Range(0, MaxTreeDepth).Select(d => Fibonacci(d) + 2)];
 
-    private readonly object _data;
-    private readonly Dictionary<Type, object>? _dimensions;
-    private readonly Dictionary<Type, object>? _summaries;
-    private readonly long _length;
-    private readonly int _depth;
-    private readonly int _bufferCount;
-    private readonly bool _isBalanced;
+    readonly object _data;
+    readonly Dictionary<Type, object>? _dimensions;
+    readonly Dictionary<Type, object>? _summaries;
+    readonly long _length;
+    readonly int _depth;
+    readonly int _bufferCount;
+    readonly bool _isBalanced;
 
     /// <summary>
     /// Creates a new empty SumTree.
@@ -119,7 +119,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// <summary>
     /// Internal constructor for node creation.
     /// </summary>
-    private SumTree(
+    SumTree(
         object data,
         long length,
         int depth,
@@ -242,7 +242,9 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         get
         {
             if (index < 0 || index >= _length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
 
             return GetElementAtIndex(index);
         }
@@ -254,7 +256,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public T this[int index] => this[(long)index];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T GetElementAtIndex(long index)
+T GetElementAtIndex(long index)
     {
         var current = this;
         var currentIndex = index;
@@ -290,10 +292,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         var newDimensions = new Dictionary<Type, object>(_dimensions ?? new Dictionary<Type, object>());
         newDimensions[typeof(TSummary)] = dimension;
 
-        var newSummaries = new Dictionary<Type, object>(_summaries ?? new Dictionary<Type, object>());
-        newSummaries[typeof(TSummary)] = ComputeSummaryForTree(dimension);
-
-        return new SumTree<T>(_data, _length, _depth, _bufferCount, _isBalanced, newDimensions, newSummaries);
+        return WithDimensions(newDimensions);
     }
 
     /// <summary>
@@ -302,8 +301,10 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public TSummary GetSummary<TSummary>() where TSummary : IEquatable<TSummary>
     {
         if (_summaries == null || !_summaries.TryGetValue(typeof(TSummary), out var summary))
+        {
             throw new InvalidOperationException(
                 $"Dimension for summary type {typeof(TSummary).Name} is not registered.");
+        }
 
         return (TSummary)summary;
     }
@@ -315,7 +316,9 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     {
         summary = default!;
         if (_summaries == null || !_summaries.TryGetValue(typeof(TSummary), out var summaryObj))
+        {
             return false;
+        }
 
         summary = (TSummary)summaryObj;
         return true;
@@ -335,9 +338,14 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public (SumTree<T> Left, SumTree<T> Right) SplitAt(long index)
     {
         if (index <= 0)
+        {
             return (Empty.WithDimensions(_dimensions), this);
+        }
+
         if (index >= _length)
+        {
             return (this, Empty.WithDimensions(_dimensions));
+        }
 
         return SplitAtInternal(index);
     }
@@ -359,7 +367,9 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public SumTree<T> InsertRange(long index, ReadOnlyMemory<T> items)
     {
         if (items.IsEmpty)
+        {
             return this;
+        }
 
         var itemTree = new SumTree<T>(items, _dimensions);
         return InsertRange(index, itemTree);
@@ -371,10 +381,19 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public SumTree<T> InsertRange(long index, SumTree<T> other)
     {
         if (other.IsEmpty)
+        {
             return this;
+        }
 
-        if (index == 0) return other.WithDimensions(_dimensions).AddRange(this);
-        if (index == _length) return AddRange(other);
+        if (index == 0)
+        {
+            return other.WithDimensions(_dimensions).AddRange(this);
+        }
+
+        if (index == _length)
+        {
+            return AddRange(other);
+        }
 
         var (left, right) = SplitAt(index);
         return Concat(Concat(left, other.WithDimensions(_dimensions)), right);
@@ -386,7 +405,9 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public SumTree<T> RemoveRange(long start, long length)
     {
         if (length <= 0 || start >= _length)
+        {
             return this;
+        }
 
         var end = Math.Min(start + length, _length);
         var (left, temp) = SplitAt(start);
@@ -408,7 +429,9 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public SumTree<T> Slice(long start, long length)
     {
         if (length <= 0 || start >= _length)
+        {
             return Empty.WithDimensions(_dimensions);
+        }
 
         var end = Math.Min(start + length, _length);
         var (_, temp) = SplitAt(start);
@@ -440,8 +463,15 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SumTree<T> AddRange(SumTree<T> other)
     {
-        if (IsEmpty) return other;
-        if (other.IsEmpty) return this;
+        if (IsEmpty)
+        {
+            return other;
+        }
+
+        if (other.IsEmpty)
+        {
+            return this;
+        }
 
         return Concat(this, other);
     }
@@ -452,7 +482,11 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SumTree<T> AddRange(ReadOnlyMemory<T> items)
     {
-        if (items.IsEmpty) return this;
+        if (items.IsEmpty)
+        {
+            return this;
+        }
+
         return AddRange(new SumTree<T>(items, _dimensions));
     }
 
@@ -472,10 +506,14 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public SumTree<T> AddRange(IEnumerable<T> items)
     {
         if (items is T[] array)
+        {
             return AddRange(array);
+        }
 
         if (items is List<T> list)
+        {
             return AddRange(CollectionsMarshal.AsSpan(list));
+        }
 
         return AddRange(items.ToArray());
     }
@@ -486,7 +524,10 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SumTree<T> AddRange(ReadOnlySpan<T> items)
     {
-        if (items.IsEmpty) return this;
+        if (items.IsEmpty)
+        {
+            return this;
+        }
         // Need to copy span to memory since span is stack-only
         var array = items.ToArray();
         return AddRange(new SumTree<T>(array.AsMemory(), _dimensions));
@@ -501,12 +542,16 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public long FindPosition<TSummary>(Func<TSummary, bool> predicate) where TSummary : IEquatable<TSummary>
     {
         if (_dimensions == null || !_dimensions.TryGetValue(typeof(TSummary), out var dimensionObj))
+        {
             throw new InvalidOperationException(
                 $"Dimension for summary type {typeof(TSummary).Name} is not registered.");
+        }
 
         var dimension = (ISummaryDimension<T, TSummary>)dimensionObj;
         if (IsEmpty || !predicate(GetSummary(dimension)))
+        {
             return -1;
+        }
 
         var current = this;
         var summary = dimension.Identity;
@@ -532,10 +577,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// <summary>
     /// Concatenates two trees.
     /// </summary>
-    public static SumTree<T> operator +(SumTree<T> left, SumTree<T> right)
-    {
-        return Concat(left, right);
-    }
+    public static SumTree<T> operator +(SumTree<T> left, SumTree<T> right) => Concat(left, right);
 
     /// <summary>
     /// Gets an enumerator for the elements.
@@ -547,9 +589,12 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private IEnumerable<T> EnumerateElements()
+    IEnumerable<T> EnumerateElements()
     {
-        if (IsEmpty) yield break;
+        if (IsEmpty)
+        {
+            yield break;
+        }
 
         if (!IsNode)
         {
@@ -557,7 +602,10 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             {
                 case ReadOnlyMemory<T> memory:
                     for (var i = 0; i < memory.Length; i++)
+                    {
                         yield return memory.Span[i];
+                    }
+
                     break;
                 case ValueTuple<T> single:
                     yield return single.Item1;
@@ -567,9 +615,14 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         }
 
         foreach (var item in Left.EnumerateElements())
+        {
             yield return item;
+        }
+
         foreach (var item in Right.EnumerateElements())
+        {
             yield return item;
+        }
     }
 
     /// <summary>
@@ -577,7 +630,10 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// </summary>
     public T[] ToArray()
     {
-        if (IsEmpty) return Array.Empty<T>();
+        if (IsEmpty)
+        {
+            return [];
+        }
 
         var result = new T[_length];
         var index = 0;
@@ -588,9 +644,12 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// <summary>
     /// Copies elements to a span efficiently
     /// </summary>
-    private void CopyTo(Span<T> destination, ref int index)
+    void CopyTo(Span<T> destination, ref int index)
     {
-        if (IsEmpty) return;
+        if (IsEmpty)
+        {
+            return;
+        }
 
         if (!IsNode)
         {
@@ -617,9 +676,14 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     public string ToStringFast()
     {
         if (typeof(T) != typeof(char))
+        {
             throw new InvalidOperationException("ToStringFast only works with char trees");
+        }
 
-        if (IsEmpty) return string.Empty;
+        if (IsEmpty)
+        {
+            return string.Empty;
+        }
 
         if (_length <= 1024)
         {
@@ -634,11 +698,17 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return sb.ToString();
     }
 
-    private void CopyToChar(Span<char> destination, ref int index)
+    void CopyToChar(Span<char> destination, ref int index)
     {
-        if (typeof(T) != typeof(char)) return;
+        if (typeof(T) != typeof(char))
+        {
+            return;
+        }
 
-        if (IsEmpty) return;
+        if (IsEmpty)
+        {
+            return;
+        }
 
         if (!IsNode)
         {
@@ -659,11 +729,17 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         ((SumTree<char>)(object)Right).CopyToChar(destination, ref index);
     }
 
-    private void AppendToStringBuilder(System.Text.StringBuilder sb)
+    void AppendToStringBuilder(System.Text.StringBuilder sb)
     {
-        if (typeof(T) != typeof(char)) return;
+        if (typeof(T) != typeof(char))
+        {
+            return;
+        }
 
-        if (IsEmpty) return;
+        if (IsEmpty)
+        {
+            return;
+        }
 
         if (!IsNode)
         {
@@ -688,8 +764,15 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// </summary>
     public bool Equals(SumTree<T> other)
     {
-        if (_length != other._length) return false;
-        if (_length == 0) return true;
+        if (_length != other._length)
+        {
+            return false;
+        }
+
+        if (_length == 0)
+        {
+            return true;
+        }
 
         var thisEnum = EnumerateElements();
         var otherEnum = other.EnumerateElements();
@@ -714,7 +797,9 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         hash.Add(_length);
 
         foreach (var item in EnumerateElements())
+        {
             hash.Add(item);
+        }
 
         return hash.ToHashCode();
     }
@@ -738,7 +823,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
     // Private implementation methods
 
-    private (SumTree<T> Left, SumTree<T> Right) SplitAtInternal(long index)
+    (SumTree<T> Left, SumTree<T> Right) SplitAtInternal(long index)
     {
         var current = this;
         var currentIndex = index;
@@ -790,10 +875,17 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return (left, right);
     }
 
-    private (SumTree<T> Left, SumTree<T> Right) SplitMemory(ReadOnlyMemory<T> memory, int index)
+    (SumTree<T> Left, SumTree<T> Right) SplitMemory(ReadOnlyMemory<T> memory, int index)
     {
-        if (index == 0) return (Empty.WithDimensions(_dimensions), new SumTree<T>(memory, _dimensions));
-        if (index >= memory.Length) return (new SumTree<T>(memory, _dimensions), Empty.WithDimensions(_dimensions));
+        if (index == 0)
+        {
+            return (Empty.WithDimensions(_dimensions), new SumTree<T>(memory, _dimensions));
+        }
+
+        if (index >= memory.Length)
+        {
+            return (new SumTree<T>(memory, _dimensions), Empty.WithDimensions(_dimensions));
+        }
 
         var leftMemory = memory[..index];
         var rightMemory = memory[index..];
@@ -808,13 +900,15 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// Longest leaf built from a single buffer. Longer buffers become a balanced tree of slices, so a search that
     /// ends in a leaf scans at most this many elements.
     /// </summary>
-    private const int ChunkLength = 1024;
+    const int ChunkLength = 1024;
 
     /// <summary>A balanced tree over slices of one buffer, sharing its memory and one dimension set.</summary>
-    private static SumTree<T> Chunked(ReadOnlyMemory<T> memory, Dictionary<Type, object>? dimensions)
+    static SumTree<T> Chunked(ReadOnlyMemory<T> memory, Dictionary<Type, object>? dimensions)
     {
         if (memory.Length <= ChunkLength)
+        {
             return new SumTree<T>(memory, dimensions);
+        }
 
         var half = (memory.Length / ChunkLength + 1) / 2 * ChunkLength;
         return ConcatDirect(Chunked(memory[..half], dimensions), Chunked(memory[half..], dimensions));
@@ -824,43 +918,58 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// Leaves shorter than this are merged into a neighbouring leaf when concatenated, so that edits made one
     /// character at a time do not leave a tree of single-character leaves.
     /// </summary>
-    private const int MergeLeafLength = 512;
+    const int MergeLeafLength = 512;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
+static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
     {
-        if (left.IsEmpty) return right;
-        if (right.IsEmpty) return left;
+        if (left.IsEmpty)
+        {
+            return right;
+        }
+
+        if (right.IsEmpty)
+        {
+            return left;
+        }
 
         if (!right.IsNode && right._length < MergeLeafLength && AppendToLastLeaf(left, right) is { } appended)
+        {
             return appended;
+        }
 
         if (!left.IsNode && left._length < MergeLeafLength && PrependToFirstLeaf(right, left) is { } prepended)
+        {
             return prepended;
+        }
 
         return ConcatNodes(left, right);
     }
 
     /// <summary>Merges a small leaf into the tree's last leaf, or returns null when that leaf is too long.</summary>
-    private static SumTree<T>? AppendToLastLeaf(SumTree<T> tree, SumTree<T> leaf)
+    static SumTree<T>? AppendToLastLeaf(SumTree<T> tree, SumTree<T> leaf)
     {
         if (!tree.IsNode)
+        {
             return tree._length + leaf._length <= MergeLeafLength ? MergeLeaves(tree, leaf) : null;
+        }
 
         return AppendToLastLeaf(tree.Right, leaf) is { } right ? ConcatNodes(tree.Left, right) : null;
     }
 
     /// <summary>Merges a small leaf into the tree's first leaf, or returns null when that leaf is too long.</summary>
-    private static SumTree<T>? PrependToFirstLeaf(SumTree<T> tree, SumTree<T> leaf)
+    static SumTree<T>? PrependToFirstLeaf(SumTree<T> tree, SumTree<T> leaf)
     {
         if (!tree.IsNode)
+        {
             return tree._length + leaf._length <= MergeLeafLength ? MergeLeaves(leaf, tree) : null;
+        }
 
         return PrependToFirstLeaf(tree.Left, leaf) is { } left ? ConcatNodes(left, tree.Right) : null;
     }
 
     /// <summary>Copies two leaves into one.</summary>
-    private static SumTree<T> MergeLeaves(SumTree<T> left, SumTree<T> right)
+    static SumTree<T> MergeLeaves(SumTree<T> left, SumTree<T> right)
     {
         var buffer = new T[left._length + right._length];
         var index = 0;
@@ -870,10 +979,17 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     }
 
     /// <summary>Joins two non-empty trees under a new node, rebalancing when the result is too deep.</summary>
-    private static SumTree<T> ConcatNodes(SumTree<T> left, SumTree<T> right)
+    static SumTree<T> ConcatNodes(SumTree<T> left, SumTree<T> right)
     {
-        if (left.IsEmpty) return right;
-        if (right.IsEmpty) return left;
+        if (left.IsEmpty)
+        {
+            return right;
+        }
+
+        if (right.IsEmpty)
+        {
+            return left;
+        }
 
         var newLength = left._length + right._length;
         var newDepth = Math.Max(left._depth, right._depth) + 1;
@@ -882,6 +998,8 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
         // Merge dimensions
         var dimensions = MergeDimensions(left._dimensions, right._dimensions);
+        left = left.WithDimensions(dimensions);
+        right = right.WithDimensions(dimensions);
         var summaries = dimensions != null ? ComputeCombinedSummaries(left, right, dimensions) : null;
 
         var result = new SumTree<T>(
@@ -897,15 +1015,20 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return isBalanced ? result : result.Balanced();
     }
 
-    private SumTree<T> Balanced()
+    SumTree<T> Balanced()
     {
-        if (_isBalanced) return this;
+        if (_isBalanced)
+        {
+            return this;
+        }
 
         t_balancedCallDepth++;
         try
         {
             if (t_balancedCallDepth > MaxTreeDepth)
+            {
                 throw new InvalidOperationException("Tree depth exceeded maximum");
+            }
 
             var leaves = new List<SumTree<T>>();
             CollectLeaves(leaves);
@@ -917,7 +1040,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         }
     }
 
-    private void CollectLeaves(List<SumTree<T>> leaves)
+    void CollectLeaves(List<SumTree<T>> leaves)
     {
         if (!IsNode)
         {
@@ -929,7 +1052,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         Right.CollectLeaves(leaves);
     }
 
-    private static SumTree<T> CombineLeaves(List<SumTree<T>> leaves)
+    static SumTree<T> CombineLeaves(List<SumTree<T>> leaves)
     {
         while (leaves.Count > 1)
         {
@@ -953,10 +1076,17 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return leaves.Count == 1 ? leaves[0] : Empty;
     }
 
-    private static SumTree<T> ConcatDirect(SumTree<T> left, SumTree<T> right)
+    static SumTree<T> ConcatDirect(SumTree<T> left, SumTree<T> right)
     {
-        if (left.IsEmpty) return right;
-        if (right.IsEmpty) return left;
+        if (left.IsEmpty)
+        {
+            return right;
+        }
+
+        if (right.IsEmpty)
+        {
+            return left;
+        }
 
         var newLength = left._length + right._length;
         var newDepth = Math.Max(left._depth, right._depth) + 1;
@@ -965,6 +1095,8 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
         // Merge dimensions
         var dimensions = MergeDimensions(left._dimensions, right._dimensions);
+        left = left.WithDimensions(dimensions);
+        right = right.WithDimensions(dimensions);
         var summaries = dimensions != null ? ComputeCombinedSummaries(left, right, dimensions) : null;
 
         return new SumTree<T>(
@@ -978,20 +1110,36 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         );
     }
 
-    private SumTree<T> WithDimensions(Dictionary<Type, object>? newDimensions)
+    SumTree<T> WithDimensions(Dictionary<Type, object>? newDimensions)
     {
         if (newDimensions == null || newDimensions.Count == 0)
+        {
             return this;
+        }
 
         if (_dimensions != null && DimensionsEqual(_dimensions, newDimensions))
+        {
             return this;
+        }
 
-        var newSummaries = ComputeAllSummaries(newDimensions);
+        if (IsNode)
+        {
+            var left = Left.WithDimensions(newDimensions);
+            var right = Right.WithDimensions(newDimensions);
+            var summaries = ComputeCombinedSummaries(left, right, newDimensions);
+            return new SumTree<T>((left, right), _length, _depth, _bufferCount, _isBalanced,
+                newDimensions, summaries);
+        }
+
+        // Discard cached values when a dimension instance is replaced. Asking the old
+        // tree for its summary would return the value computed by the previous instance.
+        var uncached = new SumTree<T>(_data, _length, _depth, _bufferCount, _isBalanced, newDimensions);
+        var newSummaries = uncached.ComputeAllSummaries(newDimensions);
         return new SumTree<T>(_data, _length, _depth, _bufferCount, _isBalanced, newDimensions, newSummaries);
     }
 
     /// <summary>Scans one leaf for the first element whose running summary satisfies the predicate.</summary>
-    private long FindPositionInLeaf<TSummary>(
+    long FindPositionInLeaf<TSummary>(
         ISummaryDimension<T, TSummary> dimension,
         Func<TSummary, bool> predicate,
         TSummary summary,
@@ -1005,7 +1153,9 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
                 {
                     summary = dimension.Combine(summary, dimension.SummarizeElement(span[i]));
                     if (predicate(summary))
+                    {
                         return offset + i;
+                    }
                 }
 
                 return -1;
@@ -1026,15 +1176,20 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         where TSummary : IEquatable<TSummary>
     {
         if (_summaries != null && _summaries.TryGetValue(typeof(TSummary), out var summary))
+        {
             return (TSummary)summary;
+        }
 
         return ComputeSummaryForTree(dimension);
     }
 
-    private TSummary ComputeSummaryForTree<TSummary>(ISummaryDimension<T, TSummary> dimension)
+    TSummary ComputeSummaryForTree<TSummary>(ISummaryDimension<T, TSummary> dimension)
         where TSummary : IEquatable<TSummary>
     {
-        if (IsEmpty) return dimension.Identity;
+        if (IsEmpty)
+        {
+            return dimension.Identity;
+        }
 
         if (IsNode)
         {
@@ -1054,13 +1209,24 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
 
     // Static helper methods
 
-    private static Dictionary<Type, object>? MergeDimensions(
+    static Dictionary<Type, object>? MergeDimensions(
         Dictionary<Type, object>? left,
         Dictionary<Type, object>? right)
     {
-        if (left == null) return right;
-        if (right == null) return left;
-        if (ReferenceEquals(left, right) || DimensionsEqual(left, right)) return left;
+        if (left == null)
+        {
+            return right;
+        }
+
+        if (right == null)
+        {
+            return left;
+        }
+
+        if (ReferenceEquals(left, right) || DimensionsEqual(left, right))
+        {
+            return left;
+        }
 
         var result = new Dictionary<Type, object>(left);
         foreach (var kvp in right)
@@ -1071,7 +1237,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return result;
     }
 
-    private static Dictionary<Type, object>? ComputeCombinedSummaries(
+    static Dictionary<Type, object>? ComputeCombinedSummaries(
         SumTree<T> left,
         SumTree<T> right,
         Dictionary<Type, object> dimensions)
@@ -1089,7 +1255,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return result;
     }
 
-    private Dictionary<Type, object> ComputeAllSummaries(Dictionary<Type, object> dimensions)
+    Dictionary<Type, object> ComputeAllSummaries(Dictionary<Type, object> dimensions)
     {
         var result = new Dictionary<Type, object>(dimensions.Count);
 
@@ -1101,7 +1267,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return result;
     }
 
-    private static Dictionary<Type, object> ComputeEmptySummaries(Dictionary<Type, object> dimensions)
+    static Dictionary<Type, object> ComputeEmptySummaries(Dictionary<Type, object> dimensions)
     {
         var result = new Dictionary<Type, object>(dimensions.Count);
 
@@ -1113,7 +1279,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return result;
     }
 
-    private static Dictionary<Type, object> ComputeSummariesForMemory(ReadOnlyMemory<T> memory,
+    static Dictionary<Type, object> ComputeSummariesForMemory(ReadOnlyMemory<T> memory,
         Dictionary<Type, object> dimensions)
     {
         var result = new Dictionary<Type, object>(dimensions.Count);
@@ -1130,14 +1296,14 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// Untyped delegates over one registered dimension, built by reflection once per dimension instance so that
     /// concatenation and leaf creation combine summaries without reflective calls.
     /// </summary>
-    private sealed class DimensionOperations
+    sealed class DimensionOperations
     {
-        private static readonly ConditionalWeakTable<object, DimensionOperations> s_cache = new();
+        static readonly ConditionalWeakTable<object, DimensionOperations> s_cache = new();
 
-        private static readonly MethodInfo s_create = typeof(DimensionOperations).GetMethod(nameof(Create),
+        static readonly MethodInfo s_create = typeof(DimensionOperations).GetMethod(nameof(Create),
             BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        private DimensionOperations(Func<object, object, object> combine, Func<ReadOnlyMemory<T>, object> memory,
+        DimensionOperations(Func<object, object, object> combine, Func<ReadOnlyMemory<T>, object> memory,
             Func<SumTree<T>, object> tree, object identity)
         {
             Combine = combine;
@@ -1161,7 +1327,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         /// <summary>The operations of a dimension instance, cached for its lifetime.</summary>
         internal static DimensionOperations For(object dimension) => s_cache.GetValue(dimension, Build);
 
-        private static DimensionOperations Build(object dimension)
+        static DimensionOperations Build(object dimension)
         {
             var summaryInterface = dimension.GetType().GetInterfaces().FirstOrDefault(i =>
                 i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISummaryDimension<,>)
@@ -1172,7 +1338,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             return (DimensionOperations)create.Invoke(null, [dimension])!;
         }
 
-        private static DimensionOperations Create<TSummary>(ISummaryDimension<T, TSummary> dimension)
+        static DimensionOperations Create<TSummary>(ISummaryDimension<T, TSummary> dimension)
             where TSummary : IEquatable<TSummary> => new(
             (left, right) => dimension.Combine((TSummary)left, (TSummary)right),
             memory => dimension.SummarizeSpan(memory.Span),
@@ -1180,30 +1346,46 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             dimension.Identity);
     }
 
-    private static bool DimensionsEqual(Dictionary<Type, object>? left, Dictionary<Type, object>? right)
+    static bool DimensionsEqual(Dictionary<Type, object>? left, Dictionary<Type, object>? right)
     {
-        if (left == null && right == null) return true;
-        if (left == null || right == null) return false;
-        if (left.Count != right.Count) return false;
+        if (left == null && right == null)
+        {
+            return true;
+        }
+
+        if (left == null || right == null)
+        {
+            return false;
+        }
+
+        if (left.Count != right.Count)
+        {
+            return false;
+        }
 
         foreach (var kvp in left)
         {
             if (!right.TryGetValue(kvp.Key, out var rightValue) || !kvp.Value.Equals(rightValue))
+            {
                 return false;
+            }
         }
 
         return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool CalculateIsBalanced(long length, int depth)
+static bool CalculateIsBalanced(long length, int depth)
     {
         return depth < MaxTreeDepth && (depth == 0 || length >= s_fibonacciPlusTwo[depth]);
     }
 
-    private static int Fibonacci(int n)
+    static int Fibonacci(int n)
     {
-        if (n <= 1) return n;
+        if (n <= 1)
+        {
+            return n;
+        }
 
         int a = 0, b = 1;
         for (var i = 2; i <= n; i++)
@@ -1215,7 +1397,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return b;
     }
 
-    private static int CalculateMaxLeafLength()
+    static int CalculateMaxLeafLength()
     {
         var elementSize = Unsafe.SizeOf<T>();
         var maxElements = LargeObjectHeapBytes / elementSize;

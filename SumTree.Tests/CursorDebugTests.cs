@@ -1,8 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SumTree.Cursors;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SumTree.Tests;
 
@@ -10,7 +8,7 @@ namespace SumTree.Tests;
 public class CursorDebugTests
 {
     [TestMethod]
-    public void Debug_EmptyTree_CursorState()
+    public void DebugEmptyTreeCursorState()
     {
         var tree = SumTree<char>.Empty.WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -32,7 +30,7 @@ public class CursorDebugTests
     }
 
     [TestMethod]
-    public void Debug_SingleChar_CursorState()
+    public void DebugSingleCharCursorState()
     {
         var tree = new SumTree<char>('a').WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -58,7 +56,7 @@ public class CursorDebugTests
     }
 
     [TestMethod]
-    public void Debug_String_CursorState()
+    public void DebugStringCursorState()
     {
         var tree = "hello".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();

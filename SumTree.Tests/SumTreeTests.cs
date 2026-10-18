@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using Rope;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Rope;
 
 namespace SumTree.Tests;
 
@@ -18,7 +18,7 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    public void EmptySumTree_ShouldHaveZeroLength()
+    public void EmptySumTreeShouldHaveZeroLength()
     {
         var sumTree = SumTree<char>.Empty;
 
@@ -75,13 +75,13 @@ public class SumTreeTests
 
     [TestMethod]
     public void ConvertingToString() => Assert.AreEqual("The ghosts say boo dee boo",
-        new string("The ghosts say boo dee boo".ToSumTree().ToArray()));
+        new string([.. "The ghosts say boo dee boo".ToSumTree()]));
 
     [TestMethod]
     public void ReplaceElement()
     {
         var a = "I'm sorry Dave, I can't do that.".ToSumTree();
-        Assert.AreEqual("I'm_sorry_Dave,_I_can't_do_that.", new string(a.Replace(' ', '_').ToArray()));
+        Assert.AreEqual("I'm_sorry_Dave,_I_can't_do_that.", new string([.. a.Replace(' ', '_')]));
     }
 
     [TestMethod]
@@ -150,7 +150,7 @@ public class SumTreeTests
         var right = " World".ToSumTree();
         var combined = new SumTree<char>(left, right);
 
-        Assert.AreEqual("Hello World", new string(combined.ToArray()));
+        Assert.AreEqual("Hello World", new string([.. combined]));
         Assert.AreEqual(11, combined.Length);
     }
 
@@ -170,10 +170,10 @@ public class SumTreeTests
         Assert.IsTrue("a".ToSumTree() + "bc".ToSumTree() != "ab".ToSumTree() + "bc".ToSumTree());
 
     [TestMethod]
-    public void EmptySumTreeNotEqualToNull() => Assert.IsFalse(SumTree<char>.Empty.Equals(null!));
+    public void EmptySumTreeNotEqualToNull() => Assert.IsFalse(SumTree<char>.Empty.Equals(null));
 
     [TestMethod]
-    public void EmptySumTreeEqualsEmptySumTree() => Assert.IsTrue(SumTree<char>.Empty.Equals(SumTree<char>.Empty));
+    public void EmptySumTreeEqualsEmptySumTree() => Assert.IsTrue(SumTree<char>.Empty.Equals([]));
 
     [TestMethod]
     public void CreateVeryLargeSumTreeFromArray() => Assert.IsTrue(Enumerable.Range(0, SumTree<char>.MaxLeafLength * 4)
@@ -243,7 +243,7 @@ public class SumTreeTests
         var testData = SumTreeTestData.Create(length, chunkSize);
         var expected = testData.Item1;
         var sumTree = testData.Item2;
-        Assert.AreEqual(expected, new string(sumTree.ToArray()));
+        Assert.AreEqual(expected, new string([.. sumTree]));
     }
 
     // Search Tests - Migrated from Rope
@@ -255,8 +255,8 @@ public class SumTreeTests
         Assert.AreEqual("def abcdefgh".IndexOf("def", StringComparison.Ordinal),
             new SumTree<char>("def abcd".ToSumTree(), "efgh".ToSumTree()).IndexOf("def".ToSumTree()));
 
-        Assert.AreEqual(0, "test".ToSumTree().IndexOf(new SumTree<char>("test".ToSumTree(), SumTree<char>.Empty)));
-        Assert.AreEqual(0, new SumTree<char>("test".ToSumTree(), SumTree<char>.Empty).IndexOf("test".ToSumTree()));
+        Assert.AreEqual(0, "test".ToSumTree().IndexOf(new SumTree<char>("test".ToSumTree(), [])));
+        Assert.AreEqual(0, new SumTree<char>("test".ToSumTree(), []).IndexOf("test".ToSumTree()));
 
         Assert.AreEqual(0, "test".ToSumTree().IndexOf(new SumTree<char>("te".ToSumTree(), "st".ToSumTree())));
         Assert.AreEqual(0, new SumTree<char>("tes".ToSumTree(), "t".ToSumTree()).IndexOf("test".ToSumTree()));
@@ -489,7 +489,7 @@ public class SumTreeTests
     [DataRow("First\nSecond\nThird\nFourth", 3, 6, 25)]
     [DataRow("Hello\nWorld\n", 2, 0, 12)]
     [DataRow("", 0, 0, 0)]
-    public void SumTreeWithLineNumbers_ShouldTrackLines(string text, int expectedLines, int expectedLastLineChars,
+    public void SumTreeWithLineNumbersShouldTrackLines(string text, int expectedLines, int expectedLastLineChars,
         int expectedTotalChars)
     {
         var sumTree = text.ToSumTreeWithLines();
@@ -519,7 +519,7 @@ public class SumTreeTests
     [DataRow("function() { return [1, 2; }", 1, 1, 1, 0, 1, 1, false)]
     [DataRow("((nested))", 2, 2, 0, 0, 0, 0, true)]
     [DataRow("", 0, 0, 0, 0, 0, 0, true)]
-    public void SumTreeWithBrackets_ShouldTrackBrackets(string code, int openParens, int closeParens,
+    public void SumTreeWithBracketsShouldTrackBrackets(string code, int openParens, int closeParens,
         int openSquare, int closeSquare, int openCurly, int closeCurly, bool isBalanced)
     {
         var sumTree = code.ToSumTreeWithLinesAndBrackets();
@@ -540,7 +540,7 @@ public class SumTreeTests
     [DataRow("Line 1\nLine 2\nLine 3", 1, 0)]
     [DataRow("Single line", 1, 0)]
     [DataRow("First\nSecond\nThird\nFourth", 1, 0)]
-    public void FindLineStart_ShouldReturnCorrectPosition(string text, int lineNumber, long expectedPosition)
+    public void FindLineStartShouldReturnCorrectPosition(string text, int lineNumber, long expectedPosition)
     {
         var sumTree = text.ToSumTreeWithLines();
         Assert.AreEqual(expectedPosition, sumTree.FindLineStart(lineNumber));
@@ -550,7 +550,7 @@ public class SumTreeTests
     [DataRow("Line 1\nLine 2\nLine 3", 1, "Line 1")]
     [DataRow("Single line", 1, "Single line")]
     [DataRow("First\nSecond\nThird", 1, "First")]
-    public void GetLineContent_ShouldReturnCorrectContent(string text, int lineNumber, string expectedContent)
+    public void GetLineContentShouldReturnCorrectContent(string text, int lineNumber, string expectedContent)
     {
         var sumTree = text.ToSumTreeWithLines();
         Assert.AreEqual(expectedContent, sumTree.GetLineContent(lineNumber));
@@ -565,7 +565,7 @@ public class SumTreeTests
     [DataRow("Single line", 5, 1, 6)]
     [DataRow("First\nSecond", 3, 1, 4)]
     [DataRow("First\nSecond", 6, 2, 1)]
-    public void GetLineAndColumn_ShouldReturnCorrectPosition(string text, long index, int expectedLine,
+    public void GetLineAndColumnShouldReturnCorrectPosition(string text, long index, int expectedLine,
         int expectedColumn)
     {
         var sumTree = text.ToSumTreeWithLines();
@@ -584,7 +584,7 @@ public class SumTreeTests
     [DataRow("((()))", '(', 2, 1)]
     [DataRow("((()))", '(', 3, 2)]
     [DataRow("no brackets here", '(', 1, -1)]
-    public void FindNthOpenBracket_ShouldReturnCorrectPosition(string code, char bracket, int occurrence,
+    public void FindNthOpenBracketShouldReturnCorrectPosition(string code, char bracket, int occurrence,
         long expectedPosition)
     {
         var sumTree = code.ToSumTreeWithLinesAndBrackets();
@@ -596,7 +596,7 @@ public class SumTreeTests
     [DataRow("Line 1\nLine 2", '\n', 1)]
     [DataRow("Hello\nWorld\nTest", '\n', 2)]
     [DataRow("No newlines", '\n', 0)]
-    public void Insert_ShouldMaintainSummaries(string originalText, char insertChar, int expectedLines)
+    public void InsertShouldMaintainSummaries(string originalText, char insertChar, int expectedLines)
     {
         var sumTree = originalText.ToSumTreeWithLines();
         var originalSummary = sumTree.GetSummary<LineNumberSummary>();
@@ -619,7 +619,7 @@ public class SumTreeTests
     [TestMethod]
     [DataRow("Single line", 1, 1, "Start ", "Start Single line")]
     [DataRow("First\nSecond", 1, 6, " End", "First End\nSecond")]
-    public void InsertAtLineColumn_ShouldInsertAtCorrectPosition(string originalText, int line, int column,
+    public void InsertAtLineColumnShouldInsertAtCorrectPosition(string originalText, int line, int column,
         string insertText, string expectedResult)
     {
         var sumTree = originalText.ToSumTreeWithLines();
@@ -627,7 +627,7 @@ public class SumTreeTests
         try
         {
             var modified = sumTree.InsertAtLineColumn(line, column, insertText);
-            var actualText = new string(modified.ToArray());
+            var actualText = new string([.. modified]);
             Assert.AreEqual(expectedResult, actualText);
         }
         catch (ArgumentOutOfRangeException)
@@ -647,7 +647,7 @@ public class SumTreeTests
     [DataRow("[}]", false)]
     [DataRow("", true)]
     [DataRow("no brackets", true)]
-    public void AreBracketsBalanced_ShouldDetectImbalance(string code, bool expectedBalanced)
+    public void AreBracketsBalancedShouldDetectImbalance(string code, bool expectedBalanced)
     {
         var sumTree = code.ToSumTreeWithLinesAndBrackets();
         Assert.AreEqual(expectedBalanced, sumTree.AreBracketsBalanced(code.Length));
@@ -657,7 +657,7 @@ public class SumTreeTests
     [DataRow("Line 1\nLine 2\nLine 3", 7, 1, 1)]
     [DataRow("Hello\nWorld\nTest", 6, 1, 1)]
     [DataRow("A\nB\nC\nD", 2, 1, 2)]
-    public void SplitAt_ShouldPreserveDimensions(string text, long splitIndex, int expectedLeftLines,
+    public void SplitAtShouldPreserveDimensions(string text, long splitIndex, int expectedLeftLines,
         int expectedRightLines)
     {
         var sumTree = text.ToSumTreeWithLines();
@@ -679,7 +679,7 @@ public class SumTreeTests
     [DataRow("A\n", "B\nC\n", 3)]
     [DataRow("", "Test\n", 1)]
     [DataRow("Test\n", "", 1)]
-    public void Concatenation_ShouldCombineDimensions(string text1, string text2, int expectedTotalLines)
+    public void ConcatenationShouldCombineDimensions(string text1, string text2, int expectedTotalLines)
     {
         var tree1 = text1.ToSumTreeWithLines();
         var tree2 = text2.ToSumTreeWithLines();
@@ -691,12 +691,12 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    [DataRow(new char[] { 'a', 'b', 'c', 'a', 'a' }, 3)]
-    [DataRow(new char[] { 'x', 'y', 'z' }, 0)]
-    [DataRow(new char[] { 'a', 'a', 'a', 'a' }, 4)]
+    [DataRow(new[] { 'a', 'b', 'c', 'a', 'a' }, 3)]
+    [DataRow(new[] { 'x', 'y', 'z' }, 0)]
+    [DataRow(new[] { 'a', 'a', 'a', 'a' }, 4)]
     [DataRow(new char[] { }, 0)]
-    [DataRow(new char[] { 'a' }, 1)]
-    public void CustomDimension_ShouldWork(char[] elements, int expectedCount)
+    [DataRow(new[] { 'a' }, 1)]
+    public void CustomDimensionShouldWork(char[] elements, int expectedCount)
     {
         var dimension = new TestCountDimension();
         var rope = elements.ToRope();
@@ -711,7 +711,7 @@ public class SumTreeTests
     [DataRow("Test string with brackets ()")]
     [DataRow("")]
     [DataRow("Multiple\nLines\nHere")]
-    public void WithDimension_ShouldAddNewDimension(string text)
+    public void WithDimensionShouldAddNewDimension(string text)
     {
         var sumTree = text.ToSumTreeWithLines();
 
@@ -729,7 +729,7 @@ public class SumTreeTests
     [DataRow("Hello World", 5, 1, 0, "HelloWorld")]
     [DataRow("A\nB\nC", 2, 2, 1, "A\nC")]
     [DataRow("Remove all", 0, 10, 0, "")]
-    public void RemoveRange_ShouldUpdateSummaries(string originalText, long start, long length, int expectedLines,
+    public void RemoveRangeShouldUpdateSummaries(string originalText, long start, long length, int expectedLines,
         string expectedResult)
     {
         var sumTree = originalText.ToSumTreeWithLines();
@@ -737,7 +737,7 @@ public class SumTreeTests
         var summary = modified.GetSummary<LineNumberSummary>();
 
         Assert.AreEqual(expectedLines, summary.Lines);
-        Assert.AreEqual(expectedResult, new string(modified.ToArray()));
+        Assert.AreEqual(expectedResult, new string([.. modified]));
     }
 
     [TestMethod]
@@ -745,11 +745,11 @@ public class SumTreeTests
     [DataRow("Test", 0, "est")]
     [DataRow("Remove", 5, "Remov")]
     [DataRow("A", 0, "")]
-    public void RemoveAt_ShouldRemoveSingleElement(string originalText, long index, string expectedResult)
+    public void RemoveAtShouldRemoveSingleElement(string originalText, long index, string expectedResult)
     {
         var sumTree = originalText.ToSumTreeWithLines();
         var modified = sumTree.RemoveAt(index);
-        var actualResult = new string(modified.ToArray());
+        var actualResult = new string([.. modified]);
         Assert.AreEqual(expectedResult, actualResult);
     }
 
@@ -758,11 +758,11 @@ public class SumTreeTests
     [DataRow("Hello World", 6, 5, "World")]
     [DataRow("Test String", 2, 3, "st ")]
     [DataRow("ABCDEFG", 1, 3, "BCD")]
-    public void Slice_ShouldReturnCorrectSubstring(string originalText, long start, long length, string expectedResult)
+    public void SliceShouldReturnCorrectSubstring(string originalText, long start, long length, string expectedResult)
     {
         var sumTree = originalText.ToSumTreeWithLines();
         var slice = sumTree.Slice(start, length);
-        var actualResult = new string(slice.ToArray());
+        var actualResult = new string([.. slice]);
         Assert.AreEqual(expectedResult, actualResult);
     }
 
@@ -770,11 +770,11 @@ public class SumTreeTests
     [DataRow("Hello", 'X', "HelloX")]
     [DataRow("", 'A', "A")]
     [DataRow("Test", '\n', "Test\n")]
-    public void Add_ShouldAppendElement(string originalText, char element, string expectedResult)
+    public void AddShouldAppendElement(string originalText, char element, string expectedResult)
     {
         var sumTree = originalText.ToSumTreeWithLines();
         var modified = sumTree.Add(element);
-        var actualResult = new string(modified.ToArray());
+        var actualResult = new string([.. modified]);
         Assert.AreEqual(expectedResult, actualResult);
     }
 
@@ -782,17 +782,17 @@ public class SumTreeTests
     [DataRow("Hello", " World", "Hello World")]
     [DataRow("", "Test", "Test")]
     [DataRow("First", "\nSecond", "First\nSecond")]
-    public void AddRange_ShouldAppendSumTree(string text1, string text2, string expectedResult)
+    public void AddRangeShouldAppendSumTree(string text1, string text2, string expectedResult)
     {
         var sumTree1 = text1.ToSumTreeWithLines();
         var sumTree2 = text2.ToSumTreeWithLines();
         var combined = sumTree1.AddRange(sumTree2);
-        var actualResult = new string(combined.ToArray());
+        var actualResult = new string([.. combined]);
         Assert.AreEqual(expectedResult, actualResult);
     }
 
     [TestMethod]
-    public void EmptyText_ShouldHandleGracefully()
+    public void EmptyTextShouldHandleGracefully()
     {
         var sumTree = "".ToSumTreeWithLines();
 
@@ -806,7 +806,7 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    public void BasicOperations_ShouldWork()
+    public void BasicOperationsShouldWork()
     {
         var text = "Hello\nWorld";
         var sumTree = text.ToSumTreeWithLines();
@@ -822,7 +822,7 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    public void InsertAtLineColumn_SpecificCase_ShouldWork()
+    public void InsertAtLineColumnSpecificCaseShouldWork()
     {
         // Test the specific case that was causing issues
         var originalText = "Line 1\nLine 2";
@@ -835,7 +835,7 @@ public class SumTreeTests
         try
         {
             var modified = sumTree.InsertAtLineColumn(2, 1, "Modified ");
-            var actualText = new string(modified.ToArray());
+            var actualText = new string([.. modified]);
 
             // The actual behavior inserts at the beginning of the line
             // This test documents the current behavior rather than the expected behavior

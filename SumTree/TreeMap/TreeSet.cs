@@ -59,8 +59,8 @@ public readonly struct Unit : IEquatable<Unit>
 public class TreeSet<T> : IEnumerable<T>
     where T : IComparable<T>, IEquatable<T>
 {
-    private readonly TreeMap<T, Unit> _map;
-    private static readonly Unit Marker = new();
+    readonly TreeMap<T, Unit> _map;
+    static readonly Unit Marker = new();
 
     /// <summary>
     /// Initializes a new empty TreeSet.
@@ -168,7 +168,9 @@ public class TreeSet<T> : IEnumerable<T>
     public Maybe<T> First()
     {
         if (_map.IsEmpty)
+        {
             return Maybe<T>.None;
+        }
 
         return new Maybe<T>(_map.First()!.Value.Key);
     }
@@ -180,7 +182,9 @@ public class TreeSet<T> : IEnumerable<T>
     public Maybe<T> Last()
     {
         if (_map.IsEmpty)
+        {
             return Maybe<T>.None;
+        }
 
         return new Maybe<T>(_map.Last()!.Value.Key);
     }
@@ -274,7 +278,7 @@ public class TreeSet<T> : IEnumerable<T>
 
         foreach (var item in other)
         {
-            if (!this.Contains(item))
+            if (!Contains(item))
             {
                 result.Add(item);
             }
@@ -300,7 +304,7 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if this set is a superset of the other set, false otherwise.</returns>
     public bool IsSupersetOf(TreeSet<T> other)
     {
-        return other.All(item => this.Contains(item));
+        return other.All(item => Contains(item));
     }
 
     /// <summary>
@@ -320,7 +324,7 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if the sets are equal, false otherwise.</returns>
     public bool SetEquals(TreeSet<T> other)
     {
-        return this.Count == other.Count && this.All(item => other.Contains(item));
+        return Count == other.Count && this.All(item => other.Contains(item));
     }
 
     /// <summary>

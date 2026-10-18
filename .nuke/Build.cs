@@ -30,7 +30,7 @@ namespace SumTree.Nuke;
     OnCronSchedule = "0 13 * * 5", // Friday 13:00 UTC
     On = [GitHubActionsTrigger.WorkflowDispatch],
     InvokedTargets = [nameof(Test), nameof(GitHubCreateRelease)],
-    ImportSecrets = [nameof(GitHubToken)],
+    ImportSecrets = [nameof(_gitHubToken)],
     PublishArtifacts = true
 )]
 
@@ -43,7 +43,7 @@ namespace SumTree.Nuke;
     OnPushTags = ["v*"],
     On = [GitHubActionsTrigger.WorkflowDispatch],
     InvokedTargets = [nameof(Restore), nameof(Compile), nameof(Pack), nameof(Publish)],
-    ImportSecrets = [nameof(NugetApiKey)],
+    ImportSecrets = [nameof(_nugetApiKey)],
     PublishArtifacts = true
 )]
 
@@ -55,7 +55,7 @@ namespace SumTree.Nuke;
     FetchDepth = 0,
     AutoGenerate = false, // Disable because it's too buggy
     InvokedTargets = [nameof(Restore), nameof(Compile), nameof(Pack), nameof(Publish)],
-    ImportSecrets = [nameof(NugetApiKey)],
+    ImportSecrets = [nameof(_nugetApiKey)],
     PublishArtifacts = true
 )]
 internal sealed partial class Build : NukeBuild

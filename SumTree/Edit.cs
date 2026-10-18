@@ -46,8 +46,8 @@ public abstract class Edit<T> where T : IEquatable<T>
 /// <typeparam name="T">The type of elements in the tree.</typeparam>
 public class InsertEdit<T> : Edit<T> where T : IEquatable<T>
 {
-    private readonly long _position;
-    private readonly SumTree<T> _content;
+    readonly long _position;
+    readonly SumTree<T> _content;
 
     /// <summary>
     /// Initializes a new insert edit.
@@ -113,8 +113,8 @@ public class InsertEdit<T> : Edit<T> where T : IEquatable<T>
 /// <typeparam name="T">The type of elements in the tree.</typeparam>
 public class RemoveEdit<T> : Edit<T> where T : IEquatable<T>
 {
-    private readonly long _position;
-    private readonly long _length;
+    readonly long _position;
+    readonly long _length;
 
     /// <summary>
     /// Initializes a new remove edit.
@@ -180,9 +180,9 @@ public class RemoveEdit<T> : Edit<T> where T : IEquatable<T>
 /// <typeparam name="T">The type of elements in the tree.</typeparam>
 public class ReplaceEdit<T> : Edit<T> where T : IEquatable<T>
 {
-    private readonly long _position;
-    private readonly long _removeLength;
-    private readonly SumTree<T> _insertContent;
+    readonly long _position;
+    readonly long _removeLength;
+    readonly SumTree<T> _insertContent;
 
     /// <summary>
     /// Initializes a new replace edit.
@@ -402,7 +402,7 @@ public static class EditOperations
     /// <param name="second">The second edit.</param>
     /// <param name="merged">The merged edit if successful.</param>
     /// <returns>True if the edits were merged, false otherwise.</returns>
-    private static bool TryMergeEdits<T>(Edit<T> first, Edit<T> second, out Edit<T> merged)
+    static bool TryMergeEdits<T>(Edit<T> first, Edit<T> second, out Edit<T> merged)
         where T : IEquatable<T>
     {
         merged = null!;

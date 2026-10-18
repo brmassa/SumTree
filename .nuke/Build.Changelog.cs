@@ -148,9 +148,9 @@ partial class Build
     private string GetVersionLink(string previousVersion, string currentVersion) =>
         $"{RepositoryCompareLink}{previousVersion}...{currentVersion}";
 
-    [CanBeNull] string ChangelogLatestVersion;
+    [CanBeNull] string _changelogLatestVersion;
 
-    [CanBeNull] string ChangelogUnreleased;
+    [CanBeNull] string _changelogUnreleased;
 
     private Target ExtractChangelogUnreleased => td => td
         .Before(UpdateChangelog)
@@ -162,10 +162,10 @@ partial class Build
             }
 
             var fileContents = File.ReadAllText(ChangelogFile);
-            ChangelogUnreleased = GetUnreleasedChangelog(fileContents);
+            _changelogUnreleased = GetUnreleasedChangelog(fileContents);
 
             Log.Information("Unreleased changelog:");
-            Log.Information("{changelog}", ChangelogUnreleased);
+            Log.Information("{changelog}", _changelogUnreleased);
         });
 
     private string GetUnreleasedChangelog(string fileContents)
@@ -224,10 +224,10 @@ partial class Build
             }
 
             var fileContents = File.ReadAllText(ChangelogFile);
-            ChangelogLatestVersion = GetLatestVersionChangelog(fileContents);
+            _changelogLatestVersion = GetLatestVersionChangelog(fileContents);
 
             Log.Information("Latest version changelog:");
-            Log.Information("{changelog}", ChangelogLatestVersion);
+            Log.Information("{changelog}", _changelogLatestVersion);
         });
 
     private string GetLatestVersionChangelog(string fileContents)

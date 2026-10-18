@@ -1,7 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SumTree.Tests;
 
@@ -9,29 +9,29 @@ namespace SumTree.Tests;
 public class EditTests
 {
     [TestMethod]
-    public void InsertEdit_Apply_ShouldInsertAtCorrectPosition()
+    public void InsertEditApplyShouldInsertAtCorrectPosition()
     {
         var tree = "hello".ToSumTree();
         var edit = new InsertEdit<char>(2, ' ');
 
         var result = edit.Apply(tree);
 
-        Assert.AreEqual("he llo", new string(result.ToArray()));
+        Assert.AreEqual("he llo", new string([.. result]));
     }
 
     [TestMethod]
-    public void InsertEdit_WithMultipleItems_ShouldInsertAll()
+    public void InsertEditWithMultipleItemsShouldInsertAll()
     {
         var tree = "hello".ToSumTree();
         var edit = new InsertEdit<char>(2, " world".AsMemory());
 
         var result = edit.Apply(tree);
 
-        Assert.AreEqual("he worldllo", new string(result.ToArray()));
+        Assert.AreEqual("he worldllo", new string([.. result]));
     }
 
     [TestMethod]
-    public void InsertEdit_WithSumTree_ShouldInsertTree()
+    public void InsertEditWithSumTreeShouldInsertTree()
     {
         var tree = "hello".ToSumTree();
         var insertTree = " world".ToSumTree();
@@ -39,11 +39,11 @@ public class EditTests
 
         var result = edit.Apply(tree);
 
-        Assert.AreEqual("he worldllo", new string(result.ToArray()));
+        Assert.AreEqual("he worldllo", new string([.. result]));
     }
 
     [TestMethod]
-    public void InsertEdit_Position_ShouldReturnCorrectPosition()
+    public void InsertEditPositionShouldReturnCorrectPosition()
     {
         var edit = new InsertEdit<char>(5, 'x');
 
@@ -52,7 +52,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void InsertEdit_LengthChange_ShouldReturnInsertedLength()
+    public void InsertEditLengthChangeShouldReturnInsertedLength()
     {
         var edit = new InsertEdit<char>(0, "test".AsMemory());
 
@@ -60,18 +60,18 @@ public class EditTests
     }
 
     [TestMethod]
-    public void RemoveEdit_Apply_ShouldRemoveAtCorrectPosition()
+    public void RemoveEditApplyShouldRemoveAtCorrectPosition()
     {
         var tree = "hello world".ToSumTree();
         var edit = new RemoveEdit<char>(5, 6); // Remove " world"
 
         var result = edit.Apply(tree);
 
-        Assert.AreEqual("hello", new string(result.ToArray()));
+        Assert.AreEqual("hello", new string([.. result]));
     }
 
     [TestMethod]
-    public void RemoveEdit_Position_ShouldReturnCorrectPosition()
+    public void RemoveEditPositionShouldReturnCorrectPosition()
     {
         var edit = new RemoveEdit<char>(5, 3);
 
@@ -80,7 +80,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void RemoveEdit_LengthChange_ShouldReturnNegativeLength()
+    public void RemoveEditLengthChangeShouldReturnNegativeLength()
     {
         var edit = new RemoveEdit<char>(0, 5);
 
@@ -88,7 +88,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void RemoveEdit_ConflictsWith_OverlappingRemove_ShouldReturnTrue()
+    public void RemoveEditConflictsWithOverlappingRemoveShouldReturnTrue()
     {
         var edit1 = new RemoveEdit<char>(5, 3); // Remove positions 5-7
         var edit2 = new RemoveEdit<char>(7, 3); // Remove positions 7-9
@@ -98,7 +98,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void RemoveEdit_ConflictsWith_NonOverlappingRemove_ShouldReturnFalse()
+    public void RemoveEditConflictsWithNonOverlappingRemoveShouldReturnFalse()
     {
         var edit1 = new RemoveEdit<char>(5, 2); // Remove positions 5-6
         var edit2 = new RemoveEdit<char>(8, 2); // Remove positions 8-9
@@ -108,7 +108,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void RemoveEdit_ConflictsWith_InsertInRange_ShouldReturnTrue()
+    public void RemoveEditConflictsWithInsertInRangeShouldReturnTrue()
     {
         var removeEdit = new RemoveEdit<char>(5, 3); // Remove positions 5-7
         var insertEdit = new InsertEdit<char>(6, 'x'); // Insert at position 6
@@ -117,7 +117,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void RemoveEdit_ConflictsWith_InsertOutsideRange_ShouldReturnFalse()
+    public void RemoveEditConflictsWithInsertOutsideRangeShouldReturnFalse()
     {
         var removeEdit = new RemoveEdit<char>(5, 3); // Remove positions 5-7
         var insertEdit = new InsertEdit<char>(10, 'x'); // Insert at position 10
@@ -126,29 +126,29 @@ public class EditTests
     }
 
     [TestMethod]
-    public void ReplaceEdit_Apply_ShouldReplaceCorrectly()
+    public void ReplaceEditApplyShouldReplaceCorrectly()
     {
         var tree = "hello world".ToSumTree();
         var edit = new ReplaceEdit<char>(6, 5, "earth".AsMemory()); // Replace "world" with "earth"
 
         var result = edit.Apply(tree);
 
-        Assert.AreEqual("hello earth", new string(result.ToArray()));
+        Assert.AreEqual("hello earth", new string([.. result]));
     }
 
     [TestMethod]
-    public void ReplaceEdit_WithSingleItem_ShouldReplaceWithSingleItem()
+    public void ReplaceEditWithSingleItemShouldReplaceWithSingleItem()
     {
         var tree = "hello".ToSumTree();
         var edit = new ReplaceEdit<char>(1, 1, 'a'); // Replace 'e' with 'a'
 
         var result = edit.Apply(tree);
 
-        Assert.AreEqual("hallo", new string(result.ToArray()));
+        Assert.AreEqual("hallo", new string([.. result]));
     }
 
     [TestMethod]
-    public void ReplaceEdit_WithSumTree_ShouldReplaceWithTree()
+    public void ReplaceEditWithSumTreeShouldReplaceWithTree()
     {
         var tree = "hello".ToSumTree();
         var replaceTree = "ey".ToSumTree();
@@ -156,11 +156,11 @@ public class EditTests
 
         var result = edit.Apply(tree);
 
-        Assert.AreEqual("heyllo", new string(result.ToArray()));
+        Assert.AreEqual("heyllo", new string([.. result]));
     }
 
     [TestMethod]
-    public void ReplaceEdit_LengthChange_ShouldReturnCorrectDifference()
+    public void ReplaceEditLengthChangeShouldReturnCorrectDifference()
     {
         var edit = new ReplaceEdit<char>(0, 5, "test".AsMemory()); // Remove 5, insert 4
 
@@ -168,7 +168,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void ReplaceEdit_ConflictsWith_OverlappingReplace_ShouldReturnTrue()
+    public void ReplaceEditConflictsWithOverlappingReplaceShouldReturnTrue()
     {
         var edit1 = new ReplaceEdit<char>(5, 3, "abc".AsMemory()); // Replace positions 5-7
         var edit2 = new ReplaceEdit<char>(7, 3, "def".AsMemory()); // Replace positions 7-9
@@ -178,7 +178,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void ReplaceEdit_ConflictsWith_NonOverlappingReplace_ShouldReturnFalse()
+    public void ReplaceEditConflictsWithNonOverlappingReplaceShouldReturnFalse()
     {
         var edit1 = new ReplaceEdit<char>(5, 2, "ab".AsMemory()); // Replace positions 5-6
         var edit2 = new ReplaceEdit<char>(8, 2, "cd".AsMemory()); // Replace positions 8-9
@@ -189,7 +189,7 @@ public class EditTests
 
     [TestMethod]
     [Ignore("Deal with this later")]
-    public void ApplyEdits_MultipleEdits_ShouldApplyInCorrectOrder()
+    public void ApplyEditsMultipleEditsShouldApplyInCorrectOrder()
     {
         var tree = "hello world".ToSumTree();
         var edits = new List<Edit<char>>
@@ -202,11 +202,11 @@ public class EditTests
         var result = tree.ApplyEdits(edits);
 
         // Expected: "Hi " + "hello" + "earth" = "Hi helloearth"
-        Assert.AreEqual("Hi helloearth", new string(result.ToArray()));
+        Assert.AreEqual("Hi helloearth", new string([.. result]));
     }
 
     [TestMethod]
-    public void ApplyEdits_ConflictingEdits_ShouldThrowException()
+    public void ApplyEditsConflictingEditsShouldThrowException()
     {
         var tree = "hello".ToSumTree();
         var edits = new List<Edit<char>>
@@ -220,7 +220,7 @@ public class EditTests
 
     [TestMethod]
     [Ignore("Deal with this later")]
-    public void ApplyEditsWithAdjustment_ShouldAdjustPositions()
+    public void ApplyEditsWithAdjustmentShouldAdjustPositions()
     {
         var tree = "hello".ToSumTree();
         var edits = new List<Edit<char>>
@@ -233,11 +233,11 @@ public class EditTests
 
         // First edit: "Hi hello"
         // Second edit should be adjusted to position 2 + 3 = 5: "Hi heXXllo"
-        Assert.AreEqual("Hi heXXllo", new string(result.ToArray()));
+        Assert.AreEqual("Hi heXXllo", new string([.. result]));
     }
 
     [TestMethod]
-    public void MergeEdits_AdjacentInserts_ShouldMerge()
+    public void MergeEditsAdjacentInsertsShouldMerge()
     {
         var edits = new List<Edit<char>>
         {
@@ -252,11 +252,11 @@ public class EditTests
 
         var insertEdit = (InsertEdit<char>)merged[0];
         Assert.AreEqual(0, insertEdit.Position);
-        Assert.AreEqual("abcd", new string(insertEdit.Content.ToArray()));
+        Assert.AreEqual("abcd", new string([.. insertEdit.Content]));
     }
 
     [TestMethod]
-    public void MergeEdits_AdjacentRemoves_ShouldMerge()
+    public void MergeEditsAdjacentRemovesShouldMerge()
     {
         var edits = new List<Edit<char>>
         {
@@ -275,7 +275,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void MergeEdits_NonAdjacentEdits_ShouldNotMerge()
+    public void MergeEditsNonAdjacentEditsShouldNotMerge()
     {
         var edits = new List<Edit<char>>
         {
@@ -289,7 +289,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void Edit_ToString_ShouldReturnReadableString()
+    public void EditToStringShouldReturnReadableString()
     {
         var insertEdit = new InsertEdit<char>(5, "test".AsMemory());
         var removeEdit = new RemoveEdit<char>(10, 3);
@@ -301,7 +301,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void Edit_SamePosition_ShouldConflict()
+    public void EditSamePositionShouldConflict()
     {
         var edit1 = new InsertEdit<char>(5, 'a');
         var edit2 = new InsertEdit<char>(5, 'b');
@@ -311,7 +311,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void Edit_DifferentPositions_ShouldNotConflict()
+    public void EditDifferentPositionsShouldNotConflict()
     {
         var edit1 = new InsertEdit<char>(5, 'a');
         var edit2 = new InsertEdit<char>(10, 'b');
@@ -321,7 +321,7 @@ public class EditTests
     }
 
     [TestMethod]
-    public void ApplyEdits_EmptyEditList_ShouldReturnOriginalTree()
+    public void ApplyEditsEmptyEditListShouldReturnOriginalTree()
     {
         var tree = "hello".ToSumTree();
         var edits = new List<Edit<char>>();
@@ -333,7 +333,7 @@ public class EditTests
 
     [TestMethod]
     [Ignore("Deal with this later")]
-    public void ApplyEdits_ComplexScenario_ShouldApplyCorrectly()
+    public void ApplyEditsComplexScenarioShouldApplyCorrectly()
     {
         var tree = "The quick brown fox jumps over the lazy dog".ToSumTree();
         var edits = new List<Edit<char>>
@@ -346,11 +346,11 @@ public class EditTests
 
         var result = tree.ApplyEdits(edits);
 
-        Assert.AreEqual("A quick brown very fox jumps over the  cat", new string(result.ToArray()));
+        Assert.AreEqual("A quick brown very fox jumps over the  cat", new string([.. result]));
     }
 
     [TestMethod]
-    public void Edit_LargeData_ShouldMaintainPerformance()
+    public void EditLargeDataShouldMaintainPerformance()
     {
         var largeText = string.Concat(Enumerable.Range(0, 100000).Select(i => (char)('a' + (i % 26))));
         var tree = largeText.ToSumTree();
@@ -365,7 +365,7 @@ public class EditTests
         var result = tree.ApplyEditsWithAdjustment(edits);
 
         Assert.AreEqual(largeText.Length + 18, result.Length); // 6 + 6 + 6 = 18 additional chars
-        Assert.IsTrue(new string(result.ToArray()).StartsWith("PREFIX"));
-        Assert.IsTrue(new string(result.ToArray()).EndsWith("SUFFIX"));
+        Assert.IsTrue(new string([.. result]).StartsWith("PREFIX"));
+        Assert.IsTrue(new string([.. result]).EndsWith("SUFFIX"));
     }
 }

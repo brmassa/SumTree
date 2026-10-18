@@ -31,7 +31,7 @@ partial class Build
         {
             _ = CoverageDirectory.CreateDirectory();
             DotNetTasks.DotNetTest(settings => settings
-                .SetProjectFile(Solution.SumTree_Tests)
+                .SetProjectFile(_solution.SumTree_Tests)
                 .SetConfiguration(ConfigurationSet)
                 .SetResultsDirectory(CoverageDirectory)
                 .SetDataCollector("XPlat Code Coverage")

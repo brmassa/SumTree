@@ -21,16 +21,16 @@ partial class Build
     /// The GitHub CI/CD variables are injected by Nuke.
     /// </summary>
     [Parameter("GitHub token")]
-    readonly string GitHubToken;
+    readonly string _gitHubToken;
 
     [Parameter("GitHub repository")]
-    readonly string GitHubRepository = "brmassa/SumTree";
+    readonly string _gitHubRepository = "brmassa/SumTree";
 
     [Parameter("GitHub API URL")]
     static readonly string GitHubApiBaseUrl = "https://api.github.com";
 
     [Parameter("Skip CI checks (add [skip ci] to commit message)")]
-    readonly bool SkipCi = true;
+    readonly bool _skipCi = true;
 
     static string Date =>
         DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -42,10 +42,10 @@ partial class Build
     public Target GitHubCreateRelease => _ => _
         .DependsOn(GitHubCreateTag, ExtractChangelogUnreleased)
         .OnlyWhenStatic(() => HasNewCommits)
-        .Requires(() => GitHubToken)
+        .Requires(() => _gitHubToken)
         .Executes(async () =>
         {
-            if (string.IsNullOrWhiteSpace(ChangelogUnreleased) || ChangelogUnreleased == "No changes in Unreleased section.")
+            if (string.IsNullOrWhiteSpace(_changelogUnreleased) || _changelogUnreleased == "No changes in Unreleased section.")
             {
                 Log.Warning("No unreleased changes found in changelog. Skipping release creation.");
                 return;
@@ -61,14 +61,14 @@ partial class Build
                 {
                     tag_name = TagName,
                     name = releaseName,
-                    body = ChangelogUnreleased,
+                    body = _changelogUnreleased,
                     draft = false,
                     prerelease = IsPrerelease(TagName),
                     generate_release_notes = false
                 };
 
                 var response = await httpClient.PostAsJsonAsync(
-                    GitHubApiUrl($"repos/{GitHubRepository}/releases"),
+                    GitHubApiUrl($"repos/{_gitHubRepository}/releases"),
                     releaseData).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
@@ -117,7 +117,7 @@ partial class Build
     Target GitHubCreateTag => _ => _
         .DependsOn(CheckNewCommits, GitHubCreateCommit)
         .OnlyWhenStatic(() => HasNewCommits)
-        .Requires(() => GitHubToken)
+        .Requires(() => _gitHubToken)
         .Executes(async () =>
         {
             // Check if tag already exists
@@ -140,7 +140,7 @@ partial class Build
                 };
 
                 var response = await httpClient.PostAsJsonAsync(
-                    GitHubApiUrl($"repos/{GitHubRepository}/git/refs"),
+                    GitHubApiUrl($"repos/{_gitHubRepository}/git/refs"),
                     tagData).ConfigureAwait(false);
 
                 if (response.IsSuccessStatusCode)
@@ -183,7 +183,7 @@ partial class Build
         .OnlyWhenStatic(() => HasNewCommits)
         .Executes(() =>
         {
-            var commitMessage = SkipCi
+            var commitMessage = _skipCi
                 ? $"chore: Automatic version bump to {VersionFull} [skip ci]"
                 : $"chore: Automatic version bump to {VersionFull}";
 
@@ -220,7 +220,7 @@ partial class Build
                 GitTasks.Git($"commit -m \"{commitMessage}\"");
 
                 // Push to remote
-                var currentBranch = Repository?.Branch ?? "main";
+                var currentBranch = _repository?.Branch ?? "main";
                 Log.Information("Pushing commit to branch: {Branch}", currentBranch);
                 GitTasks.Git($"push origin {currentBranch}");
 
@@ -262,7 +262,7 @@ partial class Build
                 Log.Information("Git remote URL: {Url}", remoteUrl);
 
                 var branchOutputs = GitTasks.Git("branch --show-current");
-                var currentBranch = Repository?.Branch ?? (branchOutputs.Any() ? branchOutputs.First().Text : "Unknown");
+                var currentBranch = _repository?.Branch ?? (branchOutputs.Any() ? branchOutputs.First().Text : "Unknown");
                 Log.Information("Current branch: {Branch}", currentBranch);
 
                 var commitOutputs = GitTasks.Git("log -1 --oneline");
@@ -275,22 +275,22 @@ partial class Build
             }
 
             // Validate GitHub token if provided
-            if (!string.IsNullOrWhiteSpace(GitHubToken))
+            if (!string.IsNullOrWhiteSpace(_gitHubToken))
             {
-                if (GitHubToken.Length < 20)
+                if (_gitHubToken.Length < 20)
                 {
                     Log.Warning("GitHub token appears to be too short");
                 }
                 else
                 {
-                    Log.Information("GitHub token is available ({Length} characters)", GitHubToken.Length);
+                    Log.Information("GitHub token is available ({Length} characters)", _gitHubToken.Length);
                 }
             }
 
             // Validate repository format
-            if (!GitHubRepository.Contains("/"))
+            if (!_gitHubRepository.Contains("/"))
             {
-                throw new InvalidOperationException($"Invalid GitHub repository format: {GitHubRepository}. Expected format: owner/repo");
+                throw new InvalidOperationException($"Invalid GitHub repository format: {_gitHubRepository}. Expected format: owner/repo");
             }
 
             Log.Information("GitHub integration validation completed");
@@ -306,7 +306,7 @@ partial class Build
             Timeout = TimeSpan.FromMinutes(2)
         };
 
-        httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {GitHubToken}");
+        httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_gitHubToken}");
         httpClient.DefaultRequestHeaders.Add("User-Agent", "SumTree-Build-System/1.0");
         httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github.v3+json");
 
@@ -356,7 +356,7 @@ partial class Build
         {
             using var httpClient = CreateHttpClientWithAuth();
             var response = await httpClient.GetAsync(
-                GitHubApiUrl($"repos/{GitHubRepository}/git/refs/tags/{tagName}")
+                GitHubApiUrl($"repos/{_gitHubRepository}/git/refs/tags/{tagName}")
             ).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
@@ -389,7 +389,9 @@ partial class Build
     static bool IsPrerelease(string version)
     {
         if (string.IsNullOrWhiteSpace(version))
+        {
             return false;
+        }
 
         var versionLower = version.ToLowerInvariant();
         return versionLower.Contains("alpha") ||

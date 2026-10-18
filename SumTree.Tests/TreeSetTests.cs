@@ -1,8 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SumTree.TreeMap;
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SumTree.TreeMap;
 
 namespace SumTree.Tests;
 
@@ -10,7 +9,7 @@ namespace SumTree.Tests;
 public class TreeSetTests
 {
     [TestMethod]
-    public void EmptyTreeSet_ShouldHaveZeroCount()
+    public void EmptyTreeSetShouldHaveZeroCount()
     {
         var set = new TreeSet<int>();
 
@@ -19,7 +18,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Add_SingleItem_ShouldReturnTrue()
+    public void AddSingleItemShouldReturnTrue()
     {
         var set = new TreeSet<int>();
 
@@ -32,7 +31,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Add_DuplicateItem_ShouldReturnFalse()
+    public void AddDuplicateItemShouldReturnFalse()
     {
         var set = new TreeSet<int> { 1 };
 
@@ -43,7 +42,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Add_MultipleItems_ShouldMaintainOrder()
+    public void AddMultipleItemsShouldMaintainOrder()
     {
         var set = new TreeSet<int>
         {
@@ -60,7 +59,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Remove_ExistingItem_ShouldReturnTrue()
+    public void RemoveExistingItemShouldReturnTrue()
     {
         var set = new TreeSet<int>
         {
@@ -76,7 +75,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Remove_NonexistentItem_ShouldReturnFalse()
+    public void RemoveNonexistentItemShouldReturnFalse()
     {
         var set = new TreeSet<int>();
 
@@ -86,7 +85,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Contains_ExistingItem_ShouldReturnTrue()
+    public void ContainsExistingItemShouldReturnTrue()
     {
         var set = new TreeSet<int> { 1 };
 
@@ -94,7 +93,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Contains_NonexistentItem_ShouldReturnFalse()
+    public void ContainsNonexistentItemShouldReturnFalse()
     {
         var set = new TreeSet<int>();
 
@@ -102,7 +101,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Clear_ShouldRemoveAllItems()
+    public void ClearShouldRemoveAllItems()
     {
         var set = new TreeSet<int>
         {
@@ -117,7 +116,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Extend_ShouldAddMultipleItems()
+    public void ExtendShouldAddMultipleItems()
     {
         var set = new TreeSet<int>();
         int[] items = [3, 1, 2, 1]; // Include duplicate
@@ -131,7 +130,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void IterateFrom_ShouldStartFromSpecifiedItem()
+    public void IterateFromShouldStartFromSpecifiedItem()
     {
         var set = new TreeSet<int>
         {
@@ -150,7 +149,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void First_ShouldReturnFirstItem()
+    public void FirstShouldReturnFirstItem()
     {
         var set = new TreeSet<int>
         {
@@ -165,7 +164,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void First_EmptySet_ShouldReturnNull()
+    public void FirstEmptySetShouldReturnNull()
     {
         var set = new TreeSet<int>();
 
@@ -175,7 +174,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Last_ShouldReturnLastItem()
+    public void LastShouldReturnLastItem()
     {
         var set = new TreeSet<int>
         {
@@ -190,7 +189,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Last_EmptySet_ShouldReturnNull()
+    public void LastEmptySetShouldReturnNull()
     {
         var set = new TreeSet<int>();
 
@@ -200,7 +199,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Closest_ShouldReturnClosestItem()
+    public void ClosestShouldReturnClosestItem()
     {
         var set = new TreeSet<int>
         {
@@ -215,7 +214,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Closest_NoSmallerItem_ShouldReturnFalse()
+    public void ClosestNoSmallerItemShouldReturnFalse()
     {
         var set = new TreeSet<int>
         {
@@ -229,7 +228,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Except_ShouldReturnDifference()
+    public void ExceptShouldReturnDifference()
     {
         var set1 = new TreeSet<int>
         {
@@ -252,7 +251,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Intersect_ShouldReturnIntersection()
+    public void IntersectShouldReturnIntersection()
     {
         var set1 = new TreeSet<int>
         {
@@ -276,7 +275,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Union_ShouldReturnUnion()
+    public void UnionShouldReturnUnion()
     {
         var set1 = new TreeSet<int>
         {
@@ -299,7 +298,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void SymmetricExcept_ShouldReturnSymmetricDifference()
+    public void SymmetricExceptShouldReturnSymmetricDifference()
     {
         var set1 = new TreeSet<int>
         {
@@ -325,7 +324,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void IsSubsetOf_TrueCase_ShouldReturnTrue()
+    public void IsSubsetOfTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -344,7 +343,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void IsSubsetOf_FalseCase_ShouldReturnFalse()
+    public void IsSubsetOfFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -363,7 +362,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void IsSupersetOf_TrueCase_ShouldReturnTrue()
+    public void IsSupersetOfTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -382,7 +381,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void IsSupersetOf_FalseCase_ShouldReturnFalse()
+    public void IsSupersetOfFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -401,7 +400,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Overlaps_TrueCase_ShouldReturnTrue()
+    public void OverlapsTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -419,7 +418,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Overlaps_FalseCase_ShouldReturnFalse()
+    public void OverlapsFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -437,7 +436,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void SetEquals_TrueCase_ShouldReturnTrue()
+    public void SetEqualsTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -457,7 +456,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void SetEquals_FalseCase_ShouldReturnFalse()
+    public void SetEqualsFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -476,7 +475,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void FromOrderedEntries_ShouldCreateSetFromOrderedData()
+    public void FromOrderedEntriesShouldCreateSetFromOrderedData()
     {
         int[] entries = [1, 2, 3, 2, 1]; // Include duplicates
 
@@ -489,7 +488,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void Enumeration_ShouldIterateInOrder()
+    public void EnumerationShouldIterateInOrder()
     {
         var set = new TreeSet<int>
         {
@@ -511,7 +510,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void StringItems_ShouldMaintainLexicographicOrder()
+    public void StringItemsShouldMaintainLexicographicOrder()
     {
         var set = new TreeSet<string>
         {
@@ -529,7 +528,7 @@ public class TreeSetTests
     }
 
     //[TestMethod]
-    public void LargeDataSet_ShouldMaintainPerformance()
+    public void LargeDataSetShouldMaintainPerformance()
     {
         var set = new TreeSet<int>();
 
@@ -558,7 +557,7 @@ public class TreeSetTests
     }
 
     [TestMethod]
-    public void EmptySet_Operations_ShouldHandleGracefully()
+    public void EmptySetOperationsShouldHandleGracefully()
     {
         var emptySet = new TreeSet<int>();
         var otherSet = new TreeSet<int> { 1 };

@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using SumTree.Cursors;
 
 namespace SumTree.TreeMap;
 
@@ -14,8 +13,8 @@ public class TreeMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
     where TKey : IComparable<TKey>, IEquatable<TKey>
     where TValue : IEquatable<TValue>
 {
-    private SumTree<MapEntry<TKey, TValue>> _tree;
-    private static readonly MapKeyDimension<TKey, TValue> KeyDimension = new();
+    SumTree<MapEntry<TKey, TValue>> _tree;
+    static readonly MapKeyDimension<TKey, TValue> KeyDimension = new();
 
     /// <summary>
     /// Initializes a new empty TreeMap.
@@ -260,7 +259,10 @@ public class TreeMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
     /// <returns>The first entry, or null if the map is empty.</returns>
     public KeyValuePair<TKey, TValue>? First()
     {
-        if (_tree.IsEmpty) return null;
+        if (_tree.IsEmpty)
+        {
+            return null;
+        }
 
         var entry = _tree.ElementAt(0);
         return new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
@@ -272,7 +274,10 @@ public class TreeMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
     /// <returns>The last entry, or null if the map is empty.</returns>
     public KeyValuePair<TKey, TValue>? Last()
     {
-        if (_tree.IsEmpty) return null;
+        if (_tree.IsEmpty)
+        {
+            return null;
+        }
 
         var entry = _tree.ElementAt(_tree.Length - 1);
         return new KeyValuePair<TKey, TValue>(entry.Key, entry.Value);
@@ -320,7 +325,7 @@ public class TreeMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
         return GetEnumerator();
     }
 
-    private long FindKeyIndex(TKey key)
+    long FindKeyIndex(TKey key)
     {
         for (long i = 0; i < _tree.Length; i++)
         {
@@ -333,7 +338,7 @@ public class TreeMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>
         return -1;
     }
 
-    private long FindInsertionIndex(TKey key)
+    long FindInsertionIndex(TKey key)
     {
         long left = 0;
         var right = _tree.Length;

@@ -17,9 +17,9 @@ namespace SumTree.Nuke;
 /// </summary>
 partial class Build
 {
-    [GitRepository] private readonly GitRepository Repository;
+    [GitRepository] private readonly GitRepository _repository;
 
-    [GitVersion] private readonly GitVersion GitVersion;
+    [GitVersion] private readonly GitVersion _gitVersion;
 
     /// <summary>
     /// The current version, using GitVersion with fallback.
@@ -28,9 +28,9 @@ partial class Build
     {
         get
         {
-            if (GitVersion?.MajorMinorPatch != null)
+            if (_gitVersion?.MajorMinorPatch != null)
             {
-                var gitVersionValue = GitVersion.MajorMinorPatch;
+                var gitVersionValue = _gitVersion.MajorMinorPatch;
                 var calculatedVersion = CalculateNextVersion();
 
                 // Use fallback if GitVersion gives unreasonable result (0.x.x when we have tagged releases > 1.0)
@@ -51,10 +51,10 @@ partial class Build
         }
     }
 
-    private string VersionMajor => GitVersion?.Major.ToString(CultureInfo.InvariantCulture) ?? GetFallbackMajor();
+    private string VersionMajor => _gitVersion?.Major.ToString(CultureInfo.InvariantCulture) ?? GetFallbackMajor();
 
     private string VersionMajorMinor =>
-        GitVersion != null ? $"{GitVersion.Major}.{GitVersion.Minor}" : GetFallbackMajorMinor();
+        _gitVersion != null ? $"{_gitVersion.Major}.{_gitVersion.Minor}" : GetFallbackMajorMinor();
 
     /// <summary>
     /// The version in a format that can be used as a tag.
@@ -64,28 +64,30 @@ partial class Build
     /// <summary>
     /// Checks if there are new commits since the last tag.
     /// </summary>
-    private bool HasNewCommits => GitVersion != null ? GitVersion.CommitsSinceVersionSource != "0" : GetCommitsSinceLastTag() > 0;
+    private bool HasNewCommits => _gitVersion != null ? _gitVersion.CommitsSinceVersionSource != "0" : GetCommitsSinceLastTag() > 0;
 
-    private string CurrentVersion;
+    private string _currentVersion;
 
     private string CurrentTag
     {
         get
         {
-            if (CurrentVersion != null)
-                return CurrentVersion;
+            if (_currentVersion != null)
+            {
+                return _currentVersion;
+            }
 
             try
             {
-                CurrentVersion = GitTasks.Git("describe --tags --abbrev=0")
+                _currentVersion = GitTasks.Git("describe --tags --abbrev=0")
                     .FirstOrDefault().Text;
             }
             catch
             {
-                CurrentVersion = "v1.0.0";
+                _currentVersion = "v1.0.0";
             }
 
-            return CurrentVersion;
+            return _currentVersion;
         }
     }
 
@@ -137,7 +139,9 @@ partial class Build
                 .FirstOrDefault().Text;
 
             if (int.TryParse(commitCountText, out var directCount))
+            {
                 return directCount;
+            }
         }
         catch (Exception ex)
         {
@@ -165,7 +169,10 @@ partial class Build
         var version = CurrentFullVersion;
         var parts = version.Split('.');
         if (parts.Length >= 2)
+        {
             return $"{parts[0]}.{parts[1]}";
+        }
+
         return parts.Length == 1 ? $"{parts[0]}.0" : "1.0";
     }
 
@@ -180,7 +187,9 @@ partial class Build
         {
             var tag = githubRef.Substring("refs/tags/".Length);
             if (tag.StartsWith("v") && IsValidVersion(tag.Substring(1)))
+            {
                 return tag;
+            }
         }
 
         return null;
@@ -191,10 +200,16 @@ partial class Build
     /// </summary>
     private bool IsValidVersion(string version)
     {
-        if (string.IsNullOrEmpty(version)) return false;
+        if (string.IsNullOrEmpty(version))
+        {
+            return false;
+        }
 
         var parts = version.Split('.');
-        if (parts.Length < 2 || parts.Length > 4) return false;
+        if (parts.Length < 2 || parts.Length > 4)
+        {
+            return false;
+        }
 
         return parts.Take(3).All(part => int.TryParse(part, out _));
     }
@@ -209,7 +224,7 @@ partial class Build
             Log.Information("Current tag:      {Version}", CurrentTag);
             Log.Information("Next version:     {Version}", VersionFull);
 
-            if (GitVersion == null)
+            if (_gitVersion == null)
             {
                 Log.Warning("GitVersion is not available - using fallback version from git tags");
                 var envVersion = GetEnvironmentVersion();
@@ -220,7 +235,7 @@ partial class Build
             }
             else
             {
-                Log.Information("GitVersion available - commits since last version: {Commits}", GitVersion.CommitsSinceVersionSource);
+                Log.Information("GitVersion available - commits since last version: {Commits}", _gitVersion.CommitsSinceVersionSource);
             }
         });
 
@@ -234,12 +249,12 @@ partial class Build
         {
             Log.Information("Next version:    {Version}", TagName);
 
-            if (GitVersion != null)
+            if (_gitVersion != null)
             {
                 // If there are no new commits since the last tag, skip tag creation
                 // Nuke will stop here and not execute any of the following targets
                 Log.Information(HasNewCommits
-                    ? $"There are {GitVersion.CommitsSinceVersionSource} new commits since last tag."
+                    ? $"There are {_gitVersion.CommitsSinceVersionSource} new commits since last tag."
                     : "No new commits since last tag. Skipping tag creation.");
             }
             else
@@ -257,16 +272,20 @@ partial class Build
         .Executes(() =>
         {
             Log.Information("Projects: {ProjectsCount}",
-                Solution.Projects.Count);
+                _solution.Projects.Count);
 
             var projectsToVersion = new List<Project>
             {
-                Solution.SumTree,
+                _solution.SumTree,
             };
 
             projectsToVersion.ForEach(project =>
             {
-                if (project == null) return;
+                if (project == null)
+                {
+                    return;
+                }
+
                 Log.Information(
                     "{project}:\tfrom {version} to {VersionFull}",
                     project.Name,

@@ -86,7 +86,7 @@ public class FastSumTreeBenchmark
             s = s.AddRange(loremArray);
         }
     }
-    
+
     [Benchmark(Description = "FastSumTree")]
     public void FastSumTreeOfChar()
     {

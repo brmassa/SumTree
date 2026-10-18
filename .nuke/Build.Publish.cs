@@ -14,31 +14,31 @@ namespace SumTree.Nuke;
 partial class Build
 {
     [Parameter("Output directory for NuGet packages (default: ./packages)")]
-    readonly AbsolutePath PackageDirectory;
+    readonly AbsolutePath _packageDirectory;
 
-    private AbsolutePath PackageDir => PackageDirectory ?? RootDirectory / "packages";
+    private AbsolutePath PackageDir => _packageDirectory ?? RootDirectory / "packages";
 
     [Parameter("Include symbols package (default: true)")]
-    readonly bool IncludeSymbols = true;
+    readonly bool _includeSymbols = true;
 
     [Parameter("Include source package (default: true)")]
-    readonly bool IncludeSource = true;
+    readonly bool _includeSource = true;
 
     [Parameter("Override version for packaging")]
-    readonly string VersionOverride;
+    readonly string _versionOverride;
 
     [Parameter]
     [Secret]
-    string NugetApiKey;
+    readonly string _nugetApiKey;
 
     [Parameter("NuGet source URL (default: nuget.org)")]
-    readonly string NugetSource = "https://api.nuget.org/v3/index.json";
+    readonly string _nugetSource = "https://api.nuget.org/v3/index.json";
 
     [Parameter("Skip duplicate packages when publishing")]
-    readonly bool SkipDuplicate = true;
+    readonly bool _skipDuplicate = true;
 
     [Parameter("Perform dry run (validate but don't publish)")]
-    readonly bool DryRun;
+    readonly bool _dryRun;
 
     /// <summary>
     /// Creates NuGet packages for the library
@@ -54,7 +54,7 @@ partial class Build
             PackageDir.CreateDirectory();
 
             // Determine version to use
-            var packageVersion = VersionOverride ?? VersionFull;
+            var packageVersion = _versionOverride ?? VersionFull;
             Log.Information("Using version: {Version}", packageVersion);
 
             // Prepare release notes
@@ -64,7 +64,7 @@ partial class Build
             try
             {
                 DotNetTasks.DotNetPack(s => s
-                    .SetProject(Solution.SumTree)
+                    .SetProject(_solution.SumTree)
                     .SetConfiguration(ConfigurationSet)
                     .SetOutputDirectory(PackageDir)
                     .SetVersion(packageVersion)
@@ -73,8 +73,8 @@ partial class Build
                     .SetPackageReleaseNotes(releaseNotes)
                     .SetNoBuild(true)
                     .SetNoRestore(true)
-                    .SetIncludeSymbols(IncludeSymbols)
-                    .SetIncludeSource(IncludeSource)
+                    .SetIncludeSymbols(_includeSymbols)
+                    .SetIncludeSource(_includeSource)
                     .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg)
                     .SetVerbosity(DotNetVerbosity.normal)
                 );
@@ -105,7 +105,7 @@ partial class Build
     /// </summary>
     Target Publish => _ => _
         .DependsOn(Pack, ValidatePublishing)
-        .Requires(() => !string.IsNullOrEmpty(NugetApiKey) || DryRun)
+        .Requires(() => !string.IsNullOrEmpty(_nugetApiKey) || _dryRun)
         .Executes(() =>
         {
             var packageFiles = PackageDir.GlobFiles("*.nupkg")
@@ -124,13 +124,13 @@ partial class Build
                 Log.Information("  - {Name}", package.Name);
             }
 
-            if (DryRun)
+            if (_dryRun)
             {
-                Log.Information("DRY RUN: Would publish packages to {Source}", NugetSource);
+                Log.Information("DRY RUN: Would publish packages to {Source}", _nugetSource);
                 return;
             }
 
-            Log.Information("Publishing packages to {Source}...", NugetSource);
+            Log.Information("Publishing packages to {Source}...", _nugetSource);
 
             var publishedCount = 0;
             var skippedCount = 0;
@@ -144,9 +144,9 @@ partial class Build
 
                     DotNetTasks.DotNetNuGetPush(s => s
                         .SetTargetPath(packageFile)
-                        .SetSource(NugetSource)
-                        .SetApiKey(NugetApiKey)
-                        .SetSkipDuplicate(SkipDuplicate)
+                        .SetSource(_nugetSource)
+                        .SetApiKey(_nugetApiKey)
+                        .SetSkipDuplicate(_skipDuplicate)
                         .SetTimeout(300) // 5 minutes timeout
                     );
 
@@ -163,7 +163,7 @@ partial class Build
                     Log.Error(ex, "Failed to publish {Package}", packageFile.Name);
                     failedCount++;
 
-                    if (!SkipDuplicate)
+                    if (!_skipDuplicate)
                     {
                         throw;
                     }
@@ -191,19 +191,19 @@ partial class Build
         {
             Log.Information("Validating packaging prerequisites...");
 
-            if (Solution.SumTree == null)
+            if (_solution.SumTree == null)
             {
                 throw new InvalidOperationException("Main project (SumTree) not found in solution");
             }
 
             // Check if project file exists
-            if (!Solution.SumTree.Path.FileExists())
+            if (!_solution.SumTree.Path.FileExists())
             {
-                throw new InvalidOperationException($"Project file not found: {Solution.SumTree.Path}");
+                throw new InvalidOperationException($"Project file not found: {_solution.SumTree.Path}");
             }
 
             // Validate version format
-            var versionToUse = VersionOverride ?? VersionFull;
+            var versionToUse = _versionOverride ?? VersionFull;
             if (string.IsNullOrWhiteSpace(versionToUse))
             {
                 throw new InvalidOperationException("No valid version available for packaging");
@@ -215,7 +215,7 @@ partial class Build
             }
 
             Log.Information("Packaging validation completed successfully");
-            Log.Information("  - Project: {Project}", Solution.SumTree.Name);
+            Log.Information("  - Project: {Project}", _solution.SumTree.Name);
             Log.Information("  - Version: {Version}", versionToUse);
             Log.Information("  - Output: {Directory}", PackageDir);
         });
@@ -229,31 +229,31 @@ partial class Build
         {
             Log.Information("Validating publishing prerequisites...");
 
-            if (DryRun)
+            if (_dryRun)
             {
                 Log.Information("Dry run mode - skipping API key validation");
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(NugetApiKey))
+            if (string.IsNullOrWhiteSpace(_nugetApiKey))
             {
                 throw new InvalidOperationException("NuGet API key is required for publishing");
             }
 
-            if (string.IsNullOrWhiteSpace(NugetSource))
+            if (string.IsNullOrWhiteSpace(_nugetSource))
             {
                 throw new InvalidOperationException("NuGet source URL is required");
             }
 
             // Validate API key format (basic check)
-            if (NugetApiKey.Length < 10)
+            if (_nugetApiKey.Length < 10)
             {
                 throw new InvalidOperationException("NuGet API key appears to be invalid (too short)");
             }
 
             Log.Information("Publishing validation completed successfully");
-            Log.Information("  - Source: {Source}", NugetSource);
-            Log.Information("  - Skip duplicates: {Skip}", SkipDuplicate);
+            Log.Information("  - Source: {Source}", _nugetSource);
+            Log.Information("  - Skip duplicates: {Skip}", _skipDuplicate);
         });
 
     /// <summary>
@@ -261,7 +261,7 @@ partial class Build
     /// </summary>
     private string PrepareReleaseNotes()
     {
-        var rawNotes = ChangelogLatestVersion ?? "No release notes available.";
+        var rawNotes = _changelogLatestVersion ?? "No release notes available.";
 
         // Escape special characters for MSBuild
         var escapedNotes = rawNotes
@@ -289,17 +289,23 @@ partial class Build
     private static bool IsValidSemanticVersion(string version)
     {
         if (string.IsNullOrWhiteSpace(version))
+        {
             return false;
+        }
 
         var parts = version.Split('.');
         if (parts.Length < 2 || parts.Length > 4)
+        {
             return false;
+        }
 
         // Check that first 3 parts are valid integers
         for (var i = 0; i < Math.Min(3, parts.Length); i++)
         {
             if (!int.TryParse(parts[i], out var number) || number < 0)
+            {
                 return false;
+            }
         }
 
         return true;

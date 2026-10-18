@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace SumTree.Cursors;
 
 /// <summary>
@@ -12,28 +10,21 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
     where T : IEquatable<T>
     where TDimension : IEquatable<TDimension>
 {
-    private readonly SumTree<T> _tree;
-    private readonly ISummaryDimension<T, TDimension> _dimension;
-    private readonly Stack<StackEntry> _stack;
-    private TDimension _position;
-    private bool _didSeek;
-    private bool _atEnd;
+    readonly SumTree<T> _tree;
+    readonly ISummaryDimension<T, TDimension> _dimension;
+    readonly Stack<StackEntry> _stack;
+    TDimension _position;
+    bool _didSeek;
+    bool _atEnd;
 
     /// <summary>
     /// Represents a stack entry for tree navigation.
     /// </summary>
-    private struct StackEntry
+    struct StackEntry(SumTree<T> tree, int index, TDimension position)
     {
-        public SumTree<T> Tree { get; }
-        public int Index { get; set; }
-        public TDimension Position { get; set; }
-
-        public StackEntry(SumTree<T> tree, int index, TDimension position)
-        {
-            Tree = tree;
-            Index = index;
-            Position = position;
-        }
+        public SumTree<T> Tree { get; } = tree;
+        public int Index { get; set; } = index;
+        public TDimension Position { get; set; } = position;
     }
 
     /// <summary>
@@ -81,7 +72,10 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
     /// <inheritdoc/>
     public bool Next()
     {
-        if (_atEnd) return false;
+        if (_atEnd)
+        {
+            return false;
+        }
 
         if (!_didSeek)
         {
@@ -95,7 +89,11 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
     /// <inheritdoc/>
     public bool Previous()
     {
-        if (IsAtStart) return false;
+        if (IsAtStart)
+        {
+            return false;
+        }
+
         return PreviousInternal();
     }
 
@@ -109,7 +107,11 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
     /// <inheritdoc/>
     public void SeekForward(TDimension target, Bias bias = Bias.Left)
     {
-        if (_dimension.Compare(target, _position) <= 0) return;
+        if (_dimension.Compare(target, _position) <= 0)
+        {
+            return;
+        }
+
         SeekInternal(target, bias);
     }
 
@@ -130,7 +132,10 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
             endIndex++;
         }
 
-        if (startIndex >= endIndex) return SumTree<T>.Empty;
+        if (startIndex >= endIndex)
+        {
+            return [];
+        }
 
         return _tree.Slice(startIndex, endIndex - startIndex);
     }
@@ -139,7 +144,10 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
     public SumTree<T> Suffix()
     {
         var startIndex = FindIndexForPosition(_position);
-        if (startIndex >= _tree.Length) return SumTree<T>.Empty;
+        if (startIndex >= _tree.Length)
+        {
+            return [];
+        }
 
         return _tree.Slice(startIndex);
     }
@@ -164,7 +172,10 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
                 return true;
             }
 
-            if (!PreviousInternal()) break;
+            if (!PreviousInternal())
+            {
+                break;
+            }
         }
 
         // Check the start position as well
@@ -200,7 +211,10 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
                 }
             }
 
-            if (!NextInternal()) break;
+            if (!NextInternal())
+            {
+                break;
+            }
         }
 
         // Restore position if not found
@@ -216,8 +230,6 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         return clone;
     }
 
-
-    /// <inheritdoc/>
     public void Reset()
     {
         _stack.Clear();
@@ -237,16 +249,23 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         _stack.Clear();
     }
 
-    private T? GetCurrentItem()
+    T? GetCurrentItem()
     {
-        if (_atEnd || _stack.Count == 0) return default(T?);
+        if (_atEnd || _stack.Count == 0)
+        {
+            return default;
+        }
 
         var current = _stack.Peek();
         if (current.Tree.IsNode)
         {
             // Navigate to leaf
             NavigateToLeaf();
-            if (_stack.Count == 0) return default;
+            if (_stack.Count == 0)
+            {
+                return default;
+            }
+
             current = _stack.Peek();
         }
 
@@ -255,20 +274,26 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
             return current.Tree.ElementAt(current.Index);
         }
 
-        return default(T?);
+        return default;
     }
 
-    private TDimension? GetCurrentItemSummary()
+    TDimension? GetCurrentItemSummary()
     {
         var item = GetCurrentItem();
-        if (item == null) return default;
+        if (item == null)
+        {
+            return default;
+        }
 
         return _dimension.SummarizeElement(item);
     }
 
-    private bool NextInternal()
+    bool NextInternal()
     {
-        if (_stack.Count == 0) return false;
+        if (_stack.Count == 0)
+        {
+            return false;
+        }
 
         var current = _stack.Pop();
         current.Index++;
@@ -305,9 +330,12 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         return false;
     }
 
-    private bool PreviousInternal()
+    bool PreviousInternal()
     {
-        if (_stack.Count == 0) return false;
+        if (_stack.Count == 0)
+        {
+            return false;
+        }
 
         var current = _stack.Peek();
         if (current.Index > 0)
@@ -331,7 +359,10 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         }
 
         // Need to move to previous node
-        if (_stack.Count == 0) return false;
+        if (_stack.Count == 0)
+        {
+            return false;
+        }
 
         _stack.Pop(); // Remove current leaf
 
@@ -355,7 +386,7 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         return false;
     }
 
-    private void NavigateToRightmostLeaf()
+    void NavigateToRightmostLeaf()
     {
         while (_stack.Count > 0)
         {
@@ -398,7 +429,7 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         }
     }
 
-    private void SeekInternal(TDimension target, Bias bias)
+    void SeekInternal(TDimension target, Bias bias)
     {
         _stack.Clear();
         _position = _dimension.Identity;
@@ -413,7 +444,7 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         SeekInTree(_tree, target, bias, _dimension.Identity);
     }
 
-    private void SeekInTree(SumTree<T> tree, TDimension target, Bias bias, TDimension currentPosition)
+    void SeekInTree(SumTree<T> tree, TDimension target, Bias bias, TDimension currentPosition)
     {
         if (tree.IsNode)
         {
@@ -460,12 +491,15 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         }
     }
 
-    private void NavigateToLeaf()
+    void NavigateToLeaf()
     {
         while (_stack.Count > 0)
         {
             var current = _stack.Peek();
-            if (!current.Tree.IsNode) break;
+            if (!current.Tree.IsNode)
+            {
+                break;
+            }
 
             var entry = _stack.Pop();
             if (entry.Index == 0)
@@ -481,7 +515,7 @@ public class SumTreeCursor<T, TDimension> : ICursor<T, TDimension>
         }
     }
 
-    private long FindIndexForPosition(TDimension position)
+    long FindIndexForPosition(TDimension position)
     {
         // Simple linear search for now - could be optimized
         long index = 0;

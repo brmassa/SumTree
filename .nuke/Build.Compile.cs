@@ -25,9 +25,9 @@ partial class Build
 
             var directoriesToClean = new[]
             {
-                Solution.SumTree?.Directory,
-                Solution.SumTree_Tests?.Directory,
-                Solution.SumTree_Benchmarks?.Directory
+                _solution.SumTree?.Directory,
+                _solution.SumTree_Tests?.Directory,
+                _solution.SumTree_Benchmarks?.Directory
             }.Where(d => d != null);
 
             foreach (var directory in directoriesToClean)
@@ -70,7 +70,7 @@ partial class Build
             Log.Information("Restoring NuGet packages...");
 
             DotNetTasks.DotNetRestore(s => s
-                .SetProjectFile(Solution)
+                .SetProjectFile(_solution)
                 .SetVerbosity(DotNetVerbosity.normal)
                 .SetNoCache(IsServerBuild) // Disable cache on CI/CD for consistency
             );
@@ -88,7 +88,7 @@ partial class Build
             Log.Information("Compiling solution with configuration: {Configuration}", ConfigurationSet);
 
             DotNetTasks.DotNetBuild(s => s
-                .SetProjectFile(Solution)
+                .SetProjectFile(_solution)
                 .SetConfiguration(ConfigurationSet)
                 .EnableNoRestore()
                 .SetVerbosity(DotNetVerbosity.normal)
@@ -111,8 +111,8 @@ partial class Build
 
             var requiredProjects = new[]
             {
-                (Solution.SumTree, "SumTree"),
-                (Solution.SumTree_Tests, "SumTree.Tests")
+                (_solution.SumTree, "SumTree"),
+                (_solution.SumTree_Tests, "SumTree.Tests")
             };
 
             var missingProjects = requiredProjects
@@ -128,12 +128,12 @@ partial class Build
 
             Log.Information("Solution validation completed successfully");
             Log.Information("Found projects:");
-            Log.Information("  - Main: {Project}", Solution.SumTree?.Name ?? "Not found");
-            Log.Information("  - Tests: {Project}", Solution.SumTree_Tests?.Name ?? "Not found");
+            Log.Information("  - Main: {Project}", _solution.SumTree?.Name ?? "Not found");
+            Log.Information("  - Tests: {Project}", _solution.SumTree_Tests?.Name ?? "Not found");
 
-            if (Solution.SumTree_Benchmarks != null)
+            if (_solution.SumTree_Benchmarks != null)
             {
-                Log.Information("  - Benchmarks: {Project}", Solution.SumTree_Benchmarks.Name);
+                Log.Information("  - Benchmarks: {Project}", _solution.SumTree_Benchmarks.Name);
             }
         });
 
@@ -142,8 +142,5 @@ partial class Build
     /// </summary>
     public Target FullBuild => _ => _
         .DependsOn(ValidateSolution, Clean, Restore, Compile)
-        .Executes(() =>
-        {
-            Log.Information("Full build pipeline completed successfully");
-        });
+        .Executes(() => Log.Information("Full build pipeline completed successfully"));
 }

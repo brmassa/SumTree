@@ -11,12 +11,12 @@ partial class Build
 {
     [Parameter(
         "Configuration to build - Default is 'Debug' (local) or 'Release' (server)")]
-    private readonly string Configuration;
+    private readonly string _configuration;
 
-    private string ConfigurationSet => Configuration ??
+    private string ConfigurationSet => _configuration ??
                                        (IsLocalBuild
                                            ? ConfigurationPreset.Debug
                                            : ConfigurationPreset.Release);
 
-    [Solution(GenerateProjects = true)] private readonly Solution Solution;
+    [Solution(GenerateProjects = true)] private readonly Solution _solution;
 }

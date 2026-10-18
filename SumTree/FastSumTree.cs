@@ -12,24 +12,24 @@ namespace SumTree;
 public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable<FastSumTree<T>>
     where T : IEquatable<T>
 {
-    private const int MaxTreeDepth = 46;
-    private const int MaxDepthImbalance = 4;
-    private const int LargeObjectHeapBytes = 85_000 - 24;
+    const int MaxTreeDepth = 46;
+    const int MaxDepthImbalance = 4;
+    const int LargeObjectHeapBytes = 85_000 - 24;
 
     [ThreadStatic]
-    private static int t_balancedCallDepth;
+static int t_balancedCallDepth;
 
     public static readonly int MaxLeafLength = CalculateMaxLeafLength();
     public static readonly FastSumTree<T> Empty = new();
 
-    private static readonly int[] s_fibonacciPlusTwo =
-        Enumerable.Range(0, MaxTreeDepth).Select(d => Fibonacci(d) + 2).ToArray();
+    static readonly int[] s_fibonacciPlusTwo =
+        [.. Enumerable.Range(0, MaxTreeDepth).Select(d => Fibonacci(d) + 2)];
 
-    private readonly object _data;
-    private readonly long _length;
-    private readonly int _depth;
-    private readonly int _bufferCount;
-    private readonly bool _isBalanced;
+    readonly object _data;
+    readonly long _length;
+    readonly int _depth;
+    readonly int _bufferCount;
+    readonly bool _isBalanced;
 
     /// <summary>
     /// Creates empty FastFastSumTree
@@ -76,7 +76,7 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     /// <summary>
     /// Internal constructor for nodes
     /// </summary>
-    private FastSumTree(object data, long length, int depth, int bufferCount, bool isBalanced)
+    FastSumTree(object data, long length, int depth, int bufferCount, bool isBalanced)
     {
         _data = data;
         _length = length;
@@ -93,11 +93,11 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     public int Depth => _depth;
     public int BufferCount => _bufferCount;
 
-    private FastSumTree<T> Left =>
+    FastSumTree<T> Left =>
         IsNode ? ((ValueTuple<FastSumTree<T>, FastSumTree<T>>)_data).Item1 :
         throw new InvalidOperationException("Not a node");
 
-    private FastSumTree<T> Right =>
+    FastSumTree<T> Right =>
         IsNode ? ((ValueTuple<FastSumTree<T>, FastSumTree<T>>)_data).Item2 :
         throw new InvalidOperationException("Not a node");
 
@@ -107,7 +107,10 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         get
         {
             if (index < 0 || index >= _length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
             return GetElementAtIndex(index);
         }
     }
@@ -115,7 +118,7 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     public T this[int index] => this[(long)index];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T GetElementAtIndex(long index)
+T GetElementAtIndex(long index)
     {
         var current = this;
         var currentIndex = index;
@@ -152,8 +155,15 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FastSumTree<T> AddRange(FastSumTree<T> other)
     {
-        if (IsEmpty) return other;
-        if (other.IsEmpty) return this;
+        if (IsEmpty)
+        {
+            return other;
+        }
+
+        if (other.IsEmpty)
+        {
+            return this;
+        }
 
         return Concat(this, other);
     }
@@ -161,7 +171,11 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FastSumTree<T> AddRange(ReadOnlyMemory<T> items)
     {
-        if (items.IsEmpty) return this;
+        if (items.IsEmpty)
+        {
+            return this;
+        }
+
         return AddRange(new FastSumTree<T>(items));
     }
 
@@ -175,10 +189,14 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     public FastSumTree<T> AddRange(IEnumerable<T> items)
     {
         if (items is T[] array)
+        {
             return AddRange(array);
+        }
 
         if (items is List<T> list)
+        {
             return AddRange(CollectionsMarshal.AsSpan(list));
+        }
 
         return AddRange(items.ToArray());
     }
@@ -186,7 +204,10 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public FastSumTree<T> AddRange(ReadOnlySpan<T> items)
     {
-        if (items.IsEmpty) return this;
+        if (items.IsEmpty)
+        {
+            return this;
+        }
         // Need to copy span to memory since span is stack-only
         var array = items.ToArray();
         return AddRange(new FastSumTree<T>(array.AsMemory()));
@@ -200,8 +221,15 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
 
     public FastSumTree<T> InsertRange(long index, FastSumTree<T> other)
     {
-        if (index == 0) return other.AddRange(this);
-        if (index == _length) return AddRange(other);
+        if (index == 0)
+        {
+            return other.AddRange(this);
+        }
+
+        if (index == _length)
+        {
+            return AddRange(other);
+        }
 
         var (left, right) = SplitAt(index);
         return Concat(Concat(left, other), right);
@@ -209,13 +237,20 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
 
     public (FastSumTree<T> Left, FastSumTree<T> Right) SplitAt(long index)
     {
-        if (index <= 0) return (Empty, this);
-        if (index >= _length) return (this, Empty);
+        if (index <= 0)
+        {
+            return (Empty, this);
+        }
+
+        if (index >= _length)
+        {
+            return (this, Empty);
+        }
 
         return SplitAtInternal(index);
     }
 
-    private (FastSumTree<T> Left, FastSumTree<T> Right) SplitAtInternal(long index)
+    (FastSumTree<T> Left, FastSumTree<T> Right) SplitAtInternal(long index)
     {
         var current = this;
         var currentIndex = index;
@@ -260,10 +295,17 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         return (left, right);
     }
 
-    private (FastSumTree<T> Left, FastSumTree<T> Right) SplitMemory(ReadOnlyMemory<T> memory, int index)
+    (FastSumTree<T> Left, FastSumTree<T> Right) SplitMemory(ReadOnlyMemory<T> memory, int index)
     {
-        if (index == 0) return (Empty, new FastSumTree<T>(memory));
-        if (index >= memory.Length) return (new FastSumTree<T>(memory), Empty);
+        if (index == 0)
+        {
+            return (Empty, new FastSumTree<T>(memory));
+        }
+
+        if (index >= memory.Length)
+        {
+            return (new FastSumTree<T>(memory), Empty);
+        }
 
         var leftMemory = memory[..index];
         var rightMemory = memory[index..];
@@ -275,10 +317,17 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static FastSumTree<T> Concat(FastSumTree<T> left, FastSumTree<T> right)
+static FastSumTree<T> Concat(FastSumTree<T> left, FastSumTree<T> right)
     {
-        if (left.IsEmpty) return right;
-        if (right.IsEmpty) return left;
+        if (left.IsEmpty)
+        {
+            return right;
+        }
+
+        if (right.IsEmpty)
+        {
+            return left;
+        }
 
         var newLength = left._length + right._length;
         var newDepth = Math.Max(left._depth, right._depth) + 1;
@@ -296,15 +345,20 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         return isBalanced ? result : result.Balanced();
     }
 
-    private FastSumTree<T> Balanced()
+    FastSumTree<T> Balanced()
     {
-        if (_isBalanced) return this;
+        if (_isBalanced)
+        {
+            return this;
+        }
 
         t_balancedCallDepth++;
         try
         {
             if (t_balancedCallDepth > MaxTreeDepth)
+            {
                 throw new InvalidOperationException("Tree depth exceeded maximum");
+            }
 
             var leaves = new List<FastSumTree<T>>();
             CollectLeaves(leaves);
@@ -316,7 +370,7 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         }
     }
 
-    private void CollectLeaves(List<FastSumTree<T>> leaves)
+    void CollectLeaves(List<FastSumTree<T>> leaves)
     {
         if (!IsNode)
         {
@@ -328,7 +382,7 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         Right.CollectLeaves(leaves);
     }
 
-    private static FastSumTree<T> CombineLeaves(List<FastSumTree<T>> leaves)
+    static FastSumTree<T> CombineLeaves(List<FastSumTree<T>> leaves)
     {
         while (leaves.Count > 1)
         {
@@ -353,14 +407,17 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool CalculateIsBalanced(long length, int depth)
+static bool CalculateIsBalanced(long length, int depth)
     {
         return depth < MaxTreeDepth && (depth == 0 || length >= s_fibonacciPlusTwo[depth]);
     }
 
-    private static int Fibonacci(int n)
+    static int Fibonacci(int n)
     {
-        if (n <= 1) return n;
+        if (n <= 1)
+        {
+            return n;
+        }
 
         int a = 0, b = 1;
         for (var i = 2; i <= n; i++)
@@ -372,7 +429,7 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         return b;
     }
 
-    private static int CalculateMaxLeafLength()
+    static int CalculateMaxLeafLength()
     {
         var elementSize = Unsafe.SizeOf<T>();
         var maxElements = LargeObjectHeapBytes / elementSize;
@@ -388,9 +445,12 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private IEnumerable<T> EnumerateElements()
+    IEnumerable<T> EnumerateElements()
     {
-        if (IsEmpty) yield break;
+        if (IsEmpty)
+        {
+            yield break;
+        }
 
         if (!IsNode)
         {
@@ -399,7 +459,10 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
                 case ReadOnlyMemory<T> memory:
                     var array = memory.ToArray();
                     for (var i = 0; i < array.Length; i++)
+                    {
                         yield return array[i];
+                    }
+
                     break;
                 case ValueTuple<T> single:
                     yield return single.Item1;
@@ -409,9 +472,14 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         }
 
         foreach (var item in Left.EnumerateElements())
+        {
             yield return item;
+        }
+
         foreach (var item in Right.EnumerateElements())
+        {
             yield return item;
+        }
     }
 
     /// <summary>
@@ -419,7 +487,10 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     /// </summary>
     public T[] ToArray()
     {
-        if (IsEmpty) return Array.Empty<T>();
+        if (IsEmpty)
+        {
+            return [];
+        }
 
         var result = new T[_length];
         var index = 0;
@@ -430,9 +501,12 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     /// <summary>
     /// Copies elements to a span efficiently
     /// </summary>
-    private void CopyTo(Span<T> destination, ref int index)
+    void CopyTo(Span<T> destination, ref int index)
     {
-        if (IsEmpty) return;
+        if (IsEmpty)
+        {
+            return;
+        }
 
         if (!IsNode)
         {
@@ -459,9 +533,14 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     public string ToStringFast()
     {
         if (typeof(T) != typeof(char))
+        {
             throw new InvalidOperationException("ToStringFast only works with char trees");
+        }
 
-        if (IsEmpty) return string.Empty;
+        if (IsEmpty)
+        {
+            return string.Empty;
+        }
 
         if (_length <= 1024)
         {
@@ -476,11 +555,17 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         return sb.ToString();
     }
 
-    private void CopyToChar(Span<char> destination, ref int index)
+    void CopyToChar(Span<char> destination, ref int index)
     {
-        if (typeof(T) != typeof(char)) return;
+        if (typeof(T) != typeof(char))
+        {
+            return;
+        }
 
-        if (IsEmpty) return;
+        if (IsEmpty)
+        {
+            return;
+        }
 
         if (!IsNode)
         {
@@ -501,11 +586,17 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         ((FastSumTree<char>)(object)Right).CopyToChar(destination, ref index);
     }
 
-    private void AppendToStringBuilder(System.Text.StringBuilder sb)
+    void AppendToStringBuilder(System.Text.StringBuilder sb)
     {
-        if (typeof(T) != typeof(char)) return;
+        if (typeof(T) != typeof(char))
+        {
+            return;
+        }
 
-        if (IsEmpty) return;
+        if (IsEmpty)
+        {
+            return;
+        }
 
         if (!IsNode)
         {
@@ -527,8 +618,15 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
 
     public bool Equals(FastSumTree<T> other)
     {
-        if (_length != other._length) return false;
-        if (_length == 0) return true;
+        if (_length != other._length)
+        {
+            return false;
+        }
+
+        if (_length == 0)
+        {
+            return true;
+        }
 
         var thisEnum = EnumerateElements();
         var otherEnum = other.EnumerateElements();
@@ -544,7 +642,9 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
         hash.Add(_length);
 
         foreach (var item in EnumerateElements())
+        {
             hash.Add(item);
+        }
 
         return hash.ToHashCode();
     }

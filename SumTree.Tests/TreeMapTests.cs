@@ -1,8 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SumTree.TreeMap;
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SumTree.TreeMap;
 
 namespace SumTree.Tests;
 
@@ -10,7 +9,7 @@ namespace SumTree.Tests;
 public class TreeMapTests
 {
     [TestMethod]
-    public void EmptyTreeMap_ShouldHaveZeroCount()
+    public void EmptyTreeMapShouldHaveZeroCount()
     {
         var map = new TreeMap<int, string>();
 
@@ -19,7 +18,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Insert_SingleItem_ShouldBeRetrievable()
+    public void InsertSingleItemShouldBeRetrievable()
     {
         var map = new TreeMap<int, string>();
 
@@ -31,7 +30,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Insert_MultipleItems_ShouldMaintainOrder()
+    public void InsertMultipleItemsShouldMaintainOrder()
     {
         var map = new TreeMap<int, string>();
 
@@ -47,7 +46,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Insert_DuplicateKey_ShouldReplaceValue()
+    public void InsertDuplicateKeyShouldReplaceValue()
     {
         var map = new TreeMap<int, string>();
 
@@ -59,7 +58,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Get_NonexistentKey_ShouldReturnNull()
+    public void GetNonexistentKeyShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
@@ -69,7 +68,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void TryGetValue_ExistingKey_ShouldReturnTrue()
+    public void TryGetValueExistingKeyShouldReturnTrue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -81,7 +80,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void TryGetValue_NonexistentKey_ShouldReturnFalse()
+    public void TryGetValueNonexistentKeyShouldReturnFalse()
     {
         var map = new TreeMap<int, string>();
 
@@ -92,7 +91,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void ContainsKey_ExistingKey_ShouldReturnTrue()
+    public void ContainsKeyExistingKeyShouldReturnTrue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -101,7 +100,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void ContainsKey_NonexistentKey_ShouldReturnFalse()
+    public void ContainsKeyNonexistentKeyShouldReturnFalse()
     {
         var map = new TreeMap<int, string>();
 
@@ -109,7 +108,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Remove_ExistingKey_ShouldReturnValueAndRemove()
+    public void RemoveExistingKeyShouldReturnValueAndRemove()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -123,7 +122,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Remove_NonexistentKey_ShouldReturnNull()
+    public void RemoveNonexistentKeyShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
@@ -133,7 +132,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Clear_ShouldRemoveAllItems()
+    public void ClearShouldRemoveAllItems()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -146,7 +145,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Extend_ShouldAddMultipleItems()
+    public void ExtendShouldAddMultipleItems()
     {
         var map = new TreeMap<int, string>();
         KeyValuePair<int, string>[] items =
@@ -165,7 +164,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void RemoveRange_ShouldRemoveItemsInRange()
+    public void RemoveRangeShouldRemoveItemsInRange()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -185,7 +184,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Closest_ShouldReturnClosestKeyValue()
+    public void ClosestShouldReturnClosestKeyValue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -200,7 +199,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Closest_NoSmallerKey_ShouldReturnNull()
+    public void ClosestNoSmallerKeyShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -212,7 +211,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void IterateFrom_ShouldStartFromSpecifiedKey()
+    public void IterateFromShouldStartFromSpecifiedKey()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -229,7 +228,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Update_ExistingKey_ShouldReturnResult()
+    public void UpdateExistingKeyShouldReturnResult()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -240,7 +239,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Update_NonexistentKey_ShouldReturnNull()
+    public void UpdateNonexistentKeyShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
@@ -250,7 +249,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Retain_ShouldKeepOnlyMatchingItems()
+    public void RetainShouldKeepOnlyMatchingItems()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -268,7 +267,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void First_ShouldReturnFirstEntry()
+    public void FirstShouldReturnFirstEntry()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -283,7 +282,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void First_EmptyMap_ShouldReturnNull()
+    public void FirstEmptyMapShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
@@ -293,7 +292,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Last_ShouldReturnLastEntry()
+    public void LastShouldReturnLastEntry()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -308,7 +307,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Last_EmptyMap_ShouldReturnNull()
+    public void LastEmptyMapShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
@@ -318,7 +317,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void InsertTree_ShouldMergeAnotherTreeMap()
+    public void InsertTreeShouldMergeAnotherTreeMap()
     {
         var map1 = new TreeMap<int, string>();
         map1.Insert(1, "one");
@@ -337,7 +336,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Keys_ShouldReturnAllKeys()
+    public void KeysShouldReturnAllKeys()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -353,7 +352,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Values_ShouldReturnAllValues()
+    public void ValuesShouldReturnAllValues()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -369,7 +368,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Indexer_Get_ShouldReturnValue()
+    public void IndexerGetShouldReturnValue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -378,7 +377,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Indexer_Set_ShouldInsertValue()
+    public void IndexerSetShouldInsertValue()
     {
         var map = new TreeMap<int, string>();
 
@@ -388,7 +387,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void FromOrderedEntries_ShouldCreateMapFromOrderedData()
+    public void FromOrderedEntriesShouldCreateMapFromOrderedData()
     {
         KeyValuePair<int, string>[] entries =
         [
@@ -406,7 +405,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void Enumeration_ShouldIterateInOrder()
+    public void EnumerationShouldIterateInOrder()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -426,7 +425,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void StringKeys_ShouldMaintainLexicographicOrder()
+    public void StringKeysShouldMaintainLexicographicOrder()
     {
         var map = new TreeMap<string, int>();
         map.Insert("zebra", 1);
@@ -442,7 +441,7 @@ public class TreeMapTests
     }
 
     [TestMethod]
-    public void LargeDataSet_ShouldMaintainPerformance()
+    public void LargeDataSetShouldMaintainPerformance()
     {
         var map = new TreeMap<int, string>();
 

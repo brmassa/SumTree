@@ -8,18 +8,18 @@ namespace SumTree;
 public static class SumTreeHelpers
 {
     // Cache dimension dictionaries to avoid repeated allocations
-    private static readonly Dictionary<Type, object> LinesDimensions = new()
+    static readonly Dictionary<Type, object> LinesDimensions = new()
     {
         [typeof(LineNumberSummary)] = LineNumberDimension.Instance
     };
 
-    private static readonly Dictionary<Type, object> LinesAndBracketsDimensions = new()
+    static readonly Dictionary<Type, object> LinesAndBracketsDimensions = new()
     {
         [typeof(LineNumberSummary)] = LineNumberDimension.Instance,
         [typeof(BracketCountSummary)] = BracketCountDimension.Instance
     };
 
-    private static readonly Dictionary<Type, object> EmptyDimensions = new();
+    static readonly Dictionary<Type, object> EmptyDimensions = new();
 
     /// <summary>
     /// Creates a SumTree from a string with line number tracking.
@@ -99,10 +99,14 @@ public static class SumTreeHelpers
     public static long FindLineStart(this SumTree<char> sumTree, int lineNumber)
     {
         if (lineNumber <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(lineNumber), "Line number must be positive.");
+        }
 
         if (lineNumber == 1)
+        {
             return 0;
+        }
 
         var targetLines = lineNumber - 1; // Convert to 0-based for internal counting
         return sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= targetLines);
@@ -118,7 +122,9 @@ public static class SumTreeHelpers
     {
         var lineStart = sumTree.FindLineStart(lineNumber);
         if (lineStart == -1)
+        {
             return null;
+        }
 
         // Find the end of the line
         var lineEnd = sumTree.Length;
@@ -133,7 +139,7 @@ public static class SumTreeHelpers
 
         var lineLength = lineEnd - lineStart;
         var lineSlice = sumTree.Slice(lineStart, lineLength);
-        return new string(lineSlice.ToArray());
+        return new string([.. lineSlice]);
     }
 
     /// <summary>
@@ -145,10 +151,14 @@ public static class SumTreeHelpers
     public static (int Line, int Column) GetLineAndColumn(this SumTree<char> sumTree, long index)
     {
         if (index < 0 || index > sumTree.Length)
+        {
             throw new ArgumentOutOfRangeException(nameof(index));
+        }
 
         if (index == 0)
+        {
             return (1, 1);
+        }
 
         // Get the summary up to the specified index
         var slice = sumTree.Slice(0, index);
@@ -170,7 +180,9 @@ public static class SumTreeHelpers
     public static long FindNthOpenBracket(this SumTree<char> sumTree, char bracketType, int occurrence)
     {
         if (occurrence <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(occurrence), "Occurrence must be positive.");
+        }
 
         return sumTree.FindPosition<BracketCountSummary>(summary =>
         {
@@ -195,7 +207,9 @@ public static class SumTreeHelpers
     public static long FindNthCloseBracket(this SumTree<char> sumTree, char bracketType, int occurrence)
     {
         if (occurrence <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(occurrence), "Occurrence must be positive.");
+        }
 
         return sumTree.FindPosition<BracketCountSummary>(summary =>
         {
@@ -219,7 +233,9 @@ public static class SumTreeHelpers
     public static bool AreBracketsBalanced(this SumTree<char> sumTree, long index)
     {
         if (index < 0 || index > sumTree.Length)
+        {
             throw new ArgumentOutOfRangeException(nameof(index));
+        }
 
         var slice = sumTree.Slice(0, index);
         var summary = slice.GetSummary<BracketCountSummary>();
@@ -238,11 +254,15 @@ public static class SumTreeHelpers
     {
         var lineStart = sumTree.FindLineStart(line);
         if (lineStart == -1)
+        {
             throw new ArgumentOutOfRangeException(nameof(line), "Line number not found.");
+        }
 
         var insertIndex = lineStart + column - 1; // Convert to 0-based index
         if (insertIndex > sumTree.Length)
+        {
             insertIndex = sumTree.Length;
+        }
 
         return sumTree.InsertRange(insertIndex, text.AsMemory());
     }

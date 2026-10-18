@@ -74,16 +74,13 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
     /// <param name="left">The left summary.</param>
     /// <param name="right">The right summary.</param>
     /// <returns>The combined summary.</returns>
-    public static BracketCountSummary operator +(BracketCountSummary left, BracketCountSummary right)
-    {
-        return new BracketCountSummary(
+    public static BracketCountSummary operator +(BracketCountSummary left, BracketCountSummary right) => new BracketCountSummary(
             left.OpenParentheses + right.OpenParentheses,
             left.CloseParentheses + right.CloseParentheses,
             left.OpenSquareBrackets + right.OpenSquareBrackets,
             left.CloseSquareBrackets + right.CloseSquareBrackets,
             left.OpenCurlyBraces + right.OpenCurlyBraces,
             left.CloseCurlyBraces + right.CloseCurlyBraces);
-    }
 
     /// <summary>
     /// Gets the zero/identity summary (no brackets).
@@ -139,7 +136,7 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
 
     public override bool Equals(object? obj)
     {
-        return obj is BracketCountSummary other && this.Equals(other);
+        return obj is BracketCountSummary other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -153,25 +150,46 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
     public int CompareTo(BracketCountSummary other)
     {
         var totalOpen = TotalOpenBrackets.CompareTo(other.TotalOpenBrackets);
-        if (totalOpen != 0) return totalOpen;
+        if (totalOpen != 0)
+        {
+            return totalOpen;
+        }
 
         var totalClose = TotalCloseBrackets.CompareTo(other.TotalCloseBrackets);
-        if (totalClose != 0) return totalClose;
+        if (totalClose != 0)
+        {
+            return totalClose;
+        }
 
         var parenOpen = OpenParentheses.CompareTo(other.OpenParentheses);
-        if (parenOpen != 0) return parenOpen;
+        if (parenOpen != 0)
+        {
+            return parenOpen;
+        }
 
         var parenClose = CloseParentheses.CompareTo(other.CloseParentheses);
-        if (parenClose != 0) return parenClose;
+        if (parenClose != 0)
+        {
+            return parenClose;
+        }
 
         var squareOpen = OpenSquareBrackets.CompareTo(other.OpenSquareBrackets);
-        if (squareOpen != 0) return squareOpen;
+        if (squareOpen != 0)
+        {
+            return squareOpen;
+        }
 
         var squareClose = CloseSquareBrackets.CompareTo(other.CloseSquareBrackets);
-        if (squareClose != 0) return squareClose;
+        if (squareClose != 0)
+        {
+            return squareClose;
+        }
 
         var curlyOpen = OpenCurlyBraces.CompareTo(other.OpenCurlyBraces);
-        if (curlyOpen != 0) return curlyOpen;
+        if (curlyOpen != 0)
+        {
+            return curlyOpen;
+        }
 
         return CloseCurlyBraces.CompareTo(other.CloseCurlyBraces);
     }
@@ -213,7 +231,9 @@ public class BracketCountDimension : SummaryDimensionBase<char, BracketCountSumm
     public override BracketCountSummary SummarizeSpan(ReadOnlySpan<char> elements)
     {
         if (elements.IsEmpty)
+        {
             return Identity;
+        }
 
         int openParen = 0, closeParen = 0;
         int openSquare = 0, closeSquare = 0;

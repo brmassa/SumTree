@@ -10,21 +10,21 @@ public static class FastSumTreeExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FastSumTree<char> ToFastSumTree(this string text)
     {
-        return text.Length == 0 ? FastSumTree<char>.Empty : new FastSumTree<char>(text.AsMemory());
+        return text.Length == 0 ? [] : new FastSumTree<char>(text.AsMemory());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FastSumTree<T> ToFastSumTree<T>(this ReadOnlyMemory<T> memory)
         where T : IEquatable<T>
     {
-        return memory.IsEmpty ? FastSumTree<T>.Empty : new FastSumTree<T>(memory);
+        return memory.IsEmpty ? [] : new FastSumTree<T>(memory);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FastSumTree<T> ToFastSumTree<T>(this T[] array)
         where T : IEquatable<T>
     {
-        return array.Length == 0 ? FastSumTree<T>.Empty : new FastSumTree<T>(array.AsMemory());
+        return array.Length == 0 ? [] : new FastSumTree<T>(array.AsMemory());
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -32,10 +32,14 @@ public static class FastSumTreeExtensions
         where T : IEquatable<T>
     {
         if (enumerable is T[] array)
+        {
             return array.ToFastSumTree();
+        }
 
         if (enumerable is List<T> list)
+        {
             return list.ToArray().ToFastSumTree();
+        }
 
         var items = enumerable.ToArray();
         return items.ToFastSumTree();
@@ -44,14 +48,23 @@ public static class FastSumTreeExtensions
     public static FastSumTree<T> RemoveRange<T>(this FastSumTree<T> tree, long start, long length)
         where T : IEquatable<T>
     {
-        if (length <= 0) return tree;
-        if (start < 0 || start >= tree.Length) return tree;
+        if (length <= 0)
+        {
+            return tree;
+        }
+
+        if (start < 0 || start >= tree.Length)
+        {
+            return tree;
+        }
 
         var actualLength = Math.Min(length, tree.Length - start);
         var end = start + actualLength;
 
         if (start == 0 && end >= tree.Length)
-            return FastSumTree<T>.Empty;
+        {
+            return [];
+        }
 
         if (start == 0)
         {
@@ -80,14 +93,23 @@ public static class FastSumTreeExtensions
     public static FastSumTree<T> Slice<T>(this FastSumTree<T> tree, long start, long length)
         where T : IEquatable<T>
     {
-        if (length <= 0) return FastSumTree<T>.Empty;
-        if (start < 0 || start >= tree.Length) return FastSumTree<T>.Empty;
+        if (length <= 0)
+        {
+            return [];
+        }
+
+        if (start < 0 || start >= tree.Length)
+        {
+            return [];
+        }
 
         var actualLength = Math.Min(length, tree.Length - start);
         var end = start + actualLength;
 
         if (start == 0 && end >= tree.Length)
+        {
             return tree;
+        }
 
         if (start == 0)
         {
@@ -110,8 +132,15 @@ public static class FastSumTreeExtensions
     public static FastSumTree<T> Slice<T>(this FastSumTree<T> tree, long start)
         where T : IEquatable<T>
     {
-        if (start <= 0) return tree;
-        if (start >= tree.Length) return FastSumTree<T>.Empty;
+        if (start <= 0)
+        {
+            return tree;
+        }
+
+        if (start >= tree.Length)
+        {
+            return [];
+        }
 
         var (_, right) = tree.SplitAt(start);
         return right;

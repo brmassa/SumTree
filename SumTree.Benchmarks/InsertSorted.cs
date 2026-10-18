@@ -6,11 +6,11 @@ namespace Benchmarks;
 [MemoryDiagnoser]
 public class InsertSorted
 {
-    private static readonly Random random = new(42);
+    static readonly Random random = new(42);
 
-    private static readonly long[] RandomLongs = Enumerable.Range(0, 65000).Select(s => random.NextInt64(32000)).ToArray();
+    static readonly long[] RandomLongs = [.. Enumerable.Range(0, 65000).Select(s => random.NextInt64(32000))];
 
-    private static readonly float[] RandomFloats = Enumerable.Range(0, 65000).Select(s => random.NextSingle()).ToArray();
+    static readonly float[] RandomFloats = [.. Enumerable.Range(0, 65000).Select(s => random.NextSingle())];
 
     [Benchmark]
     public void AddRangeThenOrderLong()

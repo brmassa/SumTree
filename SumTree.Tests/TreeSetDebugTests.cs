@@ -1,8 +1,7 @@
+using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SumTree.TreeMap;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace SumTree.Tests;
 
@@ -10,7 +9,7 @@ namespace SumTree.Tests;
 public class TreeSetDebugTests
 {
     [TestMethod]
-    public void SmallDataSet_ShouldWork()
+    public void SmallDataSetShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -26,7 +25,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void MediumDataSet_ShouldWork()
+    public void MediumDataSetShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -43,7 +42,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void LargerDataSet_ShouldWork()
+    public void LargerDataSetShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -60,7 +59,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void Enumeration_SmallDataSet_ShouldWork()
+    public void EnumerationSmallDataSetShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -81,7 +80,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void Enumeration_MediumDataSet_ShouldWork()
+    public void EnumerationMediumDataSetShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -102,7 +101,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void Remove_MediumDataSet_ShouldWork()
+    public void RemoveMediumDataSetShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -125,7 +124,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void IterativeAdd_ShouldHandleGracefully()
+    public void IterativeAddShouldHandleGracefully()
     {
         var set = new TreeSet<int>();
 
@@ -139,7 +138,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void RandomOrder_ShouldMaintainOrder()
+    public void RandomOrderShouldMaintainOrder()
     {
         var set = new TreeSet<int>();
         var random = new Random(42); // Fixed seed for reproducibility
@@ -162,7 +161,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void DuplicateHandling_ShouldWork()
+    public void DuplicateHandlingShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -192,7 +191,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void Debug5000Items_ShouldWork()
+    public void Debug5000ItemsShouldWork()
     {
         var set = new TreeSet<int>();
 
@@ -209,7 +208,7 @@ public class TreeSetDebugTests
     }
 
     [TestMethod]
-    public void Debug8000Items_ShouldWork()
+    public void Debug8000ItemsShouldWork()
     {
         var set = new TreeSet<int>();
 

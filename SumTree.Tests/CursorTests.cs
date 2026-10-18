@@ -1,8 +1,7 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SumTree.Cursors;
-using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using SumTree.Cursors;
 
 namespace SumTree.Tests;
 
@@ -10,7 +9,7 @@ namespace SumTree.Tests;
 public class CursorTests
 {
     [TestMethod]
-    public void Cursor_EmptyTree_ShouldBeAtEnd()
+    public void CursorEmptyTreeShouldBeAtEnd()
     {
         var tree = SumTree<char>.Empty.WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -21,7 +20,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_SingleItem_ShouldNavigateCorrectly()
+    public void CursorSingleItemShouldNavigateCorrectly()
     {
         var tree = new SumTree<char>('a').WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -37,7 +36,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_MultipleItems_ShouldTraverseInOrder()
+    public void CursorMultipleItemsShouldTraverseInOrder()
     {
         var tree = "hello".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -48,7 +47,10 @@ public class CursorTests
         while (!cursor.IsAtEnd)
         {
             items.Add(cursor.Item);
-            if (!cursor.Next()) break;
+            if (!cursor.Next())
+            {
+                break;
+            }
         }
 
         Assert.AreEqual(5, items.Count);
@@ -56,7 +58,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_Previous_ShouldNavigateBackward()
+    public void CursorPreviousShouldNavigateBackward()
     {
         var tree = "abc".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -83,7 +85,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_Seek_ShouldJumpToPosition()
+    public void CursorSeekShouldJumpToPosition()
     {
         var tree = "hello\nworld".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -96,7 +98,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_SeekForward_ShouldMoveOnlyForward()
+    public void CursorSeekForwardShouldMoveOnlyForward()
     {
         var tree = "abcdef".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -107,7 +109,7 @@ public class CursorTests
 
         var initialPosition = cursor.Position;
         var targetSummary = new LineNumberSummary(0, 1, 1); // Position of 'a'
-        cursor.SeekForward(targetSummary, Bias.Left);
+        cursor.SeekForward(targetSummary);
 
         // Should not move backward, stay at current position
         Assert.AreEqual(initialPosition, cursor.Position);
@@ -115,7 +117,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_Slice_ShouldReturnSliceFromCurrentPosition()
+    public void CursorSliceShouldReturnSliceFromCurrentPosition()
     {
         var tree = "hello world".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -125,13 +127,13 @@ public class CursorTests
         cursor.Next(); // Move to 'l'
 
         var endSummary = new LineNumberSummary(0, 7, 7); // Position after 'o'
-        var slice = cursor.Slice(endSummary, Bias.Left);
+        var slice = cursor.Slice(endSummary);
 
-        Assert.AreEqual("llo w", new string(slice.ToArray()));
+        Assert.AreEqual("llo w", new string([.. slice]));
     }
 
     [TestMethod]
-    public void Cursor_Suffix_ShouldReturnRemainderOfTree()
+    public void CursorSuffixShouldReturnRemainderOfTree()
     {
         var tree = "hello".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -142,11 +144,11 @@ public class CursorTests
 
         var suffix = cursor.Suffix();
 
-        Assert.AreEqual("llo", new string(suffix.ToArray()));
+        Assert.AreEqual("llo", new string([.. suffix]));
     }
 
     [TestMethod]
-    public void Cursor_Summary_ShouldReturnSuffixSummary()
+    public void CursorSummaryShouldReturnSuffixSummary()
     {
         var tree = "hello\nworld".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -163,7 +165,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_SearchForward_ShouldFindMatchingPosition()
+    public void CursorSearchForwardShouldFindMatchingPosition()
     {
         var tree = "hello\nworld\ntest".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -178,7 +180,7 @@ public class CursorTests
 
     [TestMethod]
     [Ignore("Deal with this later")]
-    public void Cursor_SearchBackward_ShouldFindMatchingPosition()
+    public void CursorSearchBackwardShouldFindMatchingPosition()
     {
         var tree = "hello\nworld\ntest".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -193,7 +195,7 @@ public class CursorTests
 
     [TestMethod]
     [Ignore("Deal with this later")]
-    public void Cursor_SearchNotFound_ShouldRestorePosition()
+    public void CursorSearchNotFoundShouldRestorePosition()
     {
         var tree = "hello".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -211,7 +213,7 @@ public class CursorTests
 
     [TestMethod]
     [Ignore("Deal with this later")]
-    public void Cursor_Clone_ShouldCreateIndependentCopy()
+    public void CursorCloneShouldCreateIndependentCopy()
     {
         var tree = "hello".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor1 = tree.LineCursor();
@@ -233,7 +235,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_End_ShouldReturnCorrectEndPosition()
+    public void CursorEndShouldReturnCorrectEndPosition()
     {
         var tree = "hello\nworld".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -246,19 +248,19 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_BiasLeft_ShouldPositionBeforeTarget()
+    public void CursorBiasLeftShouldPositionBeforeTarget()
     {
         var tree = "world".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
 
         var targetSummary = new LineNumberSummary(0, 2, 2); // Position of 'l'
-        cursor.Seek(targetSummary, Bias.Left);
+        cursor.Seek(targetSummary);
 
         Assert.AreEqual('o', cursor.Item);
     }
 
     [TestMethod]
-    public void Cursor_BiasRight_ShouldPositionAfterTarget()
+    public void CursorBiasRightShouldPositionAfterTarget()
     {
         var tree = "world".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -271,7 +273,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_AsEnumerator_ShouldEnumerateCorrectly()
+    public void CursorAsEnumeratorShouldEnumerateCorrectly()
     {
         var tree = "abc".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -282,7 +284,10 @@ public class CursorTests
         while (!cursor.IsAtEnd)
         {
             items.Add(cursor.Item);
-            if (!cursor.Next()) break;
+            if (!cursor.Next())
+            {
+                break;
+            }
         }
 
         Assert.AreEqual(3, items.Count);
@@ -290,7 +295,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_Reset_ShouldReturnToInitialState()
+    public void CursorResetShouldReturnToInitialState()
     {
         var tree = "hello".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -308,7 +313,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_LargeTree_ShouldMaintainPerformance()
+    public void CursorLargeTreeShouldMaintainPerformance()
     {
         var text = string.Concat(Enumerable.Range(0, 10000).Select(i => (char)('a' + (i % 26))));
         var tree = text.ToSumTree().WithDimension(LineNumberDimension.Instance);
@@ -316,7 +321,7 @@ public class CursorTests
 
         // Seek to middle
         var targetSummary = new LineNumberSummary(0, 5000, 5000);
-        cursor.Seek(targetSummary, Bias.Left);
+        cursor.Seek(targetSummary);
 
         Assert.IsFalse(cursor.IsAtEnd);
 
@@ -330,7 +335,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_WithBracketDimension_ShouldWorkCorrectly()
+    public void CursorWithBracketDimensionShouldWorkCorrectly()
     {
         var tree = "hello{world}test".ToSumTree().WithDimension(BracketCountDimension.Instance);
         using var cursor = tree.BracketCursor();
@@ -349,7 +354,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_MultipleLines_ShouldTrackLineNumbers()
+    public void CursorMultipleLinesShouldTrackLineNumbers()
     {
         var tree = "line1\nline2\nline3".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -374,7 +379,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_ItemSummary_ShouldReturnCorrectSummary()
+    public void CursorItemSummaryShouldReturnCorrectSummary()
     {
         var tree = "a\nb".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();
@@ -395,7 +400,7 @@ public class CursorTests
     }
 
     [TestMethod]
-    public void Cursor_CRLFLineEndings_ShouldCountLinesCorrectly()
+    public void CursorCrlfLineEndingsShouldCountLinesCorrectly()
     {
         var tree = "line1\r\nline2\r\nline3".ToSumTree().WithDimension(LineNumberDimension.Instance);
         using var cursor = tree.LineCursor();

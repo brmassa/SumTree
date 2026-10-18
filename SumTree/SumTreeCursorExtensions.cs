@@ -120,7 +120,10 @@ public static class SumTreeCursorExtensions
                 return cursor.Position;
             }
 
-            if (!cursor.Next()) break;
+            if (!cursor.Next())
+            {
+                break;
+            }
         }
 
         return default;
@@ -149,7 +152,10 @@ public static class SumTreeCursorExtensions
 
         while (!cursor.IsAtStart)
         {
-            if (!cursor.Previous()) break;
+            if (!cursor.Previous())
+            {
+                break;
+            }
 
             if (predicate(cursor.Position))
             {
@@ -179,8 +185,8 @@ public static class SumTreeCursorExtensions
         where TDimension : IEquatable<TDimension>
     {
         using var cursor = tree.Cursor(dimension);
-        cursor.Seek(start, Bias.Left);
-        return cursor.Slice(end, Bias.Left);
+        cursor.Seek(start);
+        return cursor.Slice(end);
     }
 
     /// <summary>
@@ -207,7 +213,10 @@ public static class SumTreeCursorExtensions
                 yield return cursor.Item;
             }
 
-            if (!cursor.Next()) break;
+            if (!cursor.Next())
+            {
+                break;
+            }
         }
     }
 
@@ -235,7 +244,10 @@ public static class SumTreeCursorExtensions
                 yield return (cursor.Item, cursor.Position);
             }
 
-            if (!cursor.Next()) break;
+            if (!cursor.Next())
+            {
+                break;
+            }
         }
     }
 
@@ -267,7 +279,10 @@ public static class SumTreeCursorExtensions
                 result.Add(cursor.Item);
             }
 
-            if (!cursor.Next()) break;
+            if (!cursor.Next())
+            {
+                break;
+            }
         }
 
         return result.ToSumTree().WithDimension(dimension);

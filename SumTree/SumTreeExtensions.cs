@@ -52,7 +52,9 @@ public static class SumTreeExtensions
     public static SumTree<T> ToSumTree<T>(this ReadOnlySpan<T> span) where T : IEquatable<T>
     {
         if (span.IsEmpty)
-            return SumTree<T>.Empty;
+        {
+            return [];
+        }
 
         // Copy span to array since we can't store spans directly
         var array = span.ToArray();
@@ -84,7 +86,10 @@ public static class SumTreeExtensions
         foreach (var tree in trees)
         {
             if (!first)
+            {
                 result = result.Add(separator);
+            }
+
             result = result.AddRange(tree);
             first = false;
         }
@@ -104,7 +109,10 @@ public static class SumTreeExtensions
         foreach (var tree in trees)
         {
             if (!first)
+            {
                 result = result.AddRange(separator);
+            }
+
             result = result.AddRange(tree);
             first = false;
         }
@@ -118,7 +126,9 @@ public static class SumTreeExtensions
     public static T[] ToArray<T>(this SumTree<T> tree) where T : IEquatable<T>
     {
         if (tree.IsEmpty)
+        {
             return [];
+        }
 
         var result = new T[tree.Length];
         var index = 0;
@@ -151,7 +161,9 @@ public static class SumTreeExtensions
     public static void CopyTo<T>(this SumTree<T> tree, Memory<T> destination) where T : IEquatable<T>
     {
         if (tree.Length > destination.Length)
+        {
             throw new ArgumentException("Destination buffer is too small", nameof(destination));
+        }
 
         var span = destination.Span;
         var index = 0;
@@ -171,7 +183,10 @@ public static class SumTreeExtensions
         foreach (var current in tree)
         {
             if (current.Equals(item))
+            {
                 return index;
+            }
+
             index++;
         }
 
@@ -187,7 +202,10 @@ public static class SumTreeExtensions
         foreach (var current in tree)
         {
             if (comparer.Equals(current, item))
+            {
                 return index;
+            }
+
             index++;
         }
 
@@ -208,10 +226,14 @@ public static class SumTreeExtensions
     public static long IndexOf<T>(this SumTree<T> tree, SumTree<T> pattern) where T : IEquatable<T>
     {
         if (pattern.IsEmpty)
+        {
             return 0;
+        }
 
         if (pattern.Length > tree.Length)
+        {
             return -1;
+        }
 
         var treeArray = tree.ToArray();
         var patternArray = pattern.ToArray();
@@ -229,7 +251,9 @@ public static class SumTreeExtensions
             }
 
             if (found)
+            {
                 return i;
+            }
         }
 
         return -1;
@@ -242,10 +266,14 @@ public static class SumTreeExtensions
         where T : IEquatable<T>
     {
         if (pattern.IsEmpty)
+        {
             return 0;
+        }
 
         if (pattern.Length > tree.Length)
+        {
             return -1;
+        }
 
         var treeArray = tree.ToArray();
         var patternArray = pattern.ToArray();
@@ -263,7 +291,9 @@ public static class SumTreeExtensions
             }
 
             if (found)
+            {
                 return i;
+            }
         }
 
         return -1;
@@ -275,13 +305,17 @@ public static class SumTreeExtensions
     public static long LastIndexOf<T>(this SumTree<T> tree, T item) where T : IEquatable<T>
     {
         if (tree.IsEmpty)
+        {
             return -1;
+        }
 
         var array = tree.ToArray();
         for (long i = array.Length - 1; i >= 0; i--)
         {
             if (array[i].Equals(item))
+            {
                 return i;
+            }
         }
 
         return -1;
@@ -294,13 +328,17 @@ public static class SumTreeExtensions
         where T : IEquatable<T>
     {
         if (tree.IsEmpty)
+        {
             return -1;
+        }
 
         var array = tree.ToArray();
         for (long i = array.Length - 1; i >= 0; i--)
         {
             if (comparer.Equals(array[i], item))
+            {
                 return i;
+            }
         }
 
         return -1;
@@ -312,10 +350,14 @@ public static class SumTreeExtensions
     public static long LastIndexOf<T>(this SumTree<T> tree, SumTree<T> pattern) where T : IEquatable<T>
     {
         if (pattern.IsEmpty)
+        {
             return tree.Length;
+        }
 
         if (pattern.Length > tree.Length)
+        {
             return -1;
+        }
 
         var treeArray = tree.ToArray();
         var patternArray = pattern.ToArray();
@@ -333,7 +375,9 @@ public static class SumTreeExtensions
             }
 
             if (found)
+            {
                 return i;
+            }
         }
 
         return -1;
@@ -346,10 +390,14 @@ public static class SumTreeExtensions
         where T : IEquatable<T>
     {
         if (pattern.IsEmpty)
+        {
             return tree.Length;
+        }
 
         if (pattern.Length > tree.Length)
+        {
             return -1;
+        }
 
         var treeArray = tree.ToArray();
         var patternArray = pattern.ToArray();
@@ -367,7 +415,9 @@ public static class SumTreeExtensions
             }
 
             if (found)
+            {
                 return i;
+            }
         }
 
         return -1;
@@ -396,7 +446,9 @@ public static class SumTreeExtensions
     public static long IndexOf<T>(this SumTree<T> tree, T item, long startIndex) where T : IEquatable<T>
     {
         if (startIndex < 0 || startIndex >= tree.Length)
+        {
             return -1;
+        }
 
         var slice = tree.Slice(startIndex);
         var result = slice.IndexOf(item);
@@ -409,7 +461,9 @@ public static class SumTreeExtensions
     public static long IndexOf<T>(this SumTree<T> tree, SumTree<T> pattern, long startIndex) where T : IEquatable<T>
     {
         if (startIndex < 0 || startIndex >= tree.Length)
+        {
             return -1;
+        }
 
         var slice = tree.Slice(startIndex);
         var result = slice.IndexOf(pattern);
@@ -422,7 +476,9 @@ public static class SumTreeExtensions
     public static long LastIndexOf<T>(this SumTree<T> tree, T item, long startIndex) where T : IEquatable<T>
     {
         if (startIndex < 0)
+        {
             return -1;
+        }
 
         var slice = tree.Slice(0, Math.Min(startIndex + 1, tree.Length));
         return slice.LastIndexOf(item);
@@ -434,7 +490,9 @@ public static class SumTreeExtensions
     public static long LastIndexOf<T>(this SumTree<T> tree, SumTree<T> pattern, long startIndex) where T : IEquatable<T>
     {
         if (startIndex < 0)
+        {
             return -1;
+        }
 
         var slice = tree.Slice(0, Math.Min(startIndex + 1, tree.Length));
         return slice.LastIndexOf(pattern);
@@ -446,7 +504,9 @@ public static class SumTreeExtensions
     public static SumTree<T> Balanced<T>(this SumTree<T> tree) where T : IEquatable<T>
     {
         if (tree.IsEmpty || tree.IsBalanced)
+        {
             return tree;
+        }
 
         // Simply return the tree as-is to avoid triggering the internal balancing bug
         // The tree will be naturally balanced by normal operations
@@ -459,10 +519,14 @@ public static class SumTreeExtensions
     public static bool StartsWith<T>(this SumTree<T> tree, SumTree<T> prefix) where T : IEquatable<T>
     {
         if (prefix.Length > tree.Length)
+        {
             return false;
+        }
 
         if (prefix.IsEmpty)
+        {
             return true;
+        }
 
         var prefixSlice = tree.Slice(0, prefix.Length);
         return prefixSlice.Equals(prefix);
@@ -474,10 +538,14 @@ public static class SumTreeExtensions
     public static bool EndsWith<T>(this SumTree<T> tree, SumTree<T> suffix) where T : IEquatable<T>
     {
         if (suffix.Length > tree.Length)
+        {
             return false;
+        }
 
         if (suffix.IsEmpty)
+        {
             return true;
+        }
 
         var suffixSlice = tree.Slice(tree.Length - suffix.Length, suffix.Length);
         return suffixSlice.Equals(suffix);
@@ -489,10 +557,14 @@ public static class SumTreeExtensions
     public static bool StartsWith<T>(this SumTree<T> tree, ReadOnlyMemory<T> prefix) where T : IEquatable<T>
     {
         if (prefix.Length > tree.Length)
+        {
             return false;
+        }
 
         if (prefix.IsEmpty)
+        {
             return true;
+        }
 
         var prefixSlice = tree.Slice(0, prefix.Length);
         var prefixTree = new SumTree<T>(prefix);
@@ -505,10 +577,14 @@ public static class SumTreeExtensions
     public static bool EndsWith<T>(this SumTree<T> tree, ReadOnlyMemory<T> suffix) where T : IEquatable<T>
     {
         if (suffix.Length > tree.Length)
+        {
             return false;
+        }
 
         if (suffix.IsEmpty)
+        {
             return true;
+        }
 
         var suffixSlice = tree.Slice(tree.Length - suffix.Length, suffix.Length);
         var suffixTree = new SumTree<T>(suffix);
@@ -522,14 +598,19 @@ public static class SumTreeExtensions
         where T : IEquatable<T>
     {
         if (tree.IsEmpty)
+        {
             return new SumTree<T>(item);
+        }
 
         // Find the insertion point
         long insertIndex = 0;
         foreach (var element in tree)
         {
             if (comparer.Compare(item, element) <= 0)
+            {
                 break;
+            }
+
             insertIndex++;
         }
 
@@ -542,14 +623,18 @@ public static class SumTreeExtensions
     public static SumTree<T> Replace<T>(this SumTree<T> tree, T oldValue, T newValue) where T : IEquatable<T>
     {
         if (tree.IsEmpty)
+        {
             return tree;
+        }
 
         // Convert to array, replace, then create new SumTree to avoid balancing issues
         var array = tree.ToArray();
         for (var i = 0; i < array.Length; i++)
         {
             if (array[i].Equals(oldValue))
+            {
                 array[i] = newValue;
+            }
         }
 
         var newTree = new SumTree<T>(array.AsMemory());
@@ -566,7 +651,9 @@ public static class SumTreeExtensions
         foreach (var item in tree)
         {
             if (predicate(item))
+            {
                 result = result.Add(item);
+            }
         }
 
         return result;
@@ -605,7 +692,9 @@ public static class SumTreeExtensions
         where T : IEquatable<T>
     {
         if (dimensions == null || dimensions.Count == 0)
+        {
             return tree;
+        }
 
         var result = tree;
         foreach (var kvp in dimensions)
@@ -630,10 +719,12 @@ public static class SumTreeExtensions
 
     // Private helper methods
 
-    private static SumTree<T> FromReadOnlyList<T>(IReadOnlyList<T> list) where T : IEquatable<T>
+    static SumTree<T> FromReadOnlyList<T>(IReadOnlyList<T> list) where T : IEquatable<T>
     {
         if (list.Count == 0)
-            return SumTree<T>.Empty;
+        {
+            return [];
+        }
 
         // Use array pooling for efficiency
         var pool = ArrayPool<T>.Shared;
@@ -655,17 +746,19 @@ public static class SumTreeExtensions
         }
     }
 
-    private static SumTree<T> FromList<T>(List<T> list) where T : IEquatable<T>
+    static SumTree<T> FromList<T>(List<T> list) where T : IEquatable<T>
     {
         if (list.Count == 0)
-            return SumTree<T>.Empty;
+        {
+            return [];
+        }
 
         var array = new T[list.Count];
         list.CopyTo(array);
         return new SumTree<T>(array.AsMemory());
     }
 
-    private static SumTree<T> FromEnumerable<T>(IEnumerable<T> items) where T : IEquatable<T>
+    static SumTree<T> FromEnumerable<T>(IEnumerable<T> items) where T : IEquatable<T>
     {
         var list = new List<T>(items);
         return FromList(list);
@@ -674,24 +767,24 @@ public static class SumTreeExtensions
     /// <summary>
     /// A leased span helper for efficient memory management.
     /// </summary>
-    public ref struct LeasedSpan<T>
+    public readonly ref struct LeasedSpan<T>
     {
-        private ArrayPool<T> pool;
-        private T[] rented;
-        private Span<T> span;
+        readonly ArrayPool<T> _pool;
+        readonly T[] _rented;
+        readonly Span<T> _span;
 
         public LeasedSpan(ArrayPool<T> pool, int length)
         {
-            this.pool = pool;
-            this.rented = pool.Rent(length);
-            this.span = this.rented.AsSpan().Slice(0, length);
+            this._pool = pool;
+            _rented = pool.Rent(length);
+            _span = _rented.AsSpan().Slice(0, length);
         }
 
-        public Span<T> Span => this.span;
+        public Span<T> Span => _span;
 
         public void Dispose()
         {
-            this.pool.Return(this.rented, clearArray: true);
+            _pool.Return(_rented, clearArray: true);
         }
     }
 

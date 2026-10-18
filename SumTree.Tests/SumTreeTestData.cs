@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace SumTree.Tests;
 
-internal class SumTreeTestData
+class SumTreeTestData
 {
     internal static readonly SumTree<int> EvenNumbers = Enumerable.Range(0, 2048).Where(i => i % 2 == 0).ToSumTree();
 
@@ -13,7 +13,7 @@ internal class SumTreeTestData
     {
         if (length == 0)
         {
-            return (string.Empty, SumTree<char>.Empty);
+            return (string.Empty, []);
         }
 
         var chars = Enumerable.Range(0, length).Select(i => (char)(65 + (i % 26))).ToArray();

@@ -76,10 +76,7 @@ public readonly struct MapEntry<TKey, TValue> : IEquatable<MapEntry<TKey, TValue
     /// <param name="left">The left entry.</param>
     /// <param name="right">The right entry.</param>
     /// <returns>True if the entries are equal, false otherwise.</returns>
-    public static bool operator ==(MapEntry<TKey, TValue> left, MapEntry<TKey, TValue> right)
-    {
-        return left.Equals(right);
-    }
+    public static bool operator ==(MapEntry<TKey, TValue> left, MapEntry<TKey, TValue> right) => left.Equals(right);
 
     /// <summary>
     /// Determines whether two entries are not equal.
@@ -87,10 +84,7 @@ public readonly struct MapEntry<TKey, TValue> : IEquatable<MapEntry<TKey, TValue
     /// <param name="left">The left entry.</param>
     /// <param name="right">The right entry.</param>
     /// <returns>True if the entries are not equal, false otherwise.</returns>
-    public static bool operator !=(MapEntry<TKey, TValue> left, MapEntry<TKey, TValue> right)
-    {
-        return !left.Equals(right);
-    }
+    public static bool operator !=(MapEntry<TKey, TValue> left, MapEntry<TKey, TValue> right) => !left.Equals(right);
 }
 
 /// <summary>
@@ -122,7 +116,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <summary>
     /// Gets the default (empty) MapKey.
     /// </summary>
-    public static MapKey<TKey> Empty => new(default(TKey));
+    public static MapKey<TKey> Empty => new(default);
 
     /// <summary>
     /// Determines whether this key is equal to another key.
@@ -131,8 +125,16 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <returns>True if the keys are equal, false otherwise.</returns>
     public bool Equals(MapKey<TKey> other)
     {
-        if (Key == null && other.Key == null) return true;
-        if (Key == null || other.Key == null) return false;
+        if (Key == null && other.Key == null)
+        {
+            return true;
+        }
+
+        if (Key == null || other.Key == null)
+        {
+            return false;
+        }
+
         return Key.Equals(other.Key);
     }
 
@@ -162,9 +164,21 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <returns>A value indicating the relative order of the keys.</returns>
     public int CompareTo(MapKey<TKey> other)
     {
-        if (Key == null && other.Key == null) return 0;
-        if (Key == null) return -1;
-        if (other.Key == null) return 1;
+        if (Key == null && other.Key == null)
+        {
+            return 0;
+        }
+
+        if (Key == null)
+        {
+            return -1;
+        }
+
+        if (other.Key == null)
+        {
+            return 1;
+        }
+
         return Key.CompareTo(other.Key);
     }
 
@@ -183,10 +197,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <param name="left">The left key.</param>
     /// <param name="right">The right key.</param>
     /// <returns>True if the keys are equal, false otherwise.</returns>
-    public static bool operator ==(MapKey<TKey> left, MapKey<TKey> right)
-    {
-        return left.Equals(right);
-    }
+    public static bool operator ==(MapKey<TKey> left, MapKey<TKey> right) => left.Equals(right);
 
     /// <summary>
     /// Determines whether two keys are not equal.
@@ -194,10 +205,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <param name="left">The left key.</param>
     /// <param name="right">The right key.</param>
     /// <returns>True if the keys are not equal, false otherwise.</returns>
-    public static bool operator !=(MapKey<TKey> left, MapKey<TKey> right)
-    {
-        return !left.Equals(right);
-    }
+    public static bool operator !=(MapKey<TKey> left, MapKey<TKey> right) => !left.Equals(right);
 
     /// <summary>
     /// Determines whether the left key is less than the right key.
@@ -205,10 +213,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <param name="left">The left key.</param>
     /// <param name="right">The right key.</param>
     /// <returns>True if the left key is less than the right key, false otherwise.</returns>
-    public static bool operator <(MapKey<TKey> left, MapKey<TKey> right)
-    {
-        return left.CompareTo(right) < 0;
-    }
+    public static bool operator <(MapKey<TKey> left, MapKey<TKey> right) => left.CompareTo(right) < 0;
 
     /// <summary>
     /// Determines whether the left key is less than or equal to the right key.
@@ -216,10 +221,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <param name="left">The left key.</param>
     /// <param name="right">The right key.</param>
     /// <returns>True if the left key is less than or equal to the right key, false otherwise.</returns>
-    public static bool operator <=(MapKey<TKey> left, MapKey<TKey> right)
-    {
-        return left.CompareTo(right) <= 0;
-    }
+    public static bool operator <=(MapKey<TKey> left, MapKey<TKey> right) => left.CompareTo(right) <= 0;
 
     /// <summary>
     /// Determines whether the left key is greater than the right key.
@@ -227,10 +229,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <param name="left">The left key.</param>
     /// <param name="right">The right key.</param>
     /// <returns>True if the left key is greater than the right key, false otherwise.</returns>
-    public static bool operator >(MapKey<TKey> left, MapKey<TKey> right)
-    {
-        return left.CompareTo(right) > 0;
-    }
+    public static bool operator >(MapKey<TKey> left, MapKey<TKey> right) => left.CompareTo(right) > 0;
 
     /// <summary>
     /// Determines whether the left key is greater than or equal to the right key.
@@ -238,8 +237,5 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <param name="left">The left key.</param>
     /// <param name="right">The right key.</param>
     /// <returns>True if the left key is greater than or equal to the right key, false otherwise.</returns>
-    public static bool operator >=(MapKey<TKey> left, MapKey<TKey> right)
-    {
-        return left.CompareTo(right) >= 0;
-    }
+    public static bool operator >=(MapKey<TKey> left, MapKey<TKey> right) => left.CompareTo(right) >= 0;
 }

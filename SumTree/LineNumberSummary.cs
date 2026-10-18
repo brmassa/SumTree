@@ -4,10 +4,11 @@ namespace SumTree;
 /// Summary for tracking line numbers and character positions in text.
 /// Useful for text editors to quickly navigate to specific lines.
 /// </summary>
-public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<LineNumberSummary>
+public readonly struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<LineNumberSummary>
 {
     /// <summary>
-    /// The number of lines in this segment (newline characters encountered).
+    /// The number of line breaks in this segment. CR and LF each count as one;
+    /// a CRLF pair counts as one even when split across segments.
     /// </summary>
     public int Lines { get; }
 
@@ -22,11 +23,24 @@ public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<Lin
     /// </summary>
     public int TotalCharacters { get; }
 
-    public LineNumberSummary(int lines, int lastLineCharacters, int totalCharacters)
+    /// <summary>Whether this nonempty segment starts with LF, for CRLF boundary merging.</summary>
+    public bool StartsWithLineFeed { get; }
+
+    /// <summary>Whether this nonempty segment ends with CR, for CRLF boundary merging.</summary>
+    public bool EndsWithCarriageReturn { get; }
+
+    /// <summary>
+    /// Creates a summary. Supply boundary flags when representing actual text that
+    /// starts with LF or ends with CR; seek targets may omit them.
+    /// </summary>
+    public LineNumberSummary(int lines, int lastLineCharacters, int totalCharacters,
+        bool startsWithLineFeed = false, bool endsWithCarriageReturn = false)
     {
         Lines = lines;
         LastLineCharacters = lastLineCharacters;
         TotalCharacters = totalCharacters;
+        StartsWithLineFeed = startsWithLineFeed;
+        EndsWithCarriageReturn = endsWithCarriageReturn;
     }
 
     /// <summary>
@@ -36,8 +50,8 @@ public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<Lin
     /// <returns>A summary for the single character.</returns>
     public static LineNumberSummary FromCharacter(char character)
     {
-        return character == '\n'
-            ? new LineNumberSummary(1, 0, 1)
+        return character is '\r' or '\n'
+            ? new LineNumberSummary(1, 0, 1, character == '\n', character == '\r')
             : new LineNumberSummary(0, 1, 1);
     }
 
@@ -49,12 +63,24 @@ public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<Lin
     /// <returns>The combined summary.</returns>
     public static LineNumberSummary operator +(LineNumberSummary left, LineNumberSummary right)
     {
-        var totalLines = left.Lines + right.Lines;
+        if (left.IsEmpty)
+        {
+            return right;
+        }
+
+        if (right.IsEmpty)
+        {
+            return left;
+        }
+
+        var totalLines = left.Lines + right.Lines -
+                         (left.EndsWithCarriageReturn && right.StartsWithLineFeed ? 1 : 0);
         var lastLineChars =
             right.Lines > 0 ? right.LastLineCharacters : left.LastLineCharacters + right.LastLineCharacters;
         var totalChars = left.TotalCharacters + right.TotalCharacters;
 
-        return new LineNumberSummary(totalLines, lastLineChars, totalChars);
+        return new LineNumberSummary(totalLines, lastLineChars, totalChars,
+            left.StartsWithLineFeed, right.EndsWithCarriageReturn);
     }
 
     /// <summary>
@@ -71,27 +97,37 @@ public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<Lin
     {
         return Lines == other.Lines &&
                LastLineCharacters == other.LastLineCharacters &&
-               TotalCharacters == other.TotalCharacters;
+               TotalCharacters == other.TotalCharacters &&
+               StartsWithLineFeed == other.StartsWithLineFeed &&
+               EndsWithCarriageReturn == other.EndsWithCarriageReturn;
     }
 
     public override bool Equals(object? obj)
     {
-        return obj is LineNumberSummary other && this.Equals(other);
+        return obj is LineNumberSummary other && Equals(other);
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Lines, LastLineCharacters, TotalCharacters);
+        return HashCode.Combine(Lines, LastLineCharacters, TotalCharacters,
+            StartsWithLineFeed, EndsWithCarriageReturn);
     }
 
     public int CompareTo(LineNumberSummary other)
     {
         var linesComparison = Lines.CompareTo(other.Lines);
-        if (linesComparison != 0) return linesComparison;
+        if (linesComparison != 0)
+        {
+            return linesComparison;
+        }
 
         var lastLineComparison = LastLineCharacters.CompareTo(other.LastLineCharacters);
-        if (lastLineComparison != 0) return lastLineComparison;
+        if (lastLineComparison != 0)
+        {
+            return lastLineComparison;
+        }
 
+        // Ordering describes a seek position; boundary flags only affect composition.
         return TotalCharacters.CompareTo(other.TotalCharacters);
     }
 
@@ -131,7 +167,9 @@ public class LineNumberDimension : SummaryDimensionBase<char, LineNumberSummary>
     public override LineNumberSummary SummarizeSpan(ReadOnlySpan<char> elements)
     {
         if (elements.IsEmpty)
+        {
             return Identity;
+        }
 
         var lines = 0;
         var lastLineCharacters = 0;
@@ -170,7 +208,8 @@ public class LineNumberDimension : SummaryDimensionBase<char, LineNumberSummary>
 
 
 
-        return new LineNumberSummary(lines, lastLineCharacters, totalCharacters);
+        return new LineNumberSummary(lines, lastLineCharacters, totalCharacters,
+            elements[0] == '\n', elements[^1] == '\r');
     }
 
     /// <inheritdoc/>

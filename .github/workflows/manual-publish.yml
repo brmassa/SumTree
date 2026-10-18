@@ -16,11 +16,27 @@
 
 name: manual-publish
 
-on: [workflow_dispatch]
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (optional - will use current version if not specified)"
+        required: false
+        type: string
+      skip_tests:
+        description: "Skip running tests before publishing"
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: "Perform a dry run (pack but don't publish)"
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-  ubuntu-latest:
-    name: ubuntu-latest
+  manual-publish:
+    name: Manual Publish to NuGet
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,20 +44,51 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
-      - name: 'Cache: .nuke/temp, ~/.nuget/packages'
+          dotnet-version: "10.0.x"
+      - name: "Cache: .nuke/temp, ~/.nuget/packages"
         uses: actions/cache@v4
         with:
           path: |
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
-      - name: 'Run: Restore, Pack, Publish'
-        run: ./build.cmd Restore Pack Publish
+      - name: "Display Input Parameters"
+        run: |
+          echo "Version: ${{ github.event.inputs.version || 'auto-detect' }}"
+          echo "Skip Tests: ${{ github.event.inputs.skip_tests }}"
+          echo "Dry Run: ${{ github.event.inputs.dry_run }}"
+      - name: "Run: Restore, Compile"
+        run: ./build.cmd Restore Compile
+      - name: "Run: Test (if not skipped)"
+        if: ${{ github.event.inputs.skip_tests != 'true' }}
+        run: ./build.cmd Test
+      - name: "Run: Pack"
+        run: ./build.cmd Pack
+        env:
+          VERSION_OVERRIDE: ${{ github.event.inputs.version }}
+      - name: "Run: Publish (if not dry run)"
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: ./build.cmd Publish
         env:
           NugetApiKey: ${{ secrets.NUGET_API_KEY }}
-      - name: 'Publish: packages'
+      - name: "Dry Run Summary"
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "=== DRY RUN COMPLETED ==="
+          echo "Packages that would be published:"
+          ls -la packages/*.nupkg || echo "No packages found"
+      - name: "Publish: packages"
         uses: actions/upload-artifact@v4
         with:
-          name: packages
-          path: packages
+          name: packages-manual-${{ github.run_number }}
+          path: packages/**/*.nupkg
+        if: always()
+      - name: "Publish: coverage (if tests ran)"
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-manual-${{ github.run_number }}
+          path: coverage/**/*.xml
+        if: ${{ github.event.inputs.skip_tests != 'true' && always() }}
+    permissions:
+      contents: read
+      actions: write

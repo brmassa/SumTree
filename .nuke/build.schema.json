@@ -30,20 +30,23 @@
         "CreateCommit",
         "ExtractChangelogLatestVersion",
         "ExtractChangelogUnreleased",
+        "FullBuild",
         "GitHubCreateCommit",
         "GitHubCreateRelease",
-        "GitHubCreateReleaseAndPublish",
         "GitHubCreateTag",
+        "ListPackages",
         "Pack",
-        "PackOnNewCommits",
         "Publish",
-        "PublishOnNewCommits",
         "Restore",
         "ShowCurrentVersion",
         "Test",
         "TestReport",
         "UpdateChangelog",
-        "UpdateProjectVersions"
+        "UpdateProjectVersions",
+        "ValidateGitHubIntegration",
+        "ValidatePackaging",
+        "ValidatePublishing",
+        "ValidateSolution"
       ]
     },
     "Verbosity": {
@@ -125,6 +128,10 @@
           "type": "string",
           "description": "Configuration to build - Default is 'Debug' (local) or 'Release' (server)"
         },
+        "DryRun": {
+          "type": "boolean",
+          "description": "Perform dry run (validate but don't publish)"
+        },
         "GitHubApiBaseUrl": {
           "type": "string",
           "description": "GitHub API URL"
@@ -149,6 +156,10 @@
           "type": "string",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
+        "NugetSource": {
+          "type": "string",
+          "description": "NuGet source URL (default: nuget.org)"
+        },
         "PackageDirectory": {
           "type": "string",
           "description": "Output directory for NuGet packages (default: ./packages)"
@@ -157,9 +168,21 @@
           "type": "string",
           "description": "Repository compare link"
         },
+        "SkipCi": {
+          "type": "boolean",
+          "description": "Skip CI checks (add [skip ci] to commit message)"
+        },
+        "SkipDuplicate": {
+          "type": "boolean",
+          "description": "Skip duplicate packages when publishing"
+        },
         "Solution": {
           "type": "string",
           "description": "Path to a solution file that is automatically loaded"
+        },
+        "VersionOverride": {
+          "type": "string",
+          "description": "Override version for packaging"
         }
       }
     },

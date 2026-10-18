@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS0649</NoWarn>
+        <NukeRootDirectory>..</NukeRootDirectory>
+        <NukeScriptDirectory>..</NukeScriptDirectory>
+        <NukeTelemetryVersion>1</NukeTelemetryVersion>
+        <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <!-- External libraries -->
+    <ItemGroup>
+        <PackageReference Include="Nuke.Common" Version="10.1.0" />
+        <!-- overriding these packages to avoid multiple warnings -->
+        <PackageReference Include="NuGet.Packaging" Version="7.9.0" />
+        <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageDownload Include="ReportGenerator" Version="[5.5.11]" />
+    </ItemGroup>
+
+</Project>

@@ -100,6 +100,13 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             return;
         }
 
+        if (memory.Length > ChunkLength)
+        {
+            var shared = dimensions?.Count > 0 ? new Dictionary<Type, object>(dimensions) : null;
+            this = Chunked(memory, shared);
+            return;
+        }
+
         _data = memory;
         _isBalanced = true;
         _length = memory.Length;
@@ -486,8 +493,11 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     }
 
     /// <summary>
-    /// Finds the position where a condition based on a summary becomes true.
+    /// Finds the first index whose running summary, including that element, satisfies the predicate.
+    /// The predicate must be monotonic (once true for a prefix, true for every longer prefix), which lets the
+    /// search descend the tree in O(log n) using the cached summaries instead of visiting every element.
     /// </summary>
+    /// <returns>The index, or -1 when no prefix satisfies the predicate.</returns>
     public long FindPosition<TSummary>(Func<TSummary, bool> predicate) where TSummary : IEquatable<TSummary>
     {
         if (_dimensions == null || !_dimensions.TryGetValue(typeof(TSummary), out var dimensionObj))
@@ -495,7 +505,28 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
                 $"Dimension for summary type {typeof(TSummary).Name} is not registered.");
 
         var dimension = (ISummaryDimension<T, TSummary>)dimensionObj;
-        return FindPositionRecursive(dimension, predicate, dimension.Identity, 0);
+        if (IsEmpty || !predicate(GetSummary(dimension)))
+            return -1;
+
+        var current = this;
+        var summary = dimension.Identity;
+        var offset = 0L;
+        while (current.IsNode)
+        {
+            var left = current.Left;
+            var combined = dimension.Combine(summary, left.GetSummary(dimension));
+            if (predicate(combined))
+            {
+                current = left;
+                continue;
+            }
+
+            summary = combined;
+            offset += left._length;
+            current = current.Right;
+        }
+
+        return current.FindPositionInLeaf(dimension, predicate, summary, offset);
     }
 
     /// <summary>
@@ -525,9 +556,8 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             switch (_data)
             {
                 case ReadOnlyMemory<T> memory:
-                    var array = memory.ToArray();
-                    for (var i = 0; i < array.Length; i++)
-                        yield return array[i];
+                    for (var i = 0; i < memory.Length; i++)
+                        yield return memory.Span[i];
                     break;
                 case ValueTuple<T> single:
                     yield return single.Item1;
@@ -697,13 +727,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         // For SumTree<char>, return the actual string content
         if (typeof(T) == typeof(char))
         {
-            var array = new T[_length];
-            var index = 0;
-            foreach (var item in this)
-            {
-                array[index++] = item;
-            }
-            return new string((char[])(object)array);
+            return ToStringFast();
         }
 
         return $"SumTree<{typeof(T).Name}>[Length={_length}, Depth={_depth}, BufferCount={_bufferCount}]";
@@ -780,8 +804,73 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         );
     }
 
+    /// <summary>
+    /// Longest leaf built from a single buffer. Longer buffers become a balanced tree of slices, so a search that
+    /// ends in a leaf scans at most this many elements.
+    /// </summary>
+    private const int ChunkLength = 1024;
+
+    /// <summary>A balanced tree over slices of one buffer, sharing its memory and one dimension set.</summary>
+    private static SumTree<T> Chunked(ReadOnlyMemory<T> memory, Dictionary<Type, object>? dimensions)
+    {
+        if (memory.Length <= ChunkLength)
+            return new SumTree<T>(memory, dimensions);
+
+        var half = (memory.Length / ChunkLength + 1) / 2 * ChunkLength;
+        return ConcatDirect(Chunked(memory[..half], dimensions), Chunked(memory[half..], dimensions));
+    }
+
+    /// <summary>
+    /// Leaves shorter than this are merged into a neighbouring leaf when concatenated, so that edits made one
+    /// character at a time do not leave a tree of single-character leaves.
+    /// </summary>
+    private const int MergeLeafLength = 512;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
+    {
+        if (left.IsEmpty) return right;
+        if (right.IsEmpty) return left;
+
+        if (!right.IsNode && right._length < MergeLeafLength && AppendToLastLeaf(left, right) is { } appended)
+            return appended;
+
+        if (!left.IsNode && left._length < MergeLeafLength && PrependToFirstLeaf(right, left) is { } prepended)
+            return prepended;
+
+        return ConcatNodes(left, right);
+    }
+
+    /// <summary>Merges a small leaf into the tree's last leaf, or returns null when that leaf is too long.</summary>
+    private static SumTree<T>? AppendToLastLeaf(SumTree<T> tree, SumTree<T> leaf)
+    {
+        if (!tree.IsNode)
+            return tree._length + leaf._length <= MergeLeafLength ? MergeLeaves(tree, leaf) : null;
+
+        return AppendToLastLeaf(tree.Right, leaf) is { } right ? ConcatNodes(tree.Left, right) : null;
+    }
+
+    /// <summary>Merges a small leaf into the tree's first leaf, or returns null when that leaf is too long.</summary>
+    private static SumTree<T>? PrependToFirstLeaf(SumTree<T> tree, SumTree<T> leaf)
+    {
+        if (!tree.IsNode)
+            return tree._length + leaf._length <= MergeLeafLength ? MergeLeaves(leaf, tree) : null;
+
+        return PrependToFirstLeaf(tree.Left, leaf) is { } left ? ConcatNodes(left, tree.Right) : null;
+    }
+
+    /// <summary>Copies two leaves into one.</summary>
+    private static SumTree<T> MergeLeaves(SumTree<T> left, SumTree<T> right)
+    {
+        var buffer = new T[left._length + right._length];
+        var index = 0;
+        left.CopyTo(buffer, ref index);
+        right.CopyTo(buffer, ref index);
+        return new SumTree<T>(buffer.AsMemory(), MergeDimensions(left._dimensions, right._dimensions));
+    }
+
+    /// <summary>Joins two non-empty trees under a new node, rebalancing when the result is too deep.</summary>
+    private static SumTree<T> ConcatNodes(SumTree<T> left, SumTree<T> right)
     {
         if (left.IsEmpty) return right;
         if (right.IsEmpty) return left;
@@ -901,43 +990,30 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return new SumTree<T>(_data, _length, _depth, _bufferCount, _isBalanced, newDimensions, newSummaries);
     }
 
-    private long FindPositionRecursive<TSummary>(
+    /// <summary>Scans one leaf for the first element whose running summary satisfies the predicate.</summary>
+    private long FindPositionInLeaf<TSummary>(
         ISummaryDimension<T, TSummary> dimension,
         Func<TSummary, bool> predicate,
-        TSummary currentSummary,
-        long currentIndex) where TSummary : IEquatable<TSummary>
+        TSummary summary,
+        long offset) where TSummary : IEquatable<TSummary>
     {
-        if (IsEmpty) return -1;
-
-        if (IsNode)
+        switch (_data)
         {
-            // Try left subtree first
-            var leftResult = Left.FindPositionRecursive(dimension, predicate, currentSummary, currentIndex);
-            if (leftResult >= 0) return leftResult;
+            case ReadOnlyMemory<T> memory:
+                var span = memory.Span;
+                for (var i = 0; i < span.Length; i++)
+                {
+                    summary = dimension.Combine(summary, dimension.SummarizeElement(span[i]));
+                    if (predicate(summary))
+                        return offset + i;
+                }
 
-            // If not found in left, try right with accumulated summary
-            var leftSummary = Left.GetSummaryForDimension(dimension);
-            var combinedSummary = dimension.Combine(currentSummary, leftSummary);
-            return Right.FindPositionRecursive(dimension, predicate, combinedSummary, currentIndex + Left._length);
+                return -1;
+            case ValueTuple<T> single:
+                return predicate(dimension.Combine(summary, dimension.SummarizeElement(single.Item1))) ? offset : -1;
+            default:
+                return -1;
         }
-
-        // Leaf node - check each element
-        var summary = currentSummary;
-        var index = 0L;
-
-        foreach (var element in EnumerateElements())
-        {
-            var elementSummary = dimension.SummarizeElement(element);
-            var newSummary = dimension.Combine(summary, elementSummary);
-
-            if (predicate(newSummary))
-                return currentIndex + index;
-
-            summary = newSummary;
-            index++;
-        }
-
-        return -1;
     }
 
     /// <summary>
@@ -953,12 +1029,6 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             return (TSummary)summary;
 
         return ComputeSummaryForTree(dimension);
-    }
-
-    private TSummary GetSummaryForDimension<TSummary>(ISummaryDimension<T, TSummary> dimension)
-        where TSummary : IEquatable<TSummary>
-    {
-        return GetSummary(dimension);
     }
 
     private TSummary ComputeSummaryForTree<TSummary>(ISummaryDimension<T, TSummary> dimension)
@@ -990,6 +1060,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     {
         if (left == null) return right;
         if (right == null) return left;
+        if (ReferenceEquals(left, right) || DimensionsEqual(left, right)) return left;
 
         var result = new Dictionary<Type, object>(left);
         foreach (var kvp in right)
@@ -1005,93 +1076,38 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         SumTree<T> right,
         Dictionary<Type, object> dimensions)
     {
-        var result = new Dictionary<Type, object>();
+        var result = new Dictionary<Type, object>(dimensions.Count);
 
         foreach (var kvp in dimensions)
         {
-            var summaryType = kvp.Key;
-            var dimension = kvp.Value;
-
-            var leftSummary = left._summaries?.GetValueOrDefault(summaryType);
-            var rightSummary = right._summaries?.GetValueOrDefault(summaryType);
-
-            if (leftSummary != null && rightSummary != null)
-            {
-                // Combine existing summaries
-                var combineMethod = dimension.GetType().GetMethod("Combine");
-                result[summaryType] = combineMethod!.Invoke(dimension, [leftSummary, rightSummary])!;
-            }
-            else
-            {
-                // Recompute summary
-                result[summaryType] = ComputeSummaryForDimensionStatic(left, right, dimension);
-            }
+            var operations = DimensionOperations.For(kvp.Value);
+            var leftSummary = left._summaries?.GetValueOrDefault(kvp.Key) ?? operations.SummarizeTree(left);
+            var rightSummary = right._summaries?.GetValueOrDefault(kvp.Key) ?? operations.SummarizeTree(right);
+            result[kvp.Key] = operations.Combine(leftSummary, rightSummary);
         }
 
         return result;
-    }
-
-    private static object ComputeSummaryForDimensionStatic(SumTree<T> left, SumTree<T> right, object dimension)
-    {
-        var dimensionType = dimension.GetType();
-        var interfaces = dimensionType.GetInterfaces();
-        var summaryInterface = interfaces.FirstOrDefault(i =>
-            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISummaryDimension<,>));
-
-        if (summaryInterface == null)
-            throw new ArgumentException($"Invalid dimension type: {dimensionType}");
-
-        var summaryType = summaryInterface.GetGenericArguments()[1];
-        var combineMethod = dimensionType.GetMethod("Combine");
-        var identityProperty = dimensionType.GetProperty("Identity");
-
-        var leftSummary = left._summaries?.GetValueOrDefault(summaryType) ?? identityProperty!.GetValue(dimension);
-        var rightSummary = right._summaries?.GetValueOrDefault(summaryType) ?? identityProperty!.GetValue(dimension);
-
-        return combineMethod!.Invoke(dimension, [leftSummary, rightSummary])!;
     }
 
     private Dictionary<Type, object> ComputeAllSummaries(Dictionary<Type, object> dimensions)
     {
-        var result = new Dictionary<Type, object>();
+        var result = new Dictionary<Type, object>(dimensions.Count);
 
         foreach (var kvp in dimensions)
         {
-            var summaryType = kvp.Key;
-            var dimension = kvp.Value;
-            result[summaryType] = ComputeSummaryForDimensionInstance(dimension);
+            result[kvp.Key] = DimensionOperations.For(kvp.Value).SummarizeTree(this);
         }
 
         return result;
     }
 
-    private object ComputeSummaryForDimensionInstance(object dimension)
-    {
-        var dimensionType = dimension.GetType();
-        var interfaces = dimensionType.GetInterfaces();
-        var summaryInterface = interfaces.FirstOrDefault(i =>
-            i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISummaryDimension<,>));
-
-        if (summaryInterface == null)
-            throw new ArgumentException($"Invalid dimension type: {dimensionType}");
-
-        var method = typeof(SumTree<T>).GetMethod(nameof(ComputeSummaryForTree),
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        var summaryType = summaryInterface.GetGenericArguments()[1];
-        var genericMethod = method!.MakeGenericMethod(summaryType);
-
-        return genericMethod.Invoke(this, [dimension])!;
-    }
-
     private static Dictionary<Type, object> ComputeEmptySummaries(Dictionary<Type, object> dimensions)
     {
-        var result = new Dictionary<Type, object>();
+        var result = new Dictionary<Type, object>(dimensions.Count);
 
         foreach (var kvp in dimensions)
         {
-            var dimension = kvp.Value;
-            var identityProperty = dimension.GetType().GetProperty("Identity");
-            result[kvp.Key] = identityProperty!.GetValue(dimension)!;
+            result[kvp.Key] = DimensionOperations.For(kvp.Value).Identity;
         }
 
         return result;
@@ -1100,36 +1116,68 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     private static Dictionary<Type, object> ComputeSummariesForMemory(ReadOnlyMemory<T> memory,
         Dictionary<Type, object> dimensions)
     {
-        var result = new Dictionary<Type, object>();
+        var result = new Dictionary<Type, object>(dimensions.Count);
 
         foreach (var kvp in dimensions)
         {
-            var summaryType = kvp.Key;
-            var dimension = kvp.Value;
-
-            // Use reflection to call the generic SummarizeSpan method
-            var dimensionType = dimension.GetType();
-            var interfaces = dimensionType.GetInterfaces();
-            var summaryInterface = interfaces.FirstOrDefault(i =>
-                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISummaryDimension<,>));
-
-            if (summaryInterface != null)
-            {
-                var method = typeof(SumTree<T>).GetMethod(nameof(ComputeSummaryForMemoryGeneric),
-                    BindingFlags.NonPublic | BindingFlags.Static);
-                var genericMethod = method!.MakeGenericMethod(summaryInterface.GetGenericArguments()[1]);
-                result[summaryType] = genericMethod.Invoke(null, [memory, dimension])!;
-            }
+            result[kvp.Key] = DimensionOperations.For(kvp.Value).SummarizeMemory(memory);
         }
 
         return result;
     }
 
-    private static TSummary ComputeSummaryForMemoryGeneric<TSummary>(ReadOnlyMemory<T> memory,
-        ISummaryDimension<T, TSummary> dimension)
-        where TSummary : IEquatable<TSummary>
+    /// <summary>
+    /// Untyped delegates over one registered dimension, built by reflection once per dimension instance so that
+    /// concatenation and leaf creation combine summaries without reflective calls.
+    /// </summary>
+    private sealed class DimensionOperations
     {
-        return dimension.SummarizeSpan(memory.Span);
+        private static readonly ConditionalWeakTable<object, DimensionOperations> s_cache = new();
+
+        private static readonly MethodInfo s_create = typeof(DimensionOperations).GetMethod(nameof(Create),
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        private DimensionOperations(Func<object, object, object> combine, Func<ReadOnlyMemory<T>, object> memory,
+            Func<SumTree<T>, object> tree, object identity)
+        {
+            Combine = combine;
+            SummarizeMemory = memory;
+            SummarizeTree = tree;
+            Identity = identity;
+        }
+
+        /// <summary>Combines two boxed summaries.</summary>
+        internal Func<object, object, object> Combine { get; }
+
+        /// <summary>Summarizes a leaf's elements.</summary>
+        internal Func<ReadOnlyMemory<T>, object> SummarizeMemory { get; }
+
+        /// <summary>Summarizes a whole tree, recursing where no summary is cached.</summary>
+        internal Func<SumTree<T>, object> SummarizeTree { get; }
+
+        /// <summary>The boxed empty summary.</summary>
+        internal object Identity { get; }
+
+        /// <summary>The operations of a dimension instance, cached for its lifetime.</summary>
+        internal static DimensionOperations For(object dimension) => s_cache.GetValue(dimension, Build);
+
+        private static DimensionOperations Build(object dimension)
+        {
+            var summaryInterface = dimension.GetType().GetInterfaces().FirstOrDefault(i =>
+                i.IsGenericType && i.GetGenericTypeDefinition() == typeof(ISummaryDimension<,>)
+                && i.GetGenericArguments()[0] == typeof(T))
+                ?? throw new ArgumentException($"Invalid dimension type: {dimension.GetType()}");
+
+            var create = s_create.MakeGenericMethod(summaryInterface.GetGenericArguments()[1]);
+            return (DimensionOperations)create.Invoke(null, [dimension])!;
+        }
+
+        private static DimensionOperations Create<TSummary>(ISummaryDimension<T, TSummary> dimension)
+            where TSummary : IEquatable<TSummary> => new(
+            (left, right) => dimension.Combine((TSummary)left, (TSummary)right),
+            memory => dimension.SummarizeSpan(memory.Span),
+            tree => tree.GetSummary(dimension),
+            dimension.Identity);
     }
 
     private static bool DimensionsEqual(Dictionary<Type, object>? left, Dictionary<Type, object>? right)

@@ -14,11 +14,11 @@
 # </auto-generated>
 # ------------------------------------------------------------------------------
 
-name: periodic-release
+name: weekly-release
 
 on:
   schedule:
-    - cron: "0 13 * * *" # 10 am BRT
+    - cron: "0 13 * * 5" # Friday 13:00 UTC (10:00 BRT)
   workflow_dispatch:
 
 jobs:
@@ -29,6 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "9.0.x"
@@ -39,20 +40,20 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
-      - name: "Run: Test, GitHubCreateReleaseAndPublish"
-        run: ./build.cmd Restore Test GitHubCreateReleaseAndPublish
+      - name: "Configure Git"
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+      - name: "Run: Test, GitHubCreateRelease"
+        run: ./build.cmd Test GitHubCreateRelease
         env:
           GitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          NugetApiKey: ${{ secrets.NUGET_API_KEY }}
       - name: "Publish: coverage.xml"
         uses: actions/upload-artifact@v4
         with:
-          name: coverage.xml
-          path: coverage/coverage.xml
-      - name: "Publish: packages"
-        uses: actions/upload-artifact@v4
-        with:
-          name: packages
-          path: packages
+          name: coverage-${{ github.run_number }}
+          path: coverage/**/*.xml
+        if: always()
     permissions:
       contents: write
+      actions: write

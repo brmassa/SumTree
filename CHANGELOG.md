@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased][]
 
+- Faster editing for large texts: `FindPosition` descends the cached summaries in O(log n) (the predicate must be monotonic), summaries combine without reflection, long buffers are split into 1 KB leaves, and small leaves merge into their neighbours so character-by-character edits keep leaves large
+- Fix summaries of trees concatenated with an element that had no dimensions (such as `Add`), which were counted as empty
+
 ## v[1.1.0][] 2025-10-13
 
 - automatic nuget package publish

@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <OutputType>Exe</OutputType>
         <RootNamespace>Benchmarks</RootNamespace>
     </PropertyGroup>
@@ -14,12 +14,12 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="BenchmarkDotNet" Version="0.15.2"/>
-        <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.2"/>
-        <PackageReference Include="DiffMatchPatch" Version="4.0.0"/>
+        <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+        <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
+        <PackageReference Include="DiffMatchPatch" Version="5.0.0" />
         <PackageReference Include="FlatlinerDOA.Rope" Version="1.4.38"/>
     </ItemGroup>
-    
+
     <ItemGroup>
         <ProjectReference Include="..\SumTree\SumTree.csproj" />
     </ItemGroup>

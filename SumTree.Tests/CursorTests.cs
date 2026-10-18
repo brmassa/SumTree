@@ -17,7 +17,7 @@ public class CursorTests
 
         Assert.IsTrue(cursor.IsAtEnd);
         Assert.IsTrue(cursor.IsAtStart);
-        Assert.AreEqual(cursor.Item, '\0');
+        Assert.AreEqual('\0', cursor.Item);
     }
 
     [TestMethod]
@@ -319,7 +319,6 @@ public class CursorTests
         cursor.Seek(targetSummary, Bias.Left);
 
         Assert.IsFalse(cursor.IsAtEnd);
-        Assert.IsNotNull(cursor.Item);
 
         // Move around
         for (var i = 0; i < 100; i++)
@@ -383,7 +382,6 @@ public class CursorTests
         cursor.Start();
         var itemSummary = cursor.ItemSummary;
 
-        Assert.IsNotNull(itemSummary);
         Assert.AreEqual(0, itemSummary.Lines);
         Assert.AreEqual(1, itemSummary.LastLineCharacters);
         Assert.AreEqual(1, itemSummary.TotalCharacters);
@@ -391,7 +389,6 @@ public class CursorTests
         cursor.Next(); // Move to newline
         itemSummary = cursor.ItemSummary;
 
-        Assert.IsNotNull(itemSummary);
         Assert.AreEqual(1, itemSummary.Lines);
         Assert.AreEqual(0, itemSummary.LastLineCharacters);
         Assert.AreEqual(1, itemSummary.TotalCharacters);

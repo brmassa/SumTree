@@ -12,23 +12,26 @@ namespace SumTree.Nuke;
 [GitHubActions(
     "continuous-integration",
     GitHubActionsImage.UbuntuLatest,
-    GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = false, // Disable because it`s too buggy
+    AutoGenerate = false, // Disable because it's too buggy
     On = [GitHubActionsTrigger.Push, GitHubActionsTrigger.PullRequest],
-    InvokedTargets = [nameof(TestReport), nameof(Compile), nameof(Restore), nameof(Pack)]
+    OnPushBranches = ["main", "develop"],
+    OnPullRequestBranches = ["main"],
+    InvokedTargets = [nameof(TestReport), nameof(Pack)],
+    PublishArtifacts = true
 )]
 
-// 2. Weekly Release - Friday 10 AM EST (2 PM UTC)
+// 2. Weekly Release - Friday 13:00 UTC (10:00 BRT)
 [GitHubActions(
     "weekly-release",
     GitHubActionsImage.UbuntuLatest,
-    GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = false, // Disable because it`s too buggy
-    OnCronSchedule = "0 16 * * 4", // Thursday 16:00 UTC = 13:00 BRT
-    OnPushBranches = ["main"],
-    InvokedTargets = [nameof(Test), nameof(GitHubCreateRelease)]
+    AutoGenerate = false, // Disable because it's too buggy
+    OnCronSchedule = "0 13 * * 5", // Friday 13:00 UTC
+    On = [GitHubActionsTrigger.WorkflowDispatch],
+    InvokedTargets = [nameof(Test), nameof(GitHubCreateRelease)],
+    ImportSecrets = [nameof(GitHubToken)],
+    PublishArtifacts = true
 )]
 
 // 3. Auto Publish on Tag - triggers when a tag is created
@@ -36,11 +39,12 @@ namespace SumTree.Nuke;
     "publish-on-tag",
     GitHubActionsImage.UbuntuLatest,
     FetchDepth = 0,
-    AutoGenerate = false, // Disable because it`s too buggy
+    AutoGenerate = false, // Disable because it's too buggy
     OnPushTags = ["v*"],
-    OnPushBranches = ["main"],
-    InvokedTargets = [nameof(Restore), nameof(Pack), nameof(Publish)],
-    ImportSecrets = [nameof(NugetApiKey)]
+    On = [GitHubActionsTrigger.WorkflowDispatch],
+    InvokedTargets = [nameof(Restore), nameof(Compile), nameof(Pack), nameof(Publish)],
+    ImportSecrets = [nameof(NugetApiKey)],
+    PublishArtifacts = true
 )]
 
 // 4. Manual Publish
@@ -49,11 +53,19 @@ namespace SumTree.Nuke;
     GitHubActionsImage.UbuntuLatest,
     On = [GitHubActionsTrigger.WorkflowDispatch],
     FetchDepth = 0,
-    AutoGenerate = false, // Disable because it`s too buggy
-    InvokedTargets = [nameof(Restore), nameof(Pack), nameof(Publish)],
-    ImportSecrets = [nameof(NugetApiKey)]
+    AutoGenerate = false, // Disable because it's too buggy
+    InvokedTargets = [nameof(Restore), nameof(Compile), nameof(Pack), nameof(Publish)],
+    ImportSecrets = [nameof(NugetApiKey)],
+    PublishArtifacts = true
 )]
 internal sealed partial class Build : NukeBuild
 {
-    private static int Main() => Execute<Build>(x => x.Pack);
+    /// <summary>
+    /// Support plugins are available for:
+    ///   - JetBrains ReSharper        https://nuke.build/resharper
+    ///   - JetBrains Rider            https://nuke.build/rider
+    ///   - Microsoft VisualStudio     https://nuke.build/visualstudio
+    ///   - Microsoft VSCode           https://nuke.build/vscode
+    /// </summary>
+    public static int Main() => Execute<Build>(x => x.Pack);
 }

@@ -74,8 +74,8 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    public void ConvertingToString() => Assert.AreEqual(new string("The ghosts say boo dee boo".ToSumTree().ToArray()),
-        "The ghosts say boo dee boo");
+    public void ConvertingToString() => Assert.AreEqual("The ghosts say boo dee boo",
+        new string("The ghosts say boo dee boo".ToSumTree().ToArray()));
 
     [TestMethod]
     public void ReplaceElement()
@@ -107,16 +107,13 @@ public class SumTreeTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentOutOfRangeException))]
-    public void EmptyElementAtIndexOutOfRangeException() => SumTree<char>.Empty.ElementAt(0);
+    public void EmptyElementAtIndexOutOfRangeException() => Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => SumTree<char>.Empty.ElementAt(0));
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentOutOfRangeException))]
-    public void NodeElementAtIndexOutOfRangeException() => ("abc".ToSumTree() + "def".ToSumTree()).ElementAt(6);
+    public void NodeElementAtIndexOutOfRangeException() => Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => ("abc".ToSumTree() + "def".ToSumTree()).ElementAt(6));
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentOutOfRangeException))]
-    public void PartitionedElementAtIndexOutOfRangeException() => ("abc".ToSumTree() + "def".ToSumTree()).ElementAt(6);
+    public void PartitionedElementAtIndexOutOfRangeException() => Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => ("abc".ToSumTree() + "def".ToSumTree()).ElementAt(6));
 
     [TestMethod]
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
@@ -486,7 +483,7 @@ public class SumTreeTests
         Assert.AreEqual(0, text.IndexOf(pattern, caseInsensitive));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\nLine 2\nLine 3", 2, 6, 20)]
     [DataRow("Single line", 0, 11, 11)]
     [DataRow("First\nSecond\nThird\nFourth", 3, 6, 25)]
@@ -515,7 +512,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedTotalChars, summary.TotalCharacters);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("function() { return [1, 2]; }", 1, 1, 1, 1, 1, 1, true)]
     [DataRow("if (condition) { doSomething(); }", 2, 2, 0, 0, 1, 1, true)]
     [DataRow("array[index] = value;", 0, 0, 1, 1, 0, 0, true)]
@@ -539,7 +536,7 @@ public class SumTreeTests
         Assert.AreEqual(isBalanced, summary.IsBalanced);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\nLine 2\nLine 3", 1, 0)]
     [DataRow("Single line", 1, 0)]
     [DataRow("First\nSecond\nThird\nFourth", 1, 0)]
@@ -549,7 +546,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedPosition, sumTree.FindLineStart(lineNumber));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\nLine 2\nLine 3", 1, "Line 1")]
     [DataRow("Single line", 1, "Single line")]
     [DataRow("First\nSecond\nThird", 1, "First")]
@@ -559,7 +556,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedContent, sumTree.GetLineContent(lineNumber));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\nLine 2\nLine 3", 0, 1, 1)]
     [DataRow("Line 1\nLine 2\nLine 3", 7, 2, 1)]
     [DataRow("Line 1\nLine 2\nLine 3", 10, 2, 4)]
@@ -577,7 +574,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedColumn, col);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("func() { if (x) { return []; } }", '(', 1, 4)]
     [DataRow("func() { if (x) { return []; } }", '(', 2, 12)]
     [DataRow("func() { if (x) { return []; } }", '{', 1, 7)]
@@ -595,7 +592,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedPosition, result);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\nLine 2", '\n', 1)]
     [DataRow("Hello\nWorld\nTest", '\n', 2)]
     [DataRow("No newlines", '\n', 0)]
@@ -619,7 +616,7 @@ public class SumTreeTests
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Single line", 1, 1, "Start ", "Start Single line")]
     [DataRow("First\nSecond", 1, 6, " End", "First End\nSecond")]
     public void InsertAtLineColumn_ShouldInsertAtCorrectPosition(string originalText, int line, int column,
@@ -637,11 +634,11 @@ public class SumTreeTests
         {
             // Some operations may fail due to implementation limitations
             // This is acceptable for now
-            Assert.IsTrue(true);
+            Assert.Inconclusive("Operation failed due to implementation limitations");
         }
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("function() { return [1, 2]; }", true)]
     [DataRow("function() { return [1, 2; }", false)]
     [DataRow("((()))", true)]
@@ -656,7 +653,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedBalanced, sumTree.AreBracketsBalanced(code.Length));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\nLine 2\nLine 3", 7, 1, 1)]
     [DataRow("Hello\nWorld\nTest", 6, 1, 1)]
     [DataRow("A\nB\nC\nD", 2, 1, 2)]
@@ -676,7 +673,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedRightLines, rightSummary.Lines);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\n", "Line 2\n", 2)]
     [DataRow("Hello\n", "World\n", 2)]
     [DataRow("A\n", "B\nC\n", 3)]
@@ -693,7 +690,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedTotalLines, summary.Lines);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(new char[] { 'a', 'b', 'c', 'a', 'a' }, 3)]
     [DataRow(new char[] { 'x', 'y', 'z' }, 0)]
     [DataRow(new char[] { 'a', 'a', 'a', 'a' }, 4)]
@@ -709,7 +706,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedCount, count);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Hello world!")]
     [DataRow("Test string with brackets ()")]
     [DataRow("")]
@@ -727,7 +724,7 @@ public class SumTreeTests
         Assert.IsTrue(withBrackets.HasDimension<BracketCountSummary>());
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Line 1\nLine 2\nLine 3", 7, 7, 1, "Line 1\nLine 3")]
     [DataRow("Hello World", 5, 1, 0, "HelloWorld")]
     [DataRow("A\nB\nC", 2, 2, 1, "A\nC")]
@@ -743,7 +740,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedResult, new string(modified.ToArray()));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Hello", 1, "Hllo")]
     [DataRow("Test", 0, "est")]
     [DataRow("Remove", 5, "Remov")]
@@ -756,7 +753,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedResult, actualResult);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Hello World", 0, 5, "Hello")]
     [DataRow("Hello World", 6, 5, "World")]
     [DataRow("Test String", 2, 3, "st ")]
@@ -769,7 +766,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedResult, actualResult);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Hello", 'X', "HelloX")]
     [DataRow("", 'A', "A")]
     [DataRow("Test", '\n', "Test\n")]
@@ -781,7 +778,7 @@ public class SumTreeTests
         Assert.AreEqual(expectedResult, actualResult);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow("Hello", " World", "Hello World")]
     [DataRow("", "Test", "Test")]
     [DataRow("First", "\nSecond", "First\nSecond")]
@@ -849,7 +846,7 @@ public class SumTreeTests
         catch (ArgumentOutOfRangeException)
         {
             // If the method fails due to implementation limitations, that's acceptable
-            Assert.IsTrue(true);
+            Assert.Inconclusive("Operation failed due to implementation limitations");
         }
     }
 }

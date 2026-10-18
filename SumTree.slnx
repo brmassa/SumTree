@@ -1,0 +1,13 @@
+﻿<Solution>
+    <Configurations>
+        <Platform Name="Any CPU"/>
+        <Platform Name="x64"/>
+        <Platform Name="x86"/>
+    </Configurations>
+    <Project Path=".nuke/Build.csproj">
+        <Build Solution="*|Any CPU" Project="false"/>
+    </Project>
+    <Project Path="SumTree/SumTree.csproj"/>
+    <Project Path="SumTree.Benchmarks/SumTree.Benchmarks.csproj"/>
+    <Project Path="SumTree.Tests/SumTree.Tests.csproj"/>
+</Solution>

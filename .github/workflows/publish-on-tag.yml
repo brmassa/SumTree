@@ -21,10 +21,15 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (e.g., v1.0.0)"
+        required: false
+        type: string
 
 jobs:
-  ubuntu-latest:
-    name: ubuntu-latest
+  publish:
+    name: Publish NuGet Package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +37,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "9.0.x"
+          dotnet-version: "10.0.x"
       - name: "Cache: .nuke/temp, ~/.nuget/packages"
         uses: actions/cache@v4
         with:
@@ -40,12 +45,31 @@ jobs:
             .nuke/temp
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj', '**/Directory.Packages.props') }}
-      - name: "Run: Restore Pack, Publish"
-        run: ./build.cmd Restore Pack Publish
+      - name: "Verify Tag"
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "Triggered by tag: ${{ github.ref_name }}"
+          elif [[ -n "${{ github.event.inputs.tag }}" ]]; then
+            echo "Manual trigger with tag: ${{ github.event.inputs.tag }}"
+          else
+            echo "ERROR: No valid tag found"
+            exit 1
+          fi
+      - name: "Run: Restore, Compile, Pack, Publish"
+        run: ./build.cmd Restore Compile Pack Publish
         env:
           NugetApiKey: ${{ secrets.NUGET_API_KEY }}
+          GITHUB_REF: ${{ github.ref }}
       - name: "Publish: packages"
         uses: actions/upload-artifact@v4
         with:
-          name: packages
-          path: packages
+          name: nuget-packages-${{ github.ref_name || github.event.inputs.tag }}
+          path: packages/**/*.nupkg
+        if: always()
+      - name: "Verify Package Published"
+        run: |
+          echo "Published packages:"
+          ls -la packages/
+    permissions:
+      contents: read
+      actions: write

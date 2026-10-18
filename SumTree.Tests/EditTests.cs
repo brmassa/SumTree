@@ -215,7 +215,7 @@ public class EditTests
             new InsertEdit<char>(1, 'x') // Insert at position 1
         };
 
-        Assert.ThrowsException<InvalidOperationException>(() => tree.ApplyEdits(edits));
+        Assert.ThrowsExactly<InvalidOperationException>(() => tree.ApplyEdits(edits));
     }
 
     [TestMethod]

@@ -24,6 +24,9 @@ public class TypedSumTreeTests
         Assert.AreEqual(24L, (empty + tree + empty).Summary.Value);
         Assert.AreEqual(1L, tree.FindPosition(s => s.Value >= 6));
         Assert.AreEqual(1L, tree.Slice(1, 0).Summary.Value);
+        Assert.AreEqual(1L, tree.GetRangeSummary(1, 0).Value);
+        Assert.AreEqual(12L, tree.GetRangeSummary(1, 2).Value);
+        Assert.AreEqual(6L, tree.GetPrefixSummary(2).Value);
     }
 
     [TestMethod]
@@ -134,6 +137,11 @@ public class TypedSumTreeTests
             owner.SpanRequests = 0;
             Assert.AreEqual(49_999L, tree.FindPosition(new CharacterTarget(50_000)));
             Assert.AreEqual(1, owner.SpanRequests, "A seek should access only the final leaf's memory");
+            owner.SpanRequests = 0;
+            long count = 0;
+            foreach (var item in tree) count++;
+            Assert.AreEqual(tree.Length, count);
+            Assert.AreEqual(tree.BufferCount, owner.SpanRequests, "Traversal obtains each leaf span once");
         }
     }
 

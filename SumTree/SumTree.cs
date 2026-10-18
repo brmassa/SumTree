@@ -36,7 +36,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     const int LargeObjectHeapBytes = 85_000 - 24;
 
     [ThreadStatic]
-static int t_balancedCallDepth;
+    static int t_balancedCallDepth;
 
     /// <summary>
     /// Static size of the maximum length of a leaf node. This is calculated to never require Large Object Heap allocations.
@@ -285,7 +285,7 @@ static int t_balancedCallDepth;
     public T this[int index] => this[(long)index];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-T GetElementAtIndex(long index)
+    T GetElementAtIndex(long index)
     {
         var current = this;
         var currentIndex = index;
@@ -950,7 +950,7 @@ T GetElementAtIndex(long index)
     const int MergeLeafLength = 512;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
+    static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
     {
         if (left.IsEmpty)
         {
@@ -1212,6 +1212,47 @@ static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
         return ComputeSummaryForTree(dimension);
     }
 
+    /// <summary>Summarizes a range without constructing a slice. Register the dimension to use cached subtrees.</summary>
+    public TSummary GetRangeSummary<TSummary>(long start, long length, ISummaryDimension<T, TSummary> dimension)
+        where TSummary : IEquatable<TSummary>
+    {
+        ArgumentNullException.ThrowIfNull(dimension);
+        if (start < 0 || start > Length) throw new ArgumentOutOfRangeException(nameof(start));
+        if (length < 0 || length > Length - start) throw new ArgumentOutOfRangeException(nameof(length));
+        if (length == 0) return dimension.Identity;
+        if (start == 0 && length == Length) return GetSummary(dimension);
+        if (!IsNode) return _data switch
+        {
+            ReadOnlyMemory<T> memory => dimension.SummarizeSpan(memory.Span.Slice((int)start, (int)length)),
+            ValueTuple<T> single => dimension.SummarizeElement(single.Item1),
+            _ => dimension.Identity
+        };
+        var left = Left;
+        if (start >= left.Length) return Right.GetRangeSummary(start - left.Length, length, dimension);
+        var count = Math.Min(length, left.Length - start);
+        var prefix = left.GetRangeSummary(start, count, dimension);
+        return count == length ? prefix : dimension.Combine(prefix, Right.GetRangeSummary(0, length - count, dimension));
+    }
+
+    /// <summary>Copies exactly destination.Length elements starting at start.</summary>
+    public void CopyTo(long start, Span<T> destination)
+    {
+        if (start < 0 || start > Length) throw new ArgumentOutOfRangeException(nameof(start));
+        if (destination.Length > Length - start) throw new ArgumentException("Range exceeds tree length.", nameof(destination));
+        if (destination.IsEmpty) return;
+        if (!IsNode)
+        {
+            if (_data is ReadOnlyMemory<T> memory) memory.Span.Slice((int)start, destination.Length).CopyTo(destination);
+            else if (_data is ValueTuple<T> single) destination[0] = single.Item1;
+            return;
+        }
+        var left = Left;
+        if (start >= left.Length) { Right.CopyTo(start - left.Length, destination); return; }
+        var count = (int)Math.Min(destination.Length, left.Length - start);
+        left.CopyTo(start, destination[..count]);
+        if (count < destination.Length) Right.CopyTo(0, destination[count..]);
+    }
+
     TSummary ComputeSummaryForTree<TSummary>(ISummaryDimension<T, TSummary> dimension)
         where TSummary : IEquatable<TSummary>
     {
@@ -1404,7 +1445,7 @@ static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-static bool CalculateIsBalanced(long length, int depth)
+    static bool CalculateIsBalanced(long length, int depth)
     {
         return depth < MaxTreeDepth && (depth == 0 || length >= s_fibonacciPlusTwo[depth]);
     }

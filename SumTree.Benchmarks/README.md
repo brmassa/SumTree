@@ -39,12 +39,17 @@ Rope and plain SumTree perform no editor summary work. `SumTreeSummaries` mainta
 both line metrics and raw bracket counts. Compare their costs with that extra work
 in mind. There is no artificial ratio baseline between these different capabilities.
 
-The typed comparison uses the same text, edit positions, leaf limits, and summary
-semantics on both paths. It measures the complete prototype: in addition to typed
-storage/dispatch, its split path reconstructs recursively instead of allocating
-temporary lists, and its rebuild groups leaves by midpoint. Results do not isolate
-dictionary, boxing, or dispatch costs individually. Both paths still use binary
-rope nodes; B+ tree changes will be measured separately.
+The typed comparison uses the same text, edit positions, and summary semantics on
+both paths. The typed path now uses immutable B+ nodes with inline child references
+and local balancing; the dynamic path uses its existing binary rope. Results measure
+the complete implementations and do not isolate layout, dictionary, boxing, or
+dispatch costs individually. Historical typed-summary results describe the earlier
+binary prototype and remain under `docs/internal/benchmarks/typed-summaries/`.
+
+The B+ layout was evaluated with fanouts of 8 and 16 and leaf capacities of 512 and
+1024. The current choice is 8 children and 1024-element leaves. Tuning runs, source
+fingerprints, and their limitations are local artifacts under
+`docs/internal/benchmarks/bplus/`; these constants are implementation choices.
 
 `StringBuilderForkAndEdit` includes a copy of the initial mutable document for
 each independent invocation. Immutable benchmarks fork by copying their tree
@@ -76,11 +81,11 @@ dotnet run --project SumTree.Benchmarks -c Release --no-build -- \
   --artifacts docs/internal/benchmarks/editor-full \
   > /tmp/sumtree-editor-full.log 2>&1
 
-# Typed-summary milestone: identical metrics on dynamic and typed ropes.
+# Current typed B+ path: identical metrics on dynamic and typed ropes.
 dotnet run --project SumTree.Benchmarks -c Release --no-build -- \
   --filter '*EditorTypedSummaryBenchmarks*' --job short --exporters json \
-  --artifacts docs/internal/benchmarks/typed-summaries/inserts \
-  > /tmp/sumtree-typed-inserts.log 2>&1
+  --artifacts docs/internal/benchmarks/bplus/final/inserts \
+  > /tmp/sumtree-bplus-final-inserts.log 2>&1
 
 # Per-edit trace latency and approximate retained memory; run separately from BDN.
 dotnet run --project SumTree.Benchmarks -c Release --no-build -- \
@@ -115,5 +120,15 @@ before making a small retained-memory claim.
 
 The diagnostics JSON records UTC time, Git HEAD, working-tree status, a SHA-256
 fingerprint of tracked/unignored C# and project sources, runtime, OS, CPU, clock
-frequency, sizes, trace counts, and the measurement caveats. Preserve this metadata
+frequency, sizes, trace counts, typed handle size, initial depth/leaf counts, and
+the measurement caveats. Preserve this metadata
 alongside BDN results; an uncommitted source tree cannot be identified by HEAD alone.
+
+## Query and traversal comparisons
+
+`EditorReadBenchmarks` compares direct typed prefix queries with slice-based queries
+using the same offsets. `TypedTraverse` uses the concrete span enumerator;
+`TypedInterfaceTraverse` measures the `IEnumerable<char>` adapter. Query methods
+normalize by 128 queries; traversal methods measure one complete document.
+`LineScanBenchmarks` compares scalar and span-search newline scanners on source,
+long lines, and dense CR/LF/CRLF input, checking every prefix for equivalent results.

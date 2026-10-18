@@ -146,6 +146,131 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
         return new(Split(remaining, length).Left);
     }
 
+    /// <summary>Summarizes [0, length) without creating a tree or allocating.</summary>
+    public TSummary GetPrefixSummary(long length) => GetRangeSummary(0, length);
+
+    /// <summary>Summarizes a range using cached complete subtrees and scanning only boundary leaves.</summary>
+    /// <remarks>Does not require subtraction or an invertible summary operation.</remarks>
+    public TSummary GetRangeSummary(long start, long length)
+    {
+        ValidateRange(start, length);
+        return length == 0 ? TOps.Identity : SummarizeRange(_root!, start, length);
+    }
+
+    static TSummary SummarizeRange(Node node, long start, long length)
+    {
+        if (start == 0 && length == node.Length) return node.Summary;
+        if (node is Leaf leaf) return TOps.SummarizeSpan(leaf.Memory.Span.Slice((int)start, (int)length));
+        var summary = TOps.Identity;
+        var branch = (Branch)node;
+        for (var i = 0; i < branch.ChildCount && length > 0; i++)
+        {
+            var child = branch[i];
+            if (start >= child.Length) { start -= child.Length; continue; }
+            var count = Math.Min(length, child.Length - start);
+            var part = SummarizeRange(child, start, count);
+            summary = TOps.Combine(in summary, in part);
+            length -= count;
+            start = 0;
+        }
+        return summary;
+    }
+
+    /// <summary>Visits leaf spans in order, with no allocations or per-element tree descent.</summary>
+    public ChunkEnumerator GetChunks() => new(this, 0, Length);
+    public ChunkEnumerator GetChunks(long start, long length)
+    {
+        ValidateRange(start, length);
+        return new(this, start, length);
+    }
+
+    /// <summary>Copies exactly destination.Length elements starting at start.</summary>
+    public void CopyTo(long start, Span<T> destination)
+    {
+        var chunks = GetChunks(start, destination.Length);
+        foreach (var chunk in chunks)
+        {
+            chunk.CopyTo(destination);
+            destination = destination[chunk.Length..];
+        }
+    }
+
+    // BufferCount is an int and non-root branches have at least four children:
+    // valid trees cannot approach 32 levels. Each enumerator owns its inline path.
+    [InlineArray(32)]
+    struct PathSlots { Frame _element0; }
+    struct Frame(Branch branch, int index)
+    {
+        internal Branch Branch = branch;
+        internal int Index = index;
+    }
+
+    public ref struct ChunkEnumerator
+    {
+        PathSlots _path;
+        int _depth;
+        Node? _next;
+        long _start, _remaining;
+        public ReadOnlySpan<T> Current { get; private set; }
+        internal ChunkEnumerator(SumTree<T, TSummary, TOps> tree, long start, long length)
+        {
+            _path = default;
+            _depth = 0;
+            _next = tree._root;
+            _start = start;
+            _remaining = length;
+            Current = default;
+        }
+        public ChunkEnumerator GetEnumerator() => this;
+        public bool MoveNext()
+        {
+            if (_remaining == 0) { Current = default; return false; }
+            var node = _next;
+            if (node is null)
+            {
+                while (_depth > 0)
+                {
+                    ref var frame = ref _path[_depth - 1];
+                    if (++frame.Index < frame.Branch.ChildCount) { node = frame.Branch[frame.Index]; break; }
+                    _depth--;
+                }
+            }
+            while (node is Branch branch)
+            {
+                var index = 0;
+                while (_start >= branch[index].Length) _start -= branch[index++].Length;
+                _path[_depth++] = new Frame(branch, index);
+                node = branch[index];
+            }
+            var span = ((Leaf)node!).Memory.Span;
+            var count = (int)Math.Min(_remaining, span.Length - _start);
+            Current = span.Slice((int)_start, count);
+            _remaining -= count;
+            _start = 0;
+            _next = null;
+            return true;
+        }
+    }
+
+    public ref struct Enumerator
+    {
+        ChunkEnumerator _chunks;
+        ReadOnlySpan<T> _span;
+        int _index;
+        internal Enumerator(SumTree<T, TSummary, TOps> tree)
+        { _chunks = tree.GetChunks(); _span = default; _index = -1; }
+        public T Current => _span[_index];
+        public bool MoveNext()
+        {
+            if (++_index < _span.Length) return true;
+            if (!_chunks.MoveNext()) return false;
+            _span = _chunks.Current;
+            _index = 0;
+            return true;
+        }
+        public void Dispose() { }
+    }
+
     /// <summary>Finds the first element whose inclusive prefix reaches a monotonic target.</summary>
     public long FindPosition<TSeek>(TSeek seek) where TSeek : struct, ISummarySeek<TSummary>
     {
@@ -236,34 +361,31 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
         });
     }
 
-    public IEnumerator<T> GetEnumerator() => Enumerate(_root).GetEnumerator();
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    /// <summary>Enumerates with a stack-only span cursor and no allocations.</summary>
+    /// <remarks>Use IEnumerable&lt;T&gt; when an interface enumerator is required; that adapter allocates.</remarks>
+    public Enumerator GetEnumerator() => new(this);
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => Enumerate(_root).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => Enumerate(_root).GetEnumerator();
     public static SumTree<T, TSummary, TOps> operator +(SumTree<T, TSummary, TOps> left,
         SumTree<T, TSummary, TOps> right) => new(JoinRoots(left._root, right._root));
 
+    // Interface consumers cannot retain spans. Use one iterator and one traversal
+    // stack rather than allocating recursive iterators for every node.
     static IEnumerable<T> Enumerate(Node? node)
     {
-        if (node is null)
+        if (node is null) yield break;
+        var pending = new Stack<Node>();
+        pending.Push(node);
+        while (pending.TryPop(out node))
         {
-            yield break;
-        }
-
-        if (node is Leaf leaf)
-        {
-            for (var i = 0; i < leaf.Memory.Length; i++)
+            if (node is Leaf leaf)
             {
-                yield return leaf.Memory.Span[i];
+                for (var i = 0; i < leaf.Memory.Length; i++) yield return leaf.Memory.Span[i];
             }
-
-            yield break;
-        }
-
-        var branch = (Branch)node;
-        for (var i = 0; i < branch.ChildCount; i++)
-        {
-            foreach (var item in Enumerate(branch[i]))
+            else
             {
-                yield return item;
+                var branch = (Branch)node;
+                for (var i = branch.ChildCount - 1; i >= 0; i--) pending.Push(branch[i]);
             }
         }
     }

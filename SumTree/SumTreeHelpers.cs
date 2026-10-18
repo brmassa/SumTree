@@ -113,7 +113,11 @@ public static class SumTreeHelpers
         }
 
         var targetLines = lineNumber - 1; // Convert to 0-based for internal counting
-        return sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= targetLines);
+        var end = sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= targetLines);
+        if (end < 0) return -1;
+        var start = end + 1;
+        if (sumTree[end] == '\r' && start < sumTree.Length && sumTree[start] == '\n') start++;
+        return start;
     }
 
     /// <summary>
@@ -130,20 +134,10 @@ public static class SumTreeHelpers
             return null;
         }
 
-        // Find the end of the line
-        var lineEnd = sumTree.Length;
-        for (var i = lineStart; i < sumTree.Length; i++)
-        {
-            if (sumTree.ElementAt(i) == '\n')
-            {
-                lineEnd = i;
-                break;
-            }
-        }
-
-        var lineLength = lineEnd - lineStart;
-        var lineSlice = sumTree.Slice(lineStart, lineLength);
-        return new string([.. lineSlice]);
+        var lineEnd = sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= lineNumber);
+        if (lineEnd < 0) lineEnd = sumTree.Length;
+        return string.Create(checked((int)(lineEnd - lineStart)), (sumTree, lineStart),
+            static (destination, state) => state.sumTree.CopyTo(state.lineStart, destination));
     }
 
     /// <summary>
@@ -165,8 +159,7 @@ public static class SumTreeHelpers
         }
 
         // Get the summary up to the specified index
-        var slice = sumTree.Slice(0, index);
-        var summary = slice.GetSummary<LineNumberSummary>();
+        var summary = sumTree.GetRangeSummary(0, index, LineNumberDimension.Instance);
 
         var line = summary.Lines + 1; // Convert to 1-based
         var column = summary.LastLineCharacters + 1; // Convert to 1-based
@@ -242,8 +235,7 @@ public static class SumTreeHelpers
             throw new ArgumentOutOfRangeException(nameof(index));
         }
 
-        var slice = sumTree.Slice(0, index);
-        var summary = slice.GetSummary<BracketCountSummary>();
+        var summary = sumTree.GetRangeSummary(0, index, BracketCountDimension.Instance);
         return summary.IsBalanced;
     }
 

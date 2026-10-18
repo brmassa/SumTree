@@ -84,7 +84,8 @@ public class EditorReadBenchmarks
 
         if (FindLineBreaks() != _expectedLineBreakSum || GetLineAndColumns() != _expectedLineColumnSum ||
             Materialize() != _text || Traverse() != _text.Sum(c => (long)c) ||
-            TypedFindLineBreaks() != _expectedLineBreakSum || TypedMaterialize() != _text)
+            TypedFindLineBreaks() != _expectedLineBreakSum || TypedMaterialize() != _text ||
+            TypedLineAndColumns() != _expectedLineColumnSum || TypedTraverse() != _text.Sum(c => (long)c))
         {
             throw new InvalidOperationException("Read benchmark differs from the linear reference.");
         }
@@ -129,6 +130,46 @@ public class EditorReadBenchmarks
             sum += _typed.FindPosition(new LineTarget(target));
         }
 
+        return sum;
+    }
+
+    [Benchmark(OperationsPerInvoke = QueryCount)]
+    public long TypedLineAndColumns()
+    {
+        long sum = 0;
+        foreach (var offset in _offsets)
+        {
+            var position = _typed.GetLineAndColumn(offset);
+            sum += position.Line + position.Column;
+        }
+        return sum;
+    }
+
+    [Benchmark(OperationsPerInvoke = QueryCount)]
+    public long TypedSliceLineAndColumns()
+    {
+        long sum = 0;
+        foreach (var offset in _offsets)
+        {
+            var prefix = _typed.Slice(0, offset).Summary.Lines;
+            sum += prefix.Lines + prefix.LastLineCharacters + 2L;
+        }
+        return sum;
+    }
+
+    [Benchmark]
+    public long TypedTraverse()
+    {
+        long sum = 0;
+        foreach (var item in _typed) sum += item;
+        return sum;
+    }
+
+    [Benchmark]
+    public long TypedInterfaceTraverse()
+    {
+        long sum = 0;
+        foreach (var item in (IEnumerable<char>)_typed) sum += item;
         return sum;
     }
 

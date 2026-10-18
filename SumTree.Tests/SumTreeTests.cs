@@ -828,26 +828,9 @@ public class SumTreeTests
         var originalText = "Line 1\nLine 2";
         var sumTree = originalText.ToSumTreeWithLines();
 
-        // Debug the line start position
-        var line2Start = sumTree.FindLineStart(2);
-        Assert.AreEqual(6, line2Start); // Based on debug output
-
-        try
-        {
-            var modified = sumTree.InsertAtLineColumn(2, 1, "Modified ");
-            var actualText = new string([.. modified]);
-
-            // The actual behavior inserts at the beginning of the line
-            // This test documents the current behavior rather than the expected behavior
-            Assert.IsTrue(actualText.Contains("Modified"));
-            Assert.IsTrue(actualText.Contains("Line 1"));
-            Assert.IsTrue(actualText.Contains("Line 2"));
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            // If the method fails due to implementation limitations, that's acceptable
-            Assert.Inconclusive("Operation failed due to implementation limitations");
-        }
+        Assert.AreEqual(7L, sumTree.FindLineStart(2));
+        var modified = sumTree.InsertAtLineColumn(2, 1, "Modified ");
+        Assert.AreEqual("Line 1\nModified Line 2", modified.ToString());
     }
 }
 

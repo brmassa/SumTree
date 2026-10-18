@@ -4,7 +4,7 @@ using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryO
 
 namespace Benchmarks;
 
-/// <summary>Same edit trace and line/bracket metrics on the dynamic and typed binary rope paths.</summary>
+/// <summary>Same edit trace and line/bracket metrics on the dynamic rope and typed B+ rope paths.</summary>
 [MemoryDiagnoser]
 public class EditorTypedSummaryBenchmarks
 {

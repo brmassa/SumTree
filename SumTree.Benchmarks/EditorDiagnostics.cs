@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -37,12 +38,18 @@ public static class EditorDiagnostics
     {
         var latencies = new List<LatencyResult>();
         var retention = new List<RetentionResult>();
+        var layouts = new List<object>();
         foreach (var size in EditorWorkload.DocumentSizes)
         {
             foreach (var pattern in Enum.GetValues<EditorPattern>())
             {
                 var workload = new EditorWorkload(size, pattern);
                 workload.Validate();
+                if (pattern == EditorPattern.LocalTyping)
+                {
+                    layouts.Add(new { DocumentLength = size, workload.InitialTypedTree.Depth,
+                        workload.InitialTypedTree.BufferCount });
+                }
                 latencies.Add(Measure("SumTree", size, pattern, () => workload.InitialTree,
                     (tree, i) => workload.Apply(tree, i), workload.ExpectedText));
                 latencies.Add(Measure("SumTreeSummaries", size, pattern, () => workload.InitialSummaryTree,
@@ -90,6 +97,8 @@ public static class EditorDiagnostics
             WarmupTraces,
             MeasuredTraces,
             EditorSnapshotBenchmarks.SnapshotCount,
+            TypedHandleBytes = Unsafe.SizeOf<TextTree>(),
+            TypedDocuments = layouts,
             Notes = "Sequential diagnostic samples include stopwatch/delegate overhead and natural GC; " +
                     "500 samples per row, not independent steady-state BDN estimates. " +
                     "Document construction/forking, validation, and sample-array allocation are outside edit timing. " +

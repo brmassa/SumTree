@@ -200,6 +200,7 @@ public class TypedSumTreeTests
 
     static void AssertText(TextTree tree, string expected)
     {
+        tree.ValidateStructure();
         Assert.AreEqual(expected, tree.ToString());
         Assert.AreEqual((long)expected.Length, tree.Length);
         Assert.AreEqual(TextSummaryOperations.SummarizeSpan(expected), tree.Summary);

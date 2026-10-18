@@ -4,83 +4,44 @@ using System.Runtime.InteropServices;
 
 namespace SumTree;
 
-/// <summary>A persistent rope with a value-type summary and statically dispatched operations.</summary>
+/// <summary>A persistent B+ rope with inline typed summaries and local split/join balancing.</summary>
 /// <remarks>
-/// This typed path avoids summary dictionaries, boxing, and runtime operation lookup.
-/// It retains binary rope nodes and Fibonacci balancing; the B+ tree migration is separate.
 /// Mutable buffers are copied, strings are shared, and internal slices retain owned storage.
-/// Elements and summaries must be immutable. Use synchronization or a reference holder when
-/// publishing this multi-field struct. Index/range arguments are validated strictly.
+/// Nodes are immutable after construction; edits copy affected paths and share other subtrees.
+/// Elements and summaries must be immutable. Publish versions through a snapshot store or
+/// external synchronization. Index/range arguments are validated strictly.
 /// </remarks>
 public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyList<T>
     where T : IEquatable<T>
     where TSummary : struct
     where TOps : struct, ISummaryOperations<T, TSummary>
 {
-    const int ChunkLength = 1024;
+    internal const int ChunkLength = 1024;
+    internal const int MaximumChildren = 8;
+    const int MinimumChildren = MaximumChildren / 2;
     const int MergeLeafLength = 512;
-    const int MaxTreeDepth = 46;
-    static readonly long[] s_minLengths = MinimumLengths();
-    readonly object? _data;
-    readonly TSummary _summary;
-    readonly long _length;
-    readonly int _depth;
-    readonly int _bufferCount;
+    readonly Node? _root;
 
     public static SumTree<T, TSummary, TOps> Empty => default;
-    public long Length => _length;
-    public int Count => checked((int)_length);
-    public int Depth => _depth;
-    public int BufferCount => _bufferCount;
-    public bool IsEmpty => _length == 0;
-    public TSummary Summary => IsEmpty ? TOps.Identity : _summary;
-    bool IsNode => _data is ValueTuple<SumTree<T, TSummary, TOps>, SumTree<T, TSummary, TOps>>;
-    bool IsBalanced => _depth < MaxTreeDepth && _length >= s_minLengths[_depth];
-    (SumTree<T, TSummary, TOps> Left, SumTree<T, TSummary, TOps> Right) Children =>
-        ((SumTree<T, TSummary, TOps>, SumTree<T, TSummary, TOps>))_data!;
+    public long Length => _root?.Length ?? 0;
+    public int Count => checked((int)Length);
+    public int Depth => _root?.Depth ?? 0;
+    public int BufferCount => _root?.BufferCount ?? 0;
+    public bool IsEmpty => _root is null;
+    public TSummary Summary => _root is { } root ? root.Summary : TOps.Identity;
 
     public SumTree(ReadOnlyMemory<T> memory)
     {
-        this = FromImmutableMemory(SnapshotMemory.Copy(memory));
+        _root = Build(SnapshotMemory.Copy(memory));
     }
 
-    SumTree(ReadOnlyMemory<T> leaf, TSummary summary)
-    {
-        _data = leaf;
-        _summary = summary;
-        _length = leaf.Length;
-        _depth = 0;
-        _bufferCount = 1;
-    }
-
-    SumTree(SumTree<T, TSummary, TOps> left, SumTree<T, TSummary, TOps> right)
-    {
-        _data = (left, right);
-        _summary = TOps.Combine(in left._summary, in right._summary);
-        _length = checked(left._length + right._length);
-        _depth = Math.Max(left._depth, right._depth) + 1;
-        _bufferCount = checked(left._bufferCount + right._bufferCount);
-    }
+    SumTree(Node? root) => _root = root;
 
     /// <summary>Shares caller storage without copying.</summary>
     /// <remarks>Keep it valid and unchanged while this or any derived snapshot exists, including pooled buffers.</remarks>
     public static SumTree<T, TSummary, TOps> FromBorrowedMemory(ReadOnlyMemory<T> memory) => FromImmutableMemory(memory);
 
-    internal static SumTree<T, TSummary, TOps> FromImmutableMemory(ReadOnlyMemory<T> memory)
-    {
-        if (memory.IsEmpty)
-        {
-            return Empty;
-        }
-
-        if (memory.Length <= ChunkLength)
-        {
-            return new(memory, TOps.SummarizeSpan(memory.Span));
-        }
-
-        var half = (memory.Length / ChunkLength + 1) / 2 * ChunkLength;
-        return new(FromImmutableMemory(memory[..half]), FromImmutableMemory(memory[half..]));
-    }
+    internal static SumTree<T, TSummary, TOps> FromImmutableMemory(ReadOnlyMemory<T> memory) => new(Build(memory));
 
     public T this[int index] => this[(long)index];
     public T this[long index]
@@ -88,29 +49,26 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
         get
         {
             ValidateIndex(index, allowEnd: false);
-            var current = this;
-            while (current.IsNode)
+            var current = _root!;
+            while (current is Branch branch)
             {
-                var (left, right) = current.Children;
-                if (index < left._length)
+                var i = 0;
+                while (index >= branch[i].Length)
                 {
-                    current = left;
+                    index -= branch[i++].Length;
                 }
-                else
-                {
-                    index -= left._length;
-                    current = right;
-                }
+
+                current = branch[i];
             }
 
-            return ((ReadOnlyMemory<T>)current._data!).Span[(int)index];
+            return ((Leaf)current).Memory.Span[(int)index];
         }
     }
 
     public SumTree<T, TSummary, TOps> Add(T item) => AddRange(FromImmutableMemory(new[] { item }));
     public SumTree<T, TSummary, TOps> AddRange(ReadOnlyMemory<T> items) =>
         AddRange(new SumTree<T, TSummary, TOps>(items));
-    public SumTree<T, TSummary, TOps> AddRange(SumTree<T, TSummary, TOps> other) => Concat(this, other);
+    public SumTree<T, TSummary, TOps> AddRange(SumTree<T, TSummary, TOps> other) => new(JoinRoots(_root, other._root));
     public SumTree<T, TSummary, TOps> Insert(long index, T item) =>
         InsertRange(index, FromImmutableMemory(new[] { item }));
 
@@ -128,53 +86,25 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
             return this;
         }
 
-        if (index == 0)
+        if (IsEmpty)
         {
-            return Concat(items, this);
+            return items;
+        }
+        // A short insertion replaces one leaf and copies one path, splitting full nodes locally.
+        if (items._root is Leaf leaf)
+        {
+            return new(RootOf(InsertLeaf(_root!, index, leaf)));
         }
 
-        if (index == _length)
-        {
-            return Concat(this, items);
-        }
-
-        var (left, right) = SplitAt(index);
-        return Concat(Concat(left, items), right);
+        var (left, right) = Split(_root, index);
+        return new(JoinRoots(JoinRoots(left, items._root), right));
     }
 
     public (SumTree<T, TSummary, TOps> Left, SumTree<T, TSummary, TOps> Right) SplitAt(long index)
     {
         ValidateIndex(index, allowEnd: true);
-        if (index == 0)
-        {
-            return (Empty, this);
-        }
-
-        if (index == _length)
-        {
-            return (this, Empty);
-        }
-
-        if (!IsNode)
-        {
-            var memory = (ReadOnlyMemory<T>)_data!;
-            return (FromImmutableMemory(memory[..(int)index]), FromImmutableMemory(memory[(int)index..]));
-        }
-
-        var (left, right) = Children;
-        if (index == left._length)
-        {
-            return (left, right);
-        }
-
-        if (index < left._length)
-        {
-            var (before, after) = left.SplitAt(index);
-            return (before, Concat(after, right));
-        }
-
-        var (prefix, suffix) = right.SplitAt(index - left._length);
-        return (Concat(left, prefix), suffix);
+        var (left, right) = Split(_root, index);
+        return (new(left), new(right));
     }
 
     public SumTree<T, TSummary, TOps> RemoveAt(long index) => RemoveRange(index, 1);
@@ -186,9 +116,22 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
             return this;
         }
 
-        var (left, remaining) = SplitAt(start);
-        var (_, right) = remaining.SplitAt(length);
-        return Concat(left, right);
+        if (length == Length)
+        {
+            return Empty;
+        }
+
+        if (length <= ChunkLength)
+        {
+            var updated = RemoveFromLeaf(_root!, start, length, out var handled);
+            if (handled)
+            {
+                return new(NormalizeRoot(updated));
+            }
+        }
+        var (left, remaining) = Split(_root, start);
+        var (_, right) = Split(remaining, length);
+        return new(JoinRoots(left, right));
     }
 
     public SumTree<T, TSummary, TOps> Slice(long start, long length)
@@ -199,38 +142,41 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
             return Empty;
         }
 
-        var (_, remaining) = SplitAt(start);
-        return remaining.SplitAt(length).Left;
+        var (_, remaining) = Split(_root, start);
+        return new(Split(remaining, length).Left);
     }
 
     /// <summary>Finds the first element whose inclusive prefix reaches a monotonic target.</summary>
     public long FindPosition<TSeek>(TSeek seek) where TSeek : struct, ISummarySeek<TSummary>
     {
-        if (IsEmpty || !seek.IsReached(in _summary))
+        if (_root is not { } current || !seek.IsReached(in current.Summary))
         {
             return -1;
         }
 
-        var current = this;
         var prefix = TOps.Identity;
         var offset = 0L;
-        while (current.IsNode)
+        while (current is Branch branch)
         {
-            var (left, right) = current.Children;
-            var combined = TOps.Combine(in prefix, in left._summary);
-            if (seek.IsReached(in combined))
+            Node? next = null;
+            for (var i = 0; i < branch.ChildCount; i++)
             {
-                current = left;
-            }
-            else
-            {
+                var child = branch[i];
+                var combined = TOps.Combine(in prefix, in child.Summary);
+                if (seek.IsReached(in combined)) { next = child; break; }
                 prefix = combined;
-                offset += left._length;
-                current = right;
+                offset += child.Length;
             }
+
+            if (next is null)
+            {
+                return -1;
+            }
+
+            current = next;
         }
 
-        var span = ((ReadOnlyMemory<T>)current._data!).Span;
+        var span = ((Leaf)current).Memory.Span;
         for (var i = 0; i < span.Length; i++)
         {
             var element = TOps.SummarizeElement(span[i]);
@@ -257,41 +203,32 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
 
     public T[] ToArray()
     {
-        var result = new T[checked((int)_length)];
+        var result = new T[checked((int)Length)];
         CopyTo(result);
         return result;
     }
 
     public void CopyTo(Span<T> destination)
     {
-        if (destination.Length < _length)
+        if (destination.Length < Length)
         {
             throw new ArgumentException("Destination is too short.", nameof(destination));
         }
 
-        if (IsEmpty)
+        if (_root is { } root)
         {
-            return;
+            Copy(root, destination);
         }
-
-        if (!IsNode)
-        {
-            ((ReadOnlyMemory<T>)_data!).Span.CopyTo(destination);
-            return;
-        }
-        var (left, right) = Children;
-        left.CopyTo(destination);
-        right.CopyTo(destination[checked((int)left._length)..]);
     }
 
     public override string ToString()
     {
         if (typeof(T) != typeof(char))
         {
-            return $"SumTree<{typeof(T).Name}>[Length={_length}, Depth={_depth}]";
+            return $"SumTree<{typeof(T).Name}>[Length={Length}, Depth={Depth}]";
         }
 
-        return string.Create(checked((int)_length), this, static (destination, tree) =>
+        return string.Create(checked((int)Length), this, static (destination, tree) =>
         {
             var elements = MemoryMarshal.CreateSpan(ref Unsafe.As<char, T>(ref MemoryMarshal.GetReference(destination)),
                 destination.Length);
@@ -299,144 +236,468 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
         });
     }
 
-    public IEnumerator<T> GetEnumerator()
+    public IEnumerator<T> GetEnumerator() => Enumerate(_root).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public static SumTree<T, TSummary, TOps> operator +(SumTree<T, TSummary, TOps> left,
+        SumTree<T, TSummary, TOps> right) => new(JoinRoots(left._root, right._root));
+
+    static IEnumerable<T> Enumerate(Node? node)
     {
-        if (IsEmpty)
+        if (node is null)
         {
             yield break;
         }
 
-        if (!IsNode)
+        if (node is Leaf leaf)
         {
-            var memory = (ReadOnlyMemory<T>)_data!;
-            for (var i = 0; i < memory.Length; i++)
+            for (var i = 0; i < leaf.Memory.Length; i++)
             {
-                yield return memory.Span[i];
+                yield return leaf.Memory.Span[i];
             }
 
             yield break;
         }
 
-        var (left, right) = Children;
-        foreach (var item in left)
+        var branch = (Branch)node;
+        for (var i = 0; i < branch.ChildCount; i++)
         {
-            yield return item;
-        }
-
-        foreach (var item in right)
-        {
-            yield return item;
+            foreach (var item in Enumerate(branch[i]))
+            {
+                yield return item;
+            }
         }
     }
 
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    public static SumTree<T, TSummary, TOps> operator +(SumTree<T, TSummary, TOps> left,
-        SumTree<T, TSummary, TOps> right) => Concat(left, right);
-
-    static SumTree<T, TSummary, TOps> Concat(SumTree<T, TSummary, TOps> left, SumTree<T, TSummary, TOps> right)
+    static void Copy(Node node, Span<T> destination)
     {
-        if (left.IsEmpty)
+        if (node is Leaf leaf) { leaf.Memory.Span.CopyTo(destination); return; }
+        var branch = (Branch)node;
+        var offset = 0;
+        for (var i = 0; i < branch.ChildCount; i++)
+        {
+            var child = branch[i];
+            Copy(child, destination[offset..]);
+            offset += checked((int)child.Length);
+        }
+    }
+
+    static Node? Build(ReadOnlyMemory<T> memory)
+    {
+        if (memory.IsEmpty)
+        {
+            return null;
+        }
+
+        if (memory.Length <= ChunkLength)
+        {
+            return new Leaf(memory);
+        }
+
+        var leafCount = (memory.Length - 1) / ChunkLength + 1;
+        var level = new Node[leafCount];
+        for (var i = 0; i < leafCount; i++)
+        {
+            var start = i * ChunkLength;
+            level[i] = new Leaf(memory.Slice(start, Math.Min(ChunkLength, memory.Length - start)));
+        }
+
+        while (level.Length > 1)
+        {
+            // Distribute the final group too: no underfull non-root branch at the end.
+            var groups = (level.Length - 1) / MaximumChildren + 1;
+            var parents = new Node[groups];
+            var width = level.Length / groups;
+            var extra = level.Length % groups;
+            var start = 0;
+            for (var group = 0; group < groups; group++)
+            {
+                var count = width + (group < extra ? 1 : 0);
+                parents[group] = new Branch(level.AsSpan(start, count));
+                start += count;
+            }
+
+            level = parents;
+        }
+
+        return level[0];
+    }
+
+    static Changes InsertLeaf(Node node, long index, Leaf inserted)
+    {
+        if (node is Leaf leaf)
+        {
+            if (index == 0)
+            {
+                return JoinLeaves(inserted, leaf);
+            }
+
+            if (index == leaf.Length)
+            {
+                return JoinLeaves(leaf, inserted);
+            }
+
+            var position = (int)index;
+            if (leaf.Length + inserted.Length <= MergeLeafLength)
+            {
+                var buffer = new T[(int)(leaf.Length + inserted.Length)];
+                leaf.Memory.Span[..position].CopyTo(buffer);
+                inserted.Memory.Span.CopyTo(buffer.AsSpan(position));
+                leaf.Memory.Span[position..].CopyTo(buffer.AsSpan(position + inserted.Memory.Length));
+                return new(new Leaf(buffer));
+            }
+
+            var before = leaf.Memory[..position];
+            var after = leaf.Memory[position..];
+            if (before.Length + inserted.Length <= MergeLeafLength)
+            {
+                return new(Merge(before, inserted.Memory), new Leaf(after));
+            }
+
+            if (inserted.Length + after.Length <= MergeLeafLength)
+            {
+                return new(new Leaf(before), Merge(inserted.Memory, after));
+            }
+
+            return new(new Leaf(before), inserted, new Leaf(after));
+        }
+
+        var branch = (Branch)node;
+        var childIndex = 0;
+        while (index > branch[childIndex].Length)
+        {
+            index -= branch[childIndex++].Length;
+        }
+
+        var replacement = InsertLeaf(branch[childIndex], index, inserted);
+        JoinSlots slots = default;
+        Span<Node> children = slots;
+        branch.Children[..childIndex].CopyTo(children);
+        replacement.CopyTo(children[childIndex..]);
+        branch.Children[(childIndex + 1)..].CopyTo(children[(childIndex + replacement.Count)..]);
+        return Pack(children[..(branch.ChildCount - 1 + replacement.Count)]);
+    }
+
+    // A deletion confined to one leaf copies one path. Temporary underfull branches
+    // keep their height until their parent merges or redistributes an adjacent pair.
+    static Node? RemoveFromLeaf(Node node, long start, long length, out bool handled)
+    {
+        handled = true;
+        if (node is Leaf leaf)
+        {
+            if (length == leaf.Length)
+            {
+                return null;
+            }
+
+            if (start == 0)
+            {
+                return new Leaf(leaf.Memory[(int)length..]);
+            }
+
+            if (start + length == leaf.Length)
+            {
+                return new Leaf(leaf.Memory[..(int)start]);
+            }
+
+            var buffer = new T[(int)(leaf.Length - length)];
+            leaf.Memory.Span[..(int)start].CopyTo(buffer);
+            leaf.Memory.Span[(int)(start + length)..].CopyTo(buffer.AsSpan((int)start));
+            return new Leaf(buffer);
+        }
+
+        var branch = (Branch)node;
+        var index = 0;
+        while (start >= branch[index].Length)
+        {
+            start -= branch[index++].Length;
+        }
+
+        var child = branch[index];
+        if (length > child.Length - start)
+        {
+            handled = false;
+            return node;
+        }
+
+        var replacement = RemoveFromLeaf(child, start, length, out handled);
+        if (!handled)
+        {
+            return node;
+        }
+
+        JoinSlots slots = default;
+        Span<Node> children = slots;
+        var count = branch.ChildCount;
+        branch.Children[..index].CopyTo(children);
+        if (replacement is null)
+        {
+            branch.Children[(index + 1)..].CopyTo(children[index..]);
+            count--;
+            index = Math.Min(index, count - 1);
+        }
+        else
+        {
+            children[index] = replacement;
+            branch.Children[(index + 1)..].CopyTo(children[(index + 1)..]);
+        }
+
+        count = RepairChild(children, count, index);
+        return count == 0 ? null : new Branch(children[..count]);
+    }
+
+    static int RepairChild(Span<Node> children, int count, int index)
+    {
+        if (count < 2)
+        {
+            return count;
+        }
+
+        var child = children[index];
+        var pairIndex = -1;
+        if (child is Branch branch && branch.ChildCount < MinimumChildren)
+        {
+            pairIndex = index > 0 ? index - 1 : 0;
+        }
+        else if (child is Leaf)
+        {
+            if (index > 0 && children[index - 1].Length + child.Length <= MergeLeafLength)
+            {
+                pairIndex = index - 1;
+            }
+            else if (index + 1 < count && child.Length + children[index + 1].Length <= MergeLeafLength)
+            {
+                pairIndex = index;
+            }
+        }
+
+        if (pairIndex < 0)
+        {
+            return count;
+        }
+
+        var merged = Join(children[pairIndex], children[pairIndex + 1]);
+        children[(pairIndex + 2)..count].CopyTo(children[(pairIndex + merged.Count)..]);
+        merged.CopyTo(children[pairIndex..]);
+        return count - 2 + merged.Count;
+    }
+
+    static Node? NormalizeRoot(Node? root)
+    {
+        while (root is Branch { ChildCount: 1 } branch)
+        {
+            root = branch[0];
+        }
+
+        return root;
+    }
+
+    static (Node? Left, Node? Right) Split(Node? node, long index)
+    {
+        if (index == 0)
+        {
+            return (null, node);
+        }
+
+        if (index == node!.Length)
+        {
+            return (node, null);
+        }
+
+        if (node is Leaf leaf)
+        {
+            return (new Leaf(leaf.Memory[..(int)index]), new Leaf(leaf.Memory[(int)index..]));
+        }
+
+        var branch = (Branch)node;
+        for (var i = 0; i < branch.ChildCount; i++)
+        {
+            if (index == 0)
+            {
+                return (MakeRoot(branch.Children[..i]), MakeRoot(branch.Children[i..]));
+            }
+
+            var child = branch[i];
+            if (index < child.Length)
+            {
+                var (before, after) = Split(child, index);
+                return (JoinRoots(MakeRoot(branch.Children[..i]), before),
+                    JoinRoots(after, MakeRoot(branch.Children[(i + 1)..])));
+            }
+
+            index -= child.Length;
+        }
+
+        throw new InvalidOperationException("Split exceeded the cached node length.");
+    }
+
+    static Node? MakeRoot(ReadOnlySpan<Node> children) => children.Length switch
+    {
+        0 => null,
+        1 => children[0],
+        _ => new Branch(children)
+    };
+
+    static Node? JoinRoots(Node? left, Node? right)
+    {
+        if (left is null)
         {
             return right;
         }
 
-        if (right.IsEmpty)
+        if (right is null)
         {
             return left;
         }
 
-        if (!right.IsNode && right._length < MergeLeafLength && AppendLeaf(left, right) is { } appended)
-        {
-            return appended;
-        }
-
-        if (!left.IsNode && left._length < MergeLeafLength && PrependLeaf(right, left) is { } prepended)
-        {
-            return prepended;
-        }
-
-        return Join(left, right);
+        return RootOf(Join(left, right));
     }
 
-    static SumTree<T, TSummary, TOps>? AppendLeaf(SumTree<T, TSummary, TOps> tree, SumTree<T, TSummary, TOps> leaf)
+    static Changes Join(Node left, Node right)
     {
-        if (!tree.IsNode)
+        if (left is Leaf leftLeaf && right is Leaf rightLeaf)
         {
-            return tree._length + leaf._length <= MergeLeafLength ? Merge(tree, leaf) : null;
+            return JoinLeaves(leftLeaf, rightLeaf);
         }
 
-        var (left, right) = tree.Children;
-        return AppendLeaf(right, leaf) is { } appended ? Join(left, appended) : null;
+        JoinSlots slots = default;
+        Span<Node> children = slots;
+        if (left.Depth == right.Depth)
+        {
+            var a = (Branch)left;
+            var b = (Branch)right;
+            a.Children.CopyTo(children);
+            b.Children.CopyTo(children[a.ChildCount..]);
+            return Pack(children[..(a.ChildCount + b.ChildCount)]);
+        }
+
+        if (left.Depth > right.Depth)
+        {
+            var branch = (Branch)left;
+            var boundary = Join(branch[branch.ChildCount - 1], right);
+            branch.Children[..(branch.ChildCount - 1)].CopyTo(children);
+            boundary.CopyTo(children[(branch.ChildCount - 1)..]);
+            return Pack(children[..(branch.ChildCount - 1 + boundary.Count)]);
+        }
+        else
+        {
+            var branch = (Branch)right;
+            var boundary = Join(left, branch[0]);
+            boundary.CopyTo(children);
+            branch.Children[1..].CopyTo(children[boundary.Count..]);
+            return Pack(children[..(branch.ChildCount - 1 + boundary.Count)]);
+        }
     }
 
-    static SumTree<T, TSummary, TOps>? PrependLeaf(SumTree<T, TSummary, TOps> tree, SumTree<T, TSummary, TOps> leaf)
+    static Changes JoinLeaves(Leaf left, Leaf right) => left.Length + right.Length <= MergeLeafLength
+        ? new(Merge(left.Memory, right.Memory)) : new(left, right);
+
+    static Leaf Merge(ReadOnlyMemory<T> left, ReadOnlyMemory<T> right)
     {
-        if (!tree.IsNode)
-        {
-            return tree._length + leaf._length <= MergeLeafLength ? Merge(leaf, tree) : null;
-        }
-
-        var (left, right) = tree.Children;
-        return PrependLeaf(left, leaf) is { } prepended ? Join(prepended, right) : null;
+        var buffer = new T[left.Length + right.Length];
+        left.Span.CopyTo(buffer);
+        right.Span.CopyTo(buffer.AsSpan(left.Length));
+        return new(buffer);
     }
 
-    static SumTree<T, TSummary, TOps> Merge(SumTree<T, TSummary, TOps> left, SumTree<T, TSummary, TOps> right)
+    static Changes Pack(ReadOnlySpan<Node> children)
     {
-        var buffer = new T[checked((int)(left._length + right._length))];
-        left.CopyTo(buffer);
-        right.CopyTo(buffer.AsSpan((int)left._length));
-        return FromImmutableMemory(buffer);
+        if (children.Length <= MaximumChildren)
+        {
+            return new(new Branch(children));
+        }
+
+        var half = children.Length / 2;
+        return new(new Branch(children[..half]), new Branch(children[half..]));
     }
 
-    static SumTree<T, TSummary, TOps> Join(SumTree<T, TSummary, TOps> left, SumTree<T, TSummary, TOps> right)
+    static Node RootOf(Changes changes)
     {
-        if (left.IsEmpty)
+        if (changes.Count == 1)
         {
-            return right;
+            return changes.First;
         }
 
-        if (right.IsEmpty)
-        {
-            return left;
-        }
-
-        var result = new SumTree<T, TSummary, TOps>(left, right);
-        if (result.IsBalanced)
-        {
-            return result;
-        }
-
-        var leaves = new List<SumTree<T, TSummary, TOps>>();
-        result.CollectLeaves(leaves);
-        return Rebuild(leaves, 0, leaves.Count);
+        JoinSlots slots = default;
+        Span<Node> children = slots;
+        changes.CopyTo(children);
+        return new Branch(children[..changes.Count]);
     }
 
-    void CollectLeaves(List<SumTree<T, TSummary, TOps>> leaves)
+    readonly struct Changes(Node first, Node? second = null, Node? third = null)
     {
-        if (!IsNode)
+        internal Node First { get; } = first;
+        internal int Count => third is not null ? 3 : second is not null ? 2 : 1;
+        internal void CopyTo(Span<Node> destination)
         {
-            leaves.Add(this);
-            return;
+            destination[0] = First;
+            if (second is not null)
+            {
+                destination[1] = second;
+            }
+
+            if (third is not null)
+            {
+                destination[2] = third;
+            }
         }
-        var (left, right) = Children;
-        left.CollectLeaves(leaves);
-        right.CollectLeaves(leaves);
     }
 
-    static SumTree<T, TSummary, TOps> Rebuild(List<SumTree<T, TSummary, TOps>> leaves, int start, int count)
+    abstract class Node(TSummary summary, long length, int depth, int bufferCount)
     {
-        if (count == 1)
+        internal readonly TSummary Summary = summary;
+        internal readonly long Length = length;
+        internal readonly int Depth = depth;
+        internal readonly int BufferCount = bufferCount;
+    }
+
+    sealed class Leaf(ReadOnlyMemory<T> memory) : Node(TOps.SummarizeSpan(memory.Span), memory.Length, 0, 1)
+    {
+        internal readonly ReadOnlyMemory<T> Memory = memory;
+    }
+
+    sealed class Branch : Node
+    {
+        ChildSlots _children;
+        internal readonly int ChildCount;
+        internal Node this[int index] => _children[index];
+        internal ReadOnlySpan<Node> Children => _children[..ChildCount];
+
+        internal Branch(ReadOnlySpan<Node> children) : this(children, Measure(children)) { }
+        Branch(ReadOnlySpan<Node> children, Metrics metrics)
+            : base(metrics.Summary, metrics.Length, children[0].Depth + 1, metrics.BufferCount)
         {
-            return leaves[start];
+            ChildCount = children.Length;
+            children.CopyTo(_children);
+        }
+    }
+
+    readonly record struct Metrics(TSummary Summary, long Length, int BufferCount);
+
+    static Metrics Measure(ReadOnlySpan<Node> children)
+    {
+        var summary = children[0].Summary;
+        var length = children[0].Length;
+        var buffers = children[0].BufferCount;
+        for (var i = 1; i < children.Length; i++)
+        {
+            var child = children[i];
+            summary = TOps.Combine(in summary, in child.Summary);
+            length = checked(length + child.Length);
+            buffers = checked(buffers + child.BufferCount);
         }
 
-        var half = count / 2;
-        return new(Rebuild(leaves, start, half), Rebuild(leaves, start + half, count - half));
+        return new(summary, length, buffers);
     }
+
+    [InlineArray(MaximumChildren)]
+    struct ChildSlots { Node _element0; }
+
+    [InlineArray(MaximumChildren * 2)]
+    struct JoinSlots { Node _element0; }
 
     void ValidateIndex(long index, bool allowEnd)
     {
-        if (index < 0 || index > _length || (!allowEnd && index == _length))
+        if (index < 0 || index > Length || (!allowEnd && index == Length))
         {
             throw new ArgumentOutOfRangeException(nameof(index));
         }
@@ -445,23 +706,57 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
     void ValidateRange(long start, long length)
     {
         ValidateIndex(start, allowEnd: true);
-        if (length < 0 || length > _length - start)
+        if (length < 0 || length > Length - start)
         {
             throw new ArgumentOutOfRangeException(nameof(length));
         }
     }
 
-    static long[] MinimumLengths()
+    /// <summary>Checks occupancy, equal leaf depth, cached metadata, and leaf bounds outside hot paths.</summary>
+    internal void ValidateStructure()
     {
-        var result = new long[MaxTreeDepth];
-        var previous = 0L;
-        var current = 1L;
-        for (var i = 1; i < result.Length; i++)
+        if (_root is { } root)
         {
-            result[i] = current + 2;
-            (previous, current) = (current, previous + current);
+            ValidateNode(root, isRoot: true);
+        }
+    }
+
+    static void ValidateNode(Node node, bool isRoot)
+    {
+        if (node is Leaf leaf)
+        {
+            if (leaf.Memory.Length is < 1 or > ChunkLength || leaf.Depth != 0 || leaf.BufferCount != 1 ||
+                leaf.Length != leaf.Memory.Length ||
+                !EqualityComparer<TSummary>.Default.Equals(leaf.Summary, TOps.SummarizeSpan(leaf.Memory.Span)))
+            {
+                throw new InvalidOperationException("Invalid leaf metadata or summary.");
+            }
+
+            return;
         }
 
-        return result;
+        var branch = (Branch)node;
+        if (branch.ChildCount < (isRoot ? 2 : MinimumChildren) || branch.ChildCount > MaximumChildren)
+        {
+            throw new InvalidOperationException("Invalid B+ tree occupancy.");
+        }
+
+        for (var i = 0; i < branch.ChildCount; i++)
+        {
+            var child = branch[i];
+            if (child.Depth != branch.Depth - 1)
+            {
+                throw new InvalidOperationException("Unequal leaf depths.");
+            }
+
+            ValidateNode(child, isRoot: false);
+        }
+
+        var measured = Measure(branch.Children);
+        if (branch.Length != measured.Length || branch.BufferCount != measured.BufferCount ||
+            !EqualityComparer<TSummary>.Default.Equals(branch.Summary, measured.Summary))
+        {
+            throw new InvalidOperationException("Invalid internal metadata or summary.");
+        }
     }
 }

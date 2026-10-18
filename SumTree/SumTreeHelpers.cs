@@ -19,8 +19,6 @@ public static class SumTreeHelpers
         [typeof(BracketCountSummary)] = BracketCountDimension.Instance
     };
 
-    static readonly Dictionary<Type, object> EmptyDimensions = new();
-
     /// <summary>
     /// Creates a SumTree from a string with line number tracking.
     /// </summary>
@@ -50,11 +48,15 @@ public static class SumTreeHelpers
     /// <returns>A new SumTree.</returns>
     public static SumTree<T> ToSumTree<T>(this ReadOnlyMemory<T> memory, params object[] dimensions)
         where T : IEquatable<T>
+        => CreateWithDimensions(memory, dimensions, copyMemory: true);
+
+    static SumTree<T> CreateWithDimensions<T>(ReadOnlyMemory<T> memory, object[] dimensions, bool copyMemory)
+        where T : IEquatable<T>
     {
         // Optimize for empty dimensions case
         if (dimensions.Length == 0)
         {
-            return new SumTree<T>(memory, EmptyDimensions);
+            return copyMemory ? new SumTree<T>(memory) : SumTree<T>.FromImmutableMemory(memory);
         }
 
         var dimensionDict = new Dictionary<Type, object>(dimensions.Length);
@@ -73,7 +75,9 @@ public static class SumTreeHelpers
             }
         }
 
-        return new SumTree<T>(memory, dimensionDict);
+        return copyMemory
+            ? new SumTree<T>(memory, dimensionDict)
+            : SumTree<T>.FromImmutableMemory(memory, dimensionDict);
     }
 
     /// <summary>
@@ -87,7 +91,7 @@ public static class SumTreeHelpers
         where T : IEquatable<T>
     {
         var memory = elements.ToArray().AsMemory();
-        return ((ReadOnlyMemory<T>)memory).ToSumTree(dimensions);
+        return CreateWithDimensions((ReadOnlyMemory<T>)memory, dimensions, copyMemory: false);
     }
 
     /// <summary>
@@ -225,7 +229,8 @@ public static class SumTreeHelpers
     }
 
     /// <summary>
-    /// Checks if the brackets are balanced up to the specified index.
+    /// Checks whether open and close bracket counts are equal up to the specified index.
+    /// This does not validate order, nesting, or language syntax.
     /// </summary>
     /// <param name="sumTree">The SumTree to check.</param>
     /// <param name="index">The index to check up to.</param>

@@ -38,11 +38,11 @@ public static class FastSumTreeExtensions
 
         if (enumerable is List<T> list)
         {
-            return list.ToArray().ToFastSumTree();
+            return FastSumTree<T>.FromImmutableMemory(list.ToArray());
         }
 
         var items = enumerable.ToArray();
-        return items.ToFastSumTree();
+        return FastSumTree<T>.FromImmutableMemory(items);
     }
 
     public static FastSumTree<T> RemoveRange<T>(this FastSumTree<T> tree, long start, long length)

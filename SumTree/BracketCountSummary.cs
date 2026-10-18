@@ -2,7 +2,8 @@ namespace SumTree;
 
 /// <summary>
 /// Summary for tracking bracket counts and balance in code.
-/// Useful for code editors to find matching brackets and maintain proper indentation.
+/// Tracks raw occurrences, including those inside strings and comments. Equal counts
+/// do not establish valid nesting; syntax-aware matching and folding require further analysis.
 /// </summary>
 public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IComparable<BracketCountSummary>
 {
@@ -120,7 +121,8 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
     public int TotalCloseBrackets => CloseParentheses + CloseSquareBrackets + CloseCurlyBraces;
 
     /// <summary>
-    /// Checks if all bracket types are balanced.
+    /// Checks whether open and close counts are equal for each bracket type.
+    /// This does not validate order or nesting: ")(" and "([)]" both have equal counts.
     /// </summary>
     public bool IsBalanced => ParenthesesBalance == 0 && SquareBracketsBalance == 0 && CurlyBracesBalance == 0;
 

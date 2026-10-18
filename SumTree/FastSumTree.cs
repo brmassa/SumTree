@@ -8,6 +8,11 @@ namespace SumTree;
 /// High-performance FastSumTree implementation optimized for minimal allocations.
 /// Uses compile-time generics to eliminate dictionary overhead and reflection.
 /// </summary>
+/// <remarks>
+/// Mutable input buffers are copied; string storage is shared. Elements must be immutable
+/// for snapshots to be safe to share. Copies are shallow. Publish this multi-field struct
+/// using external synchronization or an atomically published reference holder.
+/// </remarks>
 /// <typeparam name="T">The element type</typeparam>
 public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable<FastSumTree<T>>
     where T : IEquatable<T>
@@ -56,22 +61,22 @@ static int t_balancedCallDepth;
     }
 
     /// <summary>
-    /// Creates FastFastSumTree from memory
+    /// Creates a tree by copying mutable memory. String-backed memory is shared.
     /// </summary>
     public FastSumTree(ReadOnlyMemory<T> memory)
     {
-        if (memory.IsEmpty)
-        {
-            this = Empty;
-            return;
-        }
-
-        _data = memory;
-        _length = memory.Length;
-        _depth = 0;
-        _bufferCount = 1;
-        _isBalanced = true;
+        this = FromImmutableMemory(SnapshotMemory.Copy(memory));
     }
+
+    /// <summary>Creates a tree without copying its backing memory.</summary>
+    /// <remarks>
+    /// Keep the memory valid and unchanged while this tree or any derived snapshot exists.
+    /// Do not return its array to a pool or dispose its owner. Elements must be immutable.
+    /// </remarks>
+    public static FastSumTree<T> FromBorrowedMemory(ReadOnlyMemory<T> memory) => FromImmutableMemory(memory);
+
+    internal static FastSumTree<T> FromImmutableMemory(ReadOnlyMemory<T> memory) =>
+        memory.IsEmpty ? Empty : new(memory, memory.Length, 0, 1, true);
 
     /// <summary>
     /// Internal constructor for nodes
@@ -198,7 +203,7 @@ T GetElementAtIndex(long index)
             return AddRange(CollectionsMarshal.AsSpan(list));
         }
 
-        return AddRange(items.ToArray());
+        return AddRange(FromImmutableMemory(items.ToArray()));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -210,7 +215,7 @@ T GetElementAtIndex(long index)
         }
         // Need to copy span to memory since span is stack-only
         var array = items.ToArray();
-        return AddRange(new FastSumTree<T>(array.AsMemory()));
+        return AddRange(FromImmutableMemory(array.AsMemory()));
     }
 
     public FastSumTree<T> Insert(long index, T item)
@@ -299,20 +304,20 @@ T GetElementAtIndex(long index)
     {
         if (index == 0)
         {
-            return (Empty, new FastSumTree<T>(memory));
+            return (Empty, FromImmutableMemory(memory));
         }
 
         if (index >= memory.Length)
         {
-            return (new FastSumTree<T>(memory), Empty);
+            return (FromImmutableMemory(memory), Empty);
         }
 
         var leftMemory = memory[..index];
         var rightMemory = memory[index..];
 
         return (
-            new FastSumTree<T>(leftMemory),
-            new FastSumTree<T>(rightMemory)
+            FromImmutableMemory(leftMemory),
+            FromImmutableMemory(rightMemory)
         );
     }
 

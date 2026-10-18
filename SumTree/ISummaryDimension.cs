@@ -4,6 +4,11 @@ namespace SumTree;
 /// Defines a summary dimension that can be computed over a sequence of elements.
 /// A summary dimension tracks a specific aspect of the data (e.g., line numbers, indentation, bracket counts).
 /// </summary>
+/// <remarks>
+/// Implementations must be pure and safe for concurrent calls when trees are shared
+/// between threads. Elements, summary values, and dimension configuration must remain
+/// immutable for the lifetime of every snapshot that references them.
+/// </remarks>
 /// <typeparam name="T">The type of elements in the sequence.</typeparam>
 /// <typeparam name="TSummary">The type of the summary value.</typeparam>
 public interface ISummaryDimension<T, TSummary>

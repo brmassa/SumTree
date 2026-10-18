@@ -58,7 +58,7 @@ public static class SumTreeExtensions
 
         // Copy span to array since we can't store spans directly
         var array = span.ToArray();
-        return new SumTree<T>(array.AsMemory());
+        return SumTree<T>.FromImmutableMemory(array.AsMemory());
     }
 
     /// <summary>
@@ -637,7 +637,7 @@ public static class SumTreeExtensions
             }
         }
 
-        var newTree = new SumTree<T>(array.AsMemory());
+        var newTree = SumTree<T>.FromImmutableMemory(array.AsMemory());
         return newTree.WithDimensions(tree.GetDimensions());
     }
 
@@ -726,24 +726,13 @@ public static class SumTreeExtensions
             return [];
         }
 
-        // Use array pooling for efficiency
-        var pool = ArrayPool<T>.Shared;
-        var buffer = pool.Rent(list.Count);
-
-        try
+        var buffer = new T[list.Count];
+        for (var i = 0; i < buffer.Length; i++)
         {
-            for (var i = 0; i < list.Count; i++)
-            {
-                buffer[i] = list[i];
-            }
+            buffer[i] = list[i];
+        }
 
-            var memory = new ReadOnlyMemory<T>(buffer, 0, list.Count);
-            return new SumTree<T>(memory);
-        }
-        finally
-        {
-            pool.Return(buffer, clearArray: false);
-        }
+        return SumTree<T>.FromImmutableMemory(buffer);
     }
 
     static SumTree<T> FromList<T>(List<T> list) where T : IEquatable<T>
@@ -755,7 +744,7 @@ public static class SumTreeExtensions
 
         var array = new T[list.Count];
         list.CopyTo(array);
-        return new SumTree<T>(array.AsMemory());
+        return SumTree<T>.FromImmutableMemory(array.AsMemory());
     }
 
     static SumTree<T> FromEnumerable<T>(IEnumerable<T> items) where T : IEquatable<T>

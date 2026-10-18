@@ -10,6 +10,12 @@ namespace SumTree;
 /// with integrated summary dimensions. It eliminates the composition overhead by directly implementing
 /// the tree structure with integrated summary computation for maximum performance.
 /// </summary>
+/// <remarks>
+/// Snapshots share immutable storage. Elements and summary values must be immutable,
+/// and dimension implementations must be pure and safe for concurrent calls.
+/// Buffer copies are shallow. Publish snapshots through <see cref="SumTreeSnapshotStore{T}"/>
+/// or external synchronization rather than concurrently assigning this multi-field struct.
+/// </remarks>
 /// <typeparam name="T">The type of elements, must be <see cref="IEquatable{T}"/>.</typeparam>
 public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable<SumTree<T>>
     where T : IEquatable<T>
@@ -85,16 +91,27 @@ static int t_balancedCallDepth;
     }
 
     /// <summary>
-    /// Creates a new SumTree from memory with dimensions.
+    /// Creates a new SumTree, copying mutable memory and the dimension dictionary.
+    /// String-backed character memory is shared without copying.
     /// </summary>
     public SumTree(ReadOnlyMemory<T> memory, Dictionary<Type, object>? dimensions = null)
+        : this(SnapshotMemory.Copy(memory), dimensions, copyDimensions: true)
     {
+    }
+
+    SumTree(ReadOnlyMemory<T> memory, Dictionary<Type, object>? dimensions, bool copyDimensions)
+    {
+        if (copyDimensions && dimensions is { Count: > 0 })
+        {
+            dimensions = new Dictionary<Type, object>(dimensions);
+        }
+
         if (memory.IsEmpty)
         {
             this = Empty;
             if (dimensions is { Count: > 0 })
             {
-                _dimensions = new Dictionary<Type, object>(dimensions);
+                _dimensions = dimensions;
                 _summaries = ComputeEmptySummaries(dimensions);
             }
             return;
@@ -102,8 +119,7 @@ static int t_balancedCallDepth;
 
         if (memory.Length > ChunkLength)
         {
-            var shared = dimensions?.Count > 0 ? new Dictionary<Type, object>(dimensions) : null;
-            this = Chunked(memory, shared);
+            this = Chunked(memory, dimensions?.Count > 0 ? dimensions : null);
             return;
         }
 
@@ -111,10 +127,23 @@ static int t_balancedCallDepth;
         _isBalanced = true;
         _length = memory.Length;
         _bufferCount = 1;
-        _dimensions = dimensions?.Count > 0 ? new Dictionary<Type, object>(dimensions) : null;
+        _dimensions = dimensions?.Count > 0 ? dimensions : null;
         _summaries = _dimensions != null ? ComputeSummariesForMemory(memory, _dimensions) : null;
         _depth = 0;
     }
+
+    /// <summary>Creates a tree without copying its backing memory.</summary>
+    /// <remarks>
+    /// The caller must keep the memory valid and unchanged for the lifetime of this tree
+    /// and every derived snapshot. Do not return its array to a pool or dispose its owner.
+    /// The dimension dictionary is copied; dimension instances and elements must be immutable.
+    /// </remarks>
+    public static SumTree<T> FromBorrowedMemory(ReadOnlyMemory<T> memory,
+        Dictionary<Type, object>? dimensions = null) => new(memory, dimensions, copyDimensions: true);
+
+    /// <summary>Shares storage already owned by the library and immutable dimension configuration.</summary>
+    internal static SumTree<T> FromImmutableMemory(ReadOnlyMemory<T> memory,
+        Dictionary<Type, object>? dimensions = null) => new(memory, dimensions, copyDimensions: false);
 
     /// <summary>
     /// Internal constructor for node creation.
@@ -371,7 +400,7 @@ T GetElementAtIndex(long index)
             return this;
         }
 
-        var itemTree = new SumTree<T>(items, _dimensions);
+        var itemTree = FromImmutableMemory(SnapshotMemory.Copy(items), _dimensions);
         return InsertRange(index, itemTree);
     }
 
@@ -487,7 +516,7 @@ T GetElementAtIndex(long index)
             return this;
         }
 
-        return AddRange(new SumTree<T>(items, _dimensions));
+        return AddRange(FromImmutableMemory(SnapshotMemory.Copy(items), _dimensions));
     }
 
     /// <summary>
@@ -515,7 +544,7 @@ T GetElementAtIndex(long index)
             return AddRange(CollectionsMarshal.AsSpan(list));
         }
 
-        return AddRange(items.ToArray());
+        return AddRange(FromImmutableMemory(items.ToArray(), _dimensions));
     }
 
     /// <summary>
@@ -530,7 +559,7 @@ T GetElementAtIndex(long index)
         }
         // Need to copy span to memory since span is stack-only
         var array = items.ToArray();
-        return AddRange(new SumTree<T>(array.AsMemory(), _dimensions));
+        return AddRange(FromImmutableMemory(array.AsMemory(), _dimensions));
     }
 
     /// <summary>
@@ -879,20 +908,20 @@ T GetElementAtIndex(long index)
     {
         if (index == 0)
         {
-            return (Empty.WithDimensions(_dimensions), new SumTree<T>(memory, _dimensions));
+            return (Empty.WithDimensions(_dimensions), FromImmutableMemory(memory, _dimensions));
         }
 
         if (index >= memory.Length)
         {
-            return (new SumTree<T>(memory, _dimensions), Empty.WithDimensions(_dimensions));
+            return (FromImmutableMemory(memory, _dimensions), Empty.WithDimensions(_dimensions));
         }
 
         var leftMemory = memory[..index];
         var rightMemory = memory[index..];
 
         return (
-            new SumTree<T>(leftMemory, _dimensions),
-            new SumTree<T>(rightMemory, _dimensions)
+            FromImmutableMemory(leftMemory, _dimensions),
+            FromImmutableMemory(rightMemory, _dimensions)
         );
     }
 
@@ -907,7 +936,7 @@ T GetElementAtIndex(long index)
     {
         if (memory.Length <= ChunkLength)
         {
-            return new SumTree<T>(memory, dimensions);
+            return FromImmutableMemory(memory, dimensions);
         }
 
         var half = (memory.Length / ChunkLength + 1) / 2 * ChunkLength;
@@ -975,7 +1004,7 @@ static SumTree<T> Concat(SumTree<T> left, SumTree<T> right)
         var index = 0;
         left.CopyTo(buffer, ref index);
         right.CopyTo(buffer, ref index);
-        return new SumTree<T>(buffer.AsMemory(), MergeDimensions(left._dimensions, right._dimensions));
+        return FromImmutableMemory(buffer.AsMemory(), MergeDimensions(left._dimensions, right._dimensions));
     }
 
     /// <summary>Joins two non-empty trees under a new node, rebalancing when the result is too deep.</summary>

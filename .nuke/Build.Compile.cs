@@ -25,6 +25,7 @@ sealed partial class Build
         });
 
     Target Restore => td => td
+        .DependsOn(RestoreDependencies)
         .After(Clean)
         .Executes(() =>
         {

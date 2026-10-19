@@ -1,8 +1,7 @@
 namespace Build;
 
 /// <summary>
-/// The only build file that differs between the MASS4 repositories besides the feature partials: it names this
-/// project and wires its features into the shared build. Names of projects, repositories and products live here.
+/// Defines project-specific settings and feature hooks for the shared MASS4 build.
 /// </summary>
 sealed partial class Build
 {
@@ -29,6 +28,7 @@ sealed partial class Build
 
     AbsolutePath PublishOutput(Project project) => PublishDir / project.Name;
     Dictionary<string, object> MsBuildProperties => [];
+    Target[] RestoreDependencies => [];
     Target[] PackDependencies => [Publish];
     Target[] ReleaseCommitDependencies => [UpdateProjectVersions];
 

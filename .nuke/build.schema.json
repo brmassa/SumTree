@@ -25,6 +25,7 @@
       "type": "string",
       "enum": [
         "CheckNewCommits",
+        "CheckSharedBuild",
         "Clean",
         "Compile",
         "CreateReleaseCommit",
@@ -178,6 +179,13 @@
         "RuntimeIdentifier": {
           "type": "string",
           "description": "Runtime identifier for the build (e.g., win-x64, linux-x64, osx-x64) (default: linux-x64)"
+        },
+        "SharedBuildDirectories": {
+          "type": "array",
+          "description": "Project directories whose shared NUKE files must match this checkout",
+          "items": {
+            "type": "string"
+          }
         },
         "Solution": {
           "type": "string",

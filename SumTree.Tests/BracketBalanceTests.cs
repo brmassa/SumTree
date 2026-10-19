@@ -17,15 +17,12 @@ public class BracketBalanceTests
     [DataRow("\"(\" // )", true, true)]
     public void RawCountsAndPrefixBalancesHaveDifferentContracts(string text, bool equalCounts, bool balancedPrefixes)
     {
-        var counts = BracketCountDimension.Instance.SummarizeSpan(text);
+        var counts = BracketCountSummary.SummarizeSpan(text);
         var summary = BracketBalanceSummaryOperations.SummarizeSpan(text);
         Assert.AreEqual(equalCounts, counts.HasEqualCounts);
         Assert.AreEqual(equalCounts, counts.IsBalanced);
         Assert.AreEqual(balancedPrefixes, summary.HasBalancedPrefixes);
         Assert.AreEqual(Reference(text), summary);
-        var tree = text.ToSumTreeWithLinesAndBrackets();
-        Assert.AreEqual(equalCounts, tree.HaveEqualBracketCounts(text.Length));
-        Assert.AreEqual(equalCounts, tree.AreBracketsBalanced(text.Length));
     }
 
     [TestMethod]
@@ -95,10 +92,6 @@ public class BracketBalanceTests
         Assert.AreEqual(original, snapshot.ToString());
         Assert.AreEqual(Reference(original), snapshot.Summary);
         tree.ValidateStructure();
-        var legacy = text.ToSumTree().WithDimension(BracketBalanceDimension.Instance);
-        Assert.AreEqual(tree.Summary, legacy.GetSummary<BracketBalanceSummary>());
-        Assert.AreEqual(tree.FindPosition(new NegativeParenthesisPrefix()),
-            legacy.FindPosition<BracketBalanceSummary>(s => s.Parentheses.MinimumPrefixBalance < 0));
     }
 
     [TestMethod]
@@ -129,18 +122,6 @@ public class BracketBalanceTests
         newlines += newlines.RemoveAt(newlines.Length - 1);
         Assert.AreEqual(int.MaxValue, newlines.Length);
         Assert.ThrowsExactly<OverflowException>(() => newlines.GetLineAndColumn(newlines.Length));
-    }
-
-    [TestMethod]
-    public void LineColumnInsertionRejectsColumnsOutsideTheSelectedLine()
-    {
-        var tree = "ab\r\nc\r".ToSumTreeWithLines();
-        Assert.AreEqual("ab!\r\nc\r", tree.InsertAtLineColumn(1, 3, "!").ToString());
-        Assert.AreEqual("ab\r\nc\r!", tree.InsertAtLineColumn(3, 1, "!").ToString());
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.InsertAtLineColumn(1, 0, "!"));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.InsertAtLineColumn(1, 4, "!"));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.InsertAtLineColumn(3, 2, "!"));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.InsertAtLineColumn(4, 1, "!"));
     }
 
     static BracketBalanceSummary Reference(string text)

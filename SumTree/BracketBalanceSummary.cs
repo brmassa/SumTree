@@ -76,16 +76,3 @@ public readonly struct BracketBalanceSummaryOperations : ISummaryOperations<char
 
     public static BracketBalanceSummary Combine(in BracketBalanceSummary left, in BracketBalanceSummary right) => left + right;
 }
-
-/// <summary>Opt-in runtime dimension with the same semantics as BracketBalanceSummaryOperations.</summary>
-public sealed class BracketBalanceDimension : SummaryDimensionBase<char, BracketBalanceSummary>
-{
-    public static readonly BracketBalanceDimension Instance = new();
-    public override BracketBalanceSummary Identity => BracketBalanceSummary.Identity;
-    public override BracketBalanceSummary SummarizeElement(char element) => BracketBalanceSummary.FromCharacter(element);
-    public override BracketBalanceSummary SummarizeSpan(ReadOnlySpan<char> elements) => BracketBalanceSummaryOperations.SummarizeSpan(elements);
-    public override BracketBalanceSummary Combine(BracketBalanceSummary left, BracketBalanceSummary right) => left + right;
-    /// <summary>Prefix balances have no ordered seek coordinate; use a monotonic predicate with FindPosition instead.</summary>
-    public override int Compare(BracketBalanceSummary left, BracketBalanceSummary right) =>
-        throw new NotSupportedException("Prefix balances are not an ordered seek coordinate. Use FindPosition with a monotonic predicate.");
-}

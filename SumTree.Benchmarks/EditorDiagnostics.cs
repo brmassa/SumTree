@@ -53,10 +53,6 @@ public static class EditorDiagnostics
                         workload.InitialTypedTree.BufferCount
                     });
                 }
-                latencies.Add(Measure("SumTree", size, pattern, () => workload.InitialTree,
-                    (tree, i) => workload.Apply(tree, i), workload.ExpectedText));
-                latencies.Add(Measure("SumTreeSummaries", size, pattern, () => workload.InitialSummaryTree,
-                    (tree, i) => workload.Apply(tree, i), workload.ExpectedText));
                 latencies.Add(Measure("SumTreeTypedSummaries", size, pattern, () => workload.InitialTypedTree,
                     (tree, i) => workload.Apply(tree, i), workload.ExpectedText));
                 latencies.Add(Measure("Rope", size, pattern, () => workload.InitialRope,
@@ -66,10 +62,6 @@ public static class EditorDiagnostics
 
                 if (pattern == EditorPattern.MultipleCursors)
                 {
-                    retention.Add(new("SumTree", size, RetainedBytes(workload.InitialTree,
-                        (tree, i) => workload.Apply(tree, i))));
-                    retention.Add(new("SumTreeSummaries", size, RetainedBytes(workload.InitialSummaryTree,
-                        (tree, i) => workload.Apply(tree, i))));
                     retention.Add(new("SumTreeTypedSummaries", size, RetainedBytes(workload.InitialTypedTree,
                         (tree, i) => workload.Apply(tree, i))));
                     retention.Add(new("Rope", size, RetainedBytes(workload.InitialRope,
@@ -168,11 +160,6 @@ public static class EditorDiagnostics
         if (value.ToString() != expected)
         {
             throw new InvalidOperationException("Timed trace produced incorrect text.");
-        }
-
-        if (value is SumTree<char> tree && tree.HasDimension<LineNumberSummary>())
-        {
-            EditorWorkload.ValidateSummaries(tree, expected);
         }
 
         if (value is TextTree typed)

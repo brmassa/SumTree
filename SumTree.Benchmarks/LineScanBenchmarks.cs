@@ -21,14 +21,14 @@ public class LineScanBenchmarks
         };
         for (var length = 0; length <= _text.Length; length++)
         {
-            if (Scan(_text.AsSpan(0, length)) != LineNumberDimension.Instance.SummarizeSpan(_text.AsSpan(0, length)))
+            if (Scan(_text.AsSpan(0, length)) != LineNumberSummary.SummarizeSpan(_text.AsSpan(0, length)))
             {
                 throw new InvalidOperationException("Newline scanners disagree.");
             }
         }
     }
 
-    [Benchmark(Baseline = true)] public LineNumberSummary Scalar() => LineNumberDimension.Instance.SummarizeSpan(_text);
+    [Benchmark(Baseline = true)] public LineNumberSummary Scalar() => LineNumberSummary.SummarizeSpan(_text);
     [Benchmark] public LineNumberSummary SpanSearch() => Scan(_text);
 
     static LineNumberSummary Scan(ReadOnlySpan<char> text)

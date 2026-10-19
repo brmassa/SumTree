@@ -43,54 +43,6 @@ public class EditorInsertComparison
 
         return tree;
     }
-
-    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
-    public SumTree<char> SumTreeFresh()
-    {
-        var tree = _workload.InitialTree;
-        for (var i = 0; i < EditorWorkload.EditCount; i++)
-        {
-            tree = _workload.Apply(tree, i);
-        }
-
-        return tree;
-    }
-
-    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
-    public SumTree<char> SumTreePrepared()
-    {
-        var tree = _workload.InitialTree;
-        for (var i = 0; i < EditorWorkload.EditCount; i++)
-        {
-            tree = _workload.Apply(tree, i, prepared: true);
-        }
-
-        return tree;
-    }
-
-    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
-    public SumTree<char> SumTreeSummariesFresh()
-    {
-        var tree = _workload.InitialSummaryTree;
-        for (var i = 0; i < EditorWorkload.EditCount; i++)
-        {
-            tree = _workload.Apply(tree, i);
-        }
-
-        return tree;
-    }
-
-    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
-    public SumTree<char> SumTreeSummariesPrepared()
-    {
-        var tree = _workload.InitialSummaryTree;
-        for (var i = 0; i < EditorWorkload.EditCount; i++)
-        {
-            tree = _workload.Apply(tree, i, prepared: true, summaries: true);
-        }
-
-        return tree;
-    }
 }
 
 [MemoryDiagnoser]
@@ -110,30 +62,6 @@ public class EditorEditBenchmarks
     {
         _workload = new EditorWorkload(DocumentLength, Pattern);
         _workload.Validate();
-    }
-
-    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
-    public SumTree<char> SumTree()
-    {
-        var tree = _workload.InitialTree;
-        for (var i = 0; i < EditorWorkload.EditCount; i++)
-        {
-            tree = _workload.Apply(tree, i);
-        }
-
-        return tree;
-    }
-
-    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
-    public SumTree<char> SumTreeSummaries()
-    {
-        var tree = _workload.InitialSummaryTree;
-        for (var i = 0; i < EditorWorkload.EditCount; i++)
-        {
-            tree = _workload.Apply(tree, i);
-        }
-
-        return tree;
     }
 
     [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]

@@ -12,7 +12,7 @@ public readonly struct TextSummaryOperations : ISummaryOperations<char, TextSumm
         new(LineNumberSummary.FromCharacter(element), BracketCountSummary.FromCharacter(element));
 
     public static TextSummary SummarizeSpan(ReadOnlySpan<char> elements) =>
-        new(LineNumberDimension.Instance.SummarizeSpan(elements), BracketCountDimension.Instance.SummarizeSpan(elements));
+        new(LineNumberSummary.SummarizeSpan(elements), BracketCountSummary.SummarizeSpan(elements));
 
     public static TextSummary Combine(in TextSummary left, in TextSummary right) =>
         new(left.Lines + right.Lines, left.Brackets + right.Brackets);

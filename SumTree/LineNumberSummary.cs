@@ -60,6 +60,57 @@ public readonly struct LineNumberSummary : IEquatable<LineNumberSummary>, ICompa
     }
 
     /// <summary>
+    /// Summarizes a span of characters in a single pass, treating CR, LF and CRLF as line breaks.
+    /// </summary>
+    /// <param name="elements">The span to summarize.</param>
+    /// <returns>The summary of the span.</returns>
+    public static LineNumberSummary SummarizeSpan(ReadOnlySpan<char> elements)
+    {
+        if (elements.IsEmpty)
+        {
+            return Zero;
+        }
+
+        var lines = 0;
+        var lastLineCharacters = 0;
+        var totalCharacters = elements.Length;
+
+        for (var i = 0; i < elements.Length; i++)
+        {
+            var ch = elements[i];
+
+            if (ch == '\n')
+            {
+                lines++;
+                lastLineCharacters = 0;
+            }
+            else if (ch == '\r')
+            {
+                // Handle \r\n as a single line break
+                if (i + 1 < elements.Length && elements[i + 1] == '\n')
+                {
+                    lines++;
+                    lastLineCharacters = 0;
+                    i++; // Skip the \n part of \r\n
+                }
+                else
+                {
+                    // Standalone \r is treated as a line break
+                    lines++;
+                    lastLineCharacters = 0;
+                }
+            }
+            else
+            {
+                lastLineCharacters++;
+            }
+        }
+
+        return new LineNumberSummary(lines, lastLineCharacters, totalCharacters,
+            elements[0] == '\n', elements[^1] == '\r');
+    }
+
+    /// <summary>
     /// Combines two line number summaries.
     /// </summary>
     /// <param name="left">The left summary.</param>
@@ -145,86 +196,5 @@ public readonly struct LineNumberSummary : IEquatable<LineNumberSummary>, ICompa
     public override string ToString()
     {
         return $"Lines: {Lines}, LastLineChars: {LastLineCharacters}, TotalChars: {TotalCharacters}";
-    }
-}
-
-/// <summary>
-/// Summary dimension for tracking line numbers in character sequences.
-/// </summary>
-public class LineNumberDimension : SummaryDimensionBase<char, LineNumberSummary>
-{
-    /// <summary>
-    /// Gets the singleton instance of the line number dimension.
-    /// </summary>
-    public static readonly LineNumberDimension Instance = new();
-
-    /// <inheritdoc/>
-    public override LineNumberSummary Identity => LineNumberSummary.Zero;
-
-    /// <inheritdoc/>
-    public override LineNumberSummary SummarizeElement(char element)
-    {
-        return LineNumberSummary.FromCharacter(element);
-    }
-
-    /// <inheritdoc/>
-    public override LineNumberSummary SummarizeSpan(ReadOnlySpan<char> elements)
-    {
-        if (elements.IsEmpty)
-        {
-            return Identity;
-        }
-
-        var lines = 0;
-        var lastLineCharacters = 0;
-        var totalCharacters = elements.Length;
-
-        for (var i = 0; i < elements.Length; i++)
-        {
-            var ch = elements[i];
-
-            if (ch == '\n')
-            {
-                lines++;
-                lastLineCharacters = 0;
-            }
-            else if (ch == '\r')
-            {
-                // Handle \r\n as a single line break
-                if (i + 1 < elements.Length && elements[i + 1] == '\n')
-                {
-                    lines++;
-                    lastLineCharacters = 0;
-                    i++; // Skip the \n part of \r\n
-                }
-                else
-                {
-                    // Standalone \r is treated as a line break
-                    lines++;
-                    lastLineCharacters = 0;
-                }
-            }
-            else
-            {
-                lastLineCharacters++;
-            }
-        }
-
-
-
-        return new LineNumberSummary(lines, lastLineCharacters, totalCharacters,
-            elements[0] == '\n', elements[^1] == '\r');
-    }
-
-    /// <inheritdoc/>
-    public override LineNumberSummary Combine(LineNumberSummary left, LineNumberSummary right)
-    {
-        return left + right;
-    }
-
-    /// <inheritdoc/>
-    public override bool CanExtend(LineNumberSummary summary)
-    {
-        return !summary.IsEmpty;
     }
 }

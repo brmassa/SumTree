@@ -25,12 +25,8 @@ public sealed class EditorWorkload
     public string InitialText { get; }
     public string ExpectedText { get; }
     public EditorChange[] Changes { get; }
-    public SumTree<char> InitialTree { get; }
-    public SumTree<char> InitialSummaryTree { get; }
     public TextTree InitialTypedTree { get; }
     public Rope<char> InitialRope { get; }
-    public SumTree<char>[] PreparedTrees { get; }
-    public SumTree<char>[] PreparedSummaryTrees { get; }
     public TextTree[] PreparedTypedTrees { get; }
     public Rope<char>[] PreparedRopes { get; }
 
@@ -59,12 +55,8 @@ public sealed class EditorWorkload
         }
 
         ExpectedText = reference.ToString();
-        InitialTree = InitialText.ToSumTree();
-        InitialSummaryTree = InitialText.ToSumTreeWithLinesAndBrackets();
         InitialTypedTree = new TextTree(InitialText.AsMemory());
         InitialRope = InitialText.ToRope();
-        PreparedTrees = [.. Changes.Select(c => c.Text.ToSumTree())];
-        PreparedSummaryTrees = [.. Changes.Select(c => c.Text.ToSumTreeWithLinesAndBrackets())];
         PreparedTypedTrees = [.. Changes.Select(c => new TextTree(c.Text.AsMemory()))];
         PreparedRopes = [.. Changes.Select(c => c.Text.ToRope())];
     }
@@ -78,19 +70,6 @@ public sealed class EditorWorkload
         }
 
         return text.ToString();
-    }
-
-    public SumTree<char> Apply(SumTree<char> tree, int index, bool prepared = false, bool summaries = false)
-    {
-        var change = Changes[index];
-        if (change.RemoveLength > 0)
-        {
-            tree = tree.RemoveRange(change.Position, change.RemoveLength);
-        }
-
-        return prepared
-            ? tree.InsertRange(change.Position, summaries ? PreparedSummaryTrees[index] : PreparedTrees[index])
-            : tree.InsertRange(change.Position, change.Text.AsMemory());
     }
 
     public TextTree Apply(TextTree tree, int index, bool prepared = false)
@@ -125,10 +104,6 @@ public sealed class EditorWorkload
 
     public void Validate()
     {
-        var bare = InitialTree;
-        var summaries = InitialSummaryTree;
-        var prepared = InitialTree;
-        var preparedSummaries = InitialSummaryTree;
         var typed = InitialTypedTree;
         var preparedTyped = InitialTypedTree;
         var rope = InitialRope;
@@ -136,24 +111,17 @@ public sealed class EditorWorkload
         var text = new StringBuilder(InitialText);
         for (var i = 0; i < Changes.Length; i++)
         {
-            bare = Apply(bare, i);
-            summaries = Apply(summaries, i);
-            prepared = Apply(prepared, i, prepared: true);
-            preparedSummaries = Apply(preparedSummaries, i, prepared: true, summaries: true);
             typed = Apply(typed, i);
             preparedTyped = Apply(preparedTyped, i, prepared: true);
             rope = Apply(rope, i);
             preparedRope = Apply(preparedRope, i, prepared: true);
             Apply(text, i);
             var expected = text.ToString();
-            ValidateSummaries(summaries, expected);
-            ValidateSummaries(preparedSummaries, expected);
             ValidateSummaries(typed, expected);
             ValidateSummaries(preparedTyped, expected);
         }
 
-        foreach (var actual in new[] { bare.ToString(), summaries.ToString(), prepared.ToString(),
-                     preparedSummaries.ToString(), typed.ToString(), preparedTyped.ToString(),
+        foreach (var actual in new[] { typed.ToString(), preparedTyped.ToString(),
                      rope.ToString(), preparedRope.ToString(), text.ToString() })
         {
             if (actual != ExpectedText)
@@ -162,19 +130,9 @@ public sealed class EditorWorkload
             }
         }
 
-        if (InitialTree.ToString() != InitialText || InitialSummaryTree.ToString() != InitialText ||
-            InitialRope.ToString() != InitialText || InitialTypedTree.ToString() != InitialText)
+        if (InitialRope.ToString() != InitialText || InitialTypedTree.ToString() != InitialText)
         {
             throw new InvalidOperationException("Editing changed the initial snapshot.");
-        }
-    }
-
-    public static void ValidateSummaries(SumTree<char> tree, string text)
-    {
-        if (tree.GetSummary<LineNumberSummary>() != LineNumberDimension.Instance.SummarizeSpan(text) ||
-            tree.GetSummary<BracketCountSummary>() != BracketCountDimension.Instance.SummarizeSpan(text))
-        {
-            throw new InvalidOperationException("Editor trace contains incorrect cached summaries.");
         }
     }
 

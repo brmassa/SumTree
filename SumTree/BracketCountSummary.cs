@@ -71,6 +71,50 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
     }
 
     /// <summary>
+    /// Counts bracket occurrences over a span of characters in a single pass.
+    /// </summary>
+    /// <param name="elements">The span to summarize.</param>
+    /// <returns>The summary of the span.</returns>
+    public static BracketCountSummary SummarizeSpan(ReadOnlySpan<char> elements)
+    {
+        if (elements.IsEmpty)
+        {
+            return Zero;
+        }
+
+        int openParen = 0, closeParen = 0;
+        int openSquare = 0, closeSquare = 0;
+        int openCurly = 0, closeCurly = 0;
+
+        for (var i = 0; i < elements.Length; i++)
+        {
+            switch (elements[i])
+            {
+                case '(':
+                    openParen++;
+                    break;
+                case ')':
+                    closeParen++;
+                    break;
+                case '[':
+                    openSquare++;
+                    break;
+                case ']':
+                    closeSquare++;
+                    break;
+                case '{':
+                    openCurly++;
+                    break;
+                case '}':
+                    closeCurly++;
+                    break;
+            }
+        }
+
+        return new BracketCountSummary(openParen, closeParen, openSquare, closeSquare, openCurly, closeCurly);
+    }
+
+    /// <summary>
     /// Combines two bracket count summaries.
     /// </summary>
     /// <param name="left">The left summary.</param>
@@ -211,77 +255,5 @@ public readonly struct BracketCountSummary : IEquatable<BracketCountSummary>, IC
     {
         return
             $"():{OpenParentheses}/{CloseParentheses}, []:{OpenSquareBrackets}/{CloseSquareBrackets}, {{}}:{OpenCurlyBraces}/{CloseCurlyBraces}";
-    }
-}
-
-/// <summary>
-/// Summary dimension for tracking bracket counts in character sequences.
-/// </summary>
-public class BracketCountDimension : SummaryDimensionBase<char, BracketCountSummary>
-{
-    /// <summary>
-    /// Gets the singleton instance of the bracket count dimension.
-    /// </summary>
-    public static readonly BracketCountDimension Instance = new();
-
-    /// <inheritdoc/>
-    public override BracketCountSummary Identity => BracketCountSummary.Zero;
-
-    /// <inheritdoc/>
-    public override BracketCountSummary SummarizeElement(char element)
-    {
-        return BracketCountSummary.FromCharacter(element);
-    }
-
-    /// <inheritdoc/>
-    public override BracketCountSummary SummarizeSpan(ReadOnlySpan<char> elements)
-    {
-        if (elements.IsEmpty)
-        {
-            return Identity;
-        }
-
-        int openParen = 0, closeParen = 0;
-        int openSquare = 0, closeSquare = 0;
-        int openCurly = 0, closeCurly = 0;
-
-        for (var i = 0; i < elements.Length; i++)
-        {
-            switch (elements[i])
-            {
-                case '(':
-                    openParen++;
-                    break;
-                case ')':
-                    closeParen++;
-                    break;
-                case '[':
-                    openSquare++;
-                    break;
-                case ']':
-                    closeSquare++;
-                    break;
-                case '{':
-                    openCurly++;
-                    break;
-                case '}':
-                    closeCurly++;
-                    break;
-            }
-        }
-
-        return new BracketCountSummary(openParen, closeParen, openSquare, closeSquare, openCurly, closeCurly);
-    }
-
-    /// <inheritdoc/>
-    public override BracketCountSummary Combine(BracketCountSummary left, BracketCountSummary right)
-    {
-        return left + right;
-    }
-
-    /// <inheritdoc/>
-    public override bool CanExtend(BracketCountSummary summary)
-    {
-        return !summary.IsEmpty;
     }
 }

@@ -17,18 +17,14 @@ public class EditorConstructionBenchmarks
     public void Setup()
     {
         _text = EditorWorkload.CreateText(DocumentLength);
-        if (SumTree().ToString() != _text || SumTreeSummaries().ToString() != _text ||
-            Rope().ToString() != _text || StringBuilder().ToString() != _text)
+        if (Rope().ToString() != _text || StringBuilder().ToString() != _text)
         {
             throw new InvalidOperationException("Construction did not preserve text.");
         }
 
-        EditorWorkload.ValidateSummaries(SumTreeSummaries(), _text);
         EditorWorkload.ValidateSummaries(SumTreeTypedSummaries(), _text);
     }
 
-    [Benchmark] public SumTree<char> SumTree() => _text.ToSumTree();
-    [Benchmark] public SumTree<char> SumTreeSummaries() => _text.ToSumTreeWithLinesAndBrackets();
     [Benchmark] public TextTree SumTreeTypedSummaries() => new(_text.AsMemory());
     [Benchmark] public Rope<char> Rope() => _text.ToRope();
     [Benchmark] public StringBuilder StringBuilder() => new(_text);
@@ -40,7 +36,6 @@ public class EditorReadBenchmarks
     public const int QueryCount = 128;
     public IEnumerable<int> DocumentSizes => EditorWorkload.DocumentSizes;
     [ParamsSource(nameof(DocumentSizes))] public int DocumentLength { get; set; }
-    SumTree<char> _tree;
     TextTree _typed;
     readonly int[] _lineTargets = new int[QueryCount];
     readonly int[] _offsets = new int[QueryCount];
@@ -53,11 +48,9 @@ public class EditorReadBenchmarks
     {
         var workload = new EditorWorkload(DocumentLength, EditorPattern.RandomEdits);
         workload.Validate();
-        _tree = workload.InitialSummaryTree;
         _typed = workload.InitialTypedTree;
         for (var i = 0; i < EditorWorkload.EditCount; i++)
         {
-            _tree = workload.Apply(_tree, i);
             _typed = workload.Apply(_typed, i);
         }
 
@@ -78,46 +71,17 @@ public class EditorReadBenchmarks
             _lineTargets[i] = 1 + (int)((long)i * breaks.Count / QueryCount);
             _expectedLineBreakSum += breaks[_lineTargets[i] - 1];
             _offsets[i] = (int)((long)i * _text.Length / QueryCount);
-            var prefix = LineNumberDimension.Instance.SummarizeSpan(_text.AsSpan(0, _offsets[i]));
+            var prefix = LineNumberSummary.SummarizeSpan(_text.AsSpan(0, _offsets[i]));
             _expectedLineColumnSum += prefix.Lines + 1L + prefix.LastLineCharacters + 1L;
         }
 
-        if (FindLineBreaks() != _expectedLineBreakSum || GetLineAndColumns() != _expectedLineColumnSum ||
-            Materialize() != _text || Traverse() != _text.Sum(c => (long)c) ||
-            TypedFindLineBreaks() != _expectedLineBreakSum || TypedMaterialize() != _text ||
+        if (TypedFindLineBreaks() != _expectedLineBreakSum || TypedMaterialize() != _text ||
             TypedLineAndColumns() != _expectedLineColumnSum || TypedTraverse() != _text.Sum(c => (long)c))
         {
             throw new InvalidOperationException("Read benchmark differs from the linear reference.");
         }
     }
 
-    [Benchmark(OperationsPerInvoke = QueryCount)]
-    public long FindLineBreaks()
-    {
-        var sum = 0L;
-        foreach (var target in _lineTargets)
-        {
-            sum += _tree.FindPosition<LineNumberSummary>(summary => summary.Lines >= target);
-        }
-
-        return sum;
-    }
-
-    [Benchmark(OperationsPerInvoke = QueryCount)]
-    public long GetLineAndColumns()
-    {
-        var sum = 0L;
-        foreach (var offset in _offsets)
-        {
-            var position = _tree.GetLineAndColumn(offset);
-            sum += position.Line + position.Column;
-        }
-
-        return sum;
-    }
-
-    [Benchmark] public LineNumberSummary RootSummary() => _tree.GetSummary<LineNumberSummary>();
-    [Benchmark] public string Materialize() => _tree.ToString();
     [Benchmark] public TextSummary TypedRootSummary() => _typed.Summary;
     [Benchmark] public string TypedMaterialize() => _typed.ToString();
 
@@ -183,18 +147,6 @@ public class EditorReadBenchmarks
     {
         public bool IsReached(in TextSummary summary) => summary.Lines.Lines >= target;
     }
-
-    [Benchmark]
-    public long Traverse()
-    {
-        var sum = 0L;
-        foreach (var character in _tree)
-        {
-            sum += character;
-        }
-
-        return sum;
-    }
 }
 
 [MemoryDiagnoser]
@@ -210,7 +162,6 @@ public class EditorSnapshotBenchmarks
     {
         _workload = new EditorWorkload(DocumentLength, EditorPattern.MultipleCursors);
         _workload.Validate();
-        var trees = SumTreeHistory();
         var typedTrees = TypedSumTreeHistory();
         var ropes = RopeHistory();
         var strings = StringBuilderHistory();
@@ -225,28 +176,14 @@ public class EditorSnapshotBenchmarks
 
             var slot = i % SnapshotCount;
             var expected = reference.ToString();
-            if (trees[slot].ToString() != expected || typedTrees[slot].ToString() != expected ||
+            if (typedTrees[slot].ToString() != expected ||
                 ropes[slot].ToString() != expected || strings[slot] != expected)
             {
                 throw new InvalidOperationException("A retained snapshot changed or contains incorrect text.");
             }
 
-            EditorWorkload.ValidateSummaries(trees[slot], expected);
             EditorWorkload.ValidateSummaries(typedTrees[slot], expected);
         }
-    }
-
-    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
-    public SumTree<char>[] SumTreeHistory()
-    {
-        var history = new SumTree<char>[SnapshotCount];
-        var tree = _workload.InitialSummaryTree;
-        for (var i = 0; i < EditorWorkload.EditCount; i++)
-        {
-            history[i % SnapshotCount] = tree = _workload.Apply(tree, i);
-        }
-
-        return history;
     }
 
     [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]

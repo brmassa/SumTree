@@ -21,19 +21,15 @@ public class RangeQueryTests
             text = text.Insert(offset, "\r\n{}");
             tree = tree.InsertRange(offset, "\r\n{}".AsMemory());
         }
-        var legacy = text.ToSumTreeWithLinesAndBrackets();
         for (var i = 0; i < 1000; i++)
         {
             var start = random.Next(text.Length + 1);
             var length = random.Next(text.Length - start + 1);
             var expected = TextSummaryOperations.SummarizeSpan(text.AsSpan(start, length));
             Assert.AreEqual(expected, tree.GetRangeSummary(start, length));
-            Assert.AreEqual(expected.Lines, legacy.GetRangeSummary(start, length, LineNumberDimension.Instance));
             Assert.AreEqual(TextSummaryOperations.SummarizeSpan(text.AsSpan(0, start)), tree.GetPrefixSummary(start));
             var output = new char[length];
             tree.CopyTo(start, output);
-            Assert.AreEqual(text.Substring(start, length), new string(output));
-            legacy.CopyTo(start, output);
             Assert.AreEqual(text.Substring(start, length), new string(output));
         }
         var builder = new StringBuilder();
@@ -62,15 +58,12 @@ public class RangeQueryTests
         // The CRLF straddles the initial 1024-element leaf boundary.
         var text = new string('a', 1023) + "\r\n" + suffix;
         var tree = new TextTree(text.AsMemory());
-        var legacy = text.ToSumTreeWithLines();
         var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var start = 0;
         for (var line = 1; line <= lines.Length; line++)
         {
             Assert.AreEqual(start, tree.FindLineStart(line));
-            Assert.AreEqual(start, legacy.FindLineStart(line));
             Assert.AreEqual(lines[line - 1], tree.GetLineContent(line));
-            Assert.AreEqual(lines[line - 1], legacy.GetLineContent(line));
             start += lines[line - 1].Length;
             if (start < text.Length)
             {
@@ -79,13 +72,11 @@ public class RangeQueryTests
         }
         Assert.AreEqual(-1L, tree.FindLineStart(lines.Length + 1));
         Assert.IsNull(tree.GetLineContent(lines.Length + 1));
-        Assert.IsNull(legacy.GetLineContent(lines.Length + 1));
         for (var i = 0; i <= text.Length; i++)
         {
-            var summary = LineNumberDimension.Instance.SummarizeSpan(text.AsSpan(0, i));
+            var summary = LineNumberSummary.SummarizeSpan(text.AsSpan(0, i));
             var expected = (summary.Lines + 1, summary.LastLineCharacters + 1);
             Assert.AreEqual(expected, tree.GetLineAndColumn(i));
-            Assert.AreEqual(expected, legacy.GetLineAndColumn(i));
         }
         Assert.AreEqual("", default(TextTree).GetLineContent(1));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.FindLineStart(0));

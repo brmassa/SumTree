@@ -1,43 +1,42 @@
-namespace SumTree.Tests;
 
-[TestClass]
+namespace SumTree.Tests;
 public class TreeSetTests
 {
-    [TestMethod]
-    public void EmptyTreeSetShouldHaveZeroCount()
+    [Test]
+    public async Task EmptyTreeSetShouldHaveZeroCount()
     {
         var set = new TreeSet<int>();
 
-        Assert.IsTrue(set.IsEmpty);
-        Assert.AreEqual(0, set.Count);
+        await Assert.That(set.IsEmpty).IsTrue();
+        await Assert.That(set.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void AddSingleItemShouldReturnTrue()
+    [Test]
+    public async Task AddSingleItemShouldReturnTrue()
     {
         var set = new TreeSet<int>();
 
         var added = set.Add(1);
 
-        Assert.IsTrue(added);
-        Assert.AreEqual(1, set.Count);
-        Assert.IsFalse(set.IsEmpty);
-        Assert.IsTrue(set.Contains(1));
+        await Assert.That(added).IsTrue();
+        await Assert.That(set.Count).IsEqualTo(1);
+        await Assert.That(set.IsEmpty).IsFalse();
+        await Assert.That(set.Contains(1)).IsTrue();
     }
 
-    [TestMethod]
-    public void AddDuplicateItemShouldReturnFalse()
+    [Test]
+    public async Task AddDuplicateItemShouldReturnFalse()
     {
         var set = new TreeSet<int> { 1 };
 
         var added = set.Add(1);
 
-        Assert.IsFalse(added);
-        Assert.AreEqual(1, set.Count);
+        await Assert.That(added).IsFalse();
+        await Assert.That(set.Count).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void AddMultipleItemsShouldMaintainOrder()
+    [Test]
+    public async Task AddMultipleItemsShouldMaintainOrder()
     {
         var set = new TreeSet<int>
         {
@@ -47,14 +46,14 @@ public class TreeSetTests
         };
 
         var items = set.ToList();
-        Assert.AreEqual(3, items.Count);
-        Assert.AreEqual(1, items[0]);
-        Assert.AreEqual(2, items[1]);
-        Assert.AreEqual(3, items[2]);
+        await Assert.That(items.Count).IsEqualTo(3);
+        await Assert.That(items[0]).IsEqualTo(1);
+        await Assert.That(items[1]).IsEqualTo(2);
+        await Assert.That(items[2]).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void RemoveExistingItemShouldReturnTrue()
+    [Test]
+    public async Task RemoveExistingItemShouldReturnTrue()
     {
         var set = new TreeSet<int>
         {
@@ -64,39 +63,39 @@ public class TreeSetTests
 
         var removed = set.Remove(1);
 
-        Assert.IsTrue(removed);
-        Assert.IsFalse(set.Contains(1));
-        Assert.AreEqual(1, set.Count);
+        await Assert.That(removed).IsTrue();
+        await Assert.That(set.Contains(1)).IsFalse();
+        await Assert.That(set.Count).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void RemoveNonexistentItemShouldReturnFalse()
+    [Test]
+    public async Task RemoveNonexistentItemShouldReturnFalse()
     {
         var set = new TreeSet<int>();
 
         var removed = set.Remove(999);
 
-        Assert.IsFalse(removed);
+        await Assert.That(removed).IsFalse();
     }
 
-    [TestMethod]
-    public void ContainsExistingItemShouldReturnTrue()
+    [Test]
+    public async Task ContainsExistingItemShouldReturnTrue()
     {
         var set = new TreeSet<int> { 1 };
 
-        Assert.IsTrue(set.Contains(1));
+        await Assert.That(set.Contains(1)).IsTrue();
     }
 
-    [TestMethod]
-    public void ContainsNonexistentItemShouldReturnFalse()
+    [Test]
+    public async Task ContainsNonexistentItemShouldReturnFalse()
     {
         var set = new TreeSet<int>();
 
-        Assert.IsFalse(set.Contains(999));
+        await Assert.That(set.Contains(999)).IsFalse();
     }
 
-    [TestMethod]
-    public void ClearShouldRemoveAllItems()
+    [Test]
+    public async Task ClearShouldRemoveAllItems()
     {
         var set = new TreeSet<int>
         {
@@ -106,26 +105,26 @@ public class TreeSetTests
 
         set.Clear();
 
-        Assert.IsTrue(set.IsEmpty);
-        Assert.AreEqual(0, set.Count);
+        await Assert.That(set.IsEmpty).IsTrue();
+        await Assert.That(set.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void ExtendShouldAddMultipleItems()
+    [Test]
+    public async Task ExtendShouldAddMultipleItems()
     {
         var set = new TreeSet<int>();
         int[] items = [3, 1, 2, 1]; // Include duplicate
 
         set.Extend(items);
 
-        Assert.AreEqual(3, set.Count); // Should not contain duplicates
-        Assert.IsTrue(set.Contains(1));
-        Assert.IsTrue(set.Contains(2));
-        Assert.IsTrue(set.Contains(3));
+        await Assert.That(set.Count).IsEqualTo(3); // Should not contain duplicates
+        await Assert.That(set.Contains(1)).IsTrue();
+        await Assert.That(set.Contains(2)).IsTrue();
+        await Assert.That(set.Contains(3)).IsTrue();
     }
 
-    [TestMethod]
-    public void IterateFromShouldStartFromSpecifiedItem()
+    [Test]
+    public async Task IterateFromShouldStartFromSpecifiedItem()
     {
         var set = new TreeSet<int>
         {
@@ -137,14 +136,14 @@ public class TreeSetTests
 
         var items = set.IterateFrom(2).ToList();
 
-        Assert.AreEqual(3, items.Count);
-        Assert.AreEqual(2, items[0]);
-        Assert.AreEqual(3, items[1]);
-        Assert.AreEqual(4, items[2]);
+        await Assert.That(items.Count).IsEqualTo(3);
+        await Assert.That(items[0]).IsEqualTo(2);
+        await Assert.That(items[1]).IsEqualTo(3);
+        await Assert.That(items[2]).IsEqualTo(4);
     }
 
-    [TestMethod]
-    public void FirstShouldReturnFirstItem()
+    [Test]
+    public async Task FirstShouldReturnFirstItem()
     {
         var set = new TreeSet<int>
         {
@@ -155,21 +154,21 @@ public class TreeSetTests
 
         var first = set.First();
 
-        Assert.AreEqual(1, first.Value);
+        await Assert.That(first.Value).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void FirstEmptySetShouldReturnNull()
+    [Test]
+    public async Task FirstEmptySetShouldReturnNull()
     {
         var set = new TreeSet<int>();
 
         var first = set.First();
 
-        Assert.AreEqual(false, first.HasValue);
+        await Assert.That(first.HasValue).IsFalse();
     }
 
-    [TestMethod]
-    public void LastShouldReturnLastItem()
+    [Test]
+    public async Task LastShouldReturnLastItem()
     {
         var set = new TreeSet<int>
         {
@@ -180,21 +179,21 @@ public class TreeSetTests
 
         var last = set.Last();
 
-        Assert.AreEqual(3, last.Value);
+        await Assert.That(last.Value).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void LastEmptySetShouldReturnNull()
+    [Test]
+    public async Task LastEmptySetShouldReturnNull()
     {
         var set = new TreeSet<int>();
 
         var last = set.Last();
 
-        Assert.AreEqual(false, last.HasValue);
+        await Assert.That(last.HasValue).IsFalse();
     }
 
-    [TestMethod]
-    public void ClosestShouldReturnClosestItem()
+    [Test]
+    public async Task ClosestShouldReturnClosestItem()
     {
         var set = new TreeSet<int>
         {
@@ -205,11 +204,11 @@ public class TreeSetTests
 
         var closest = set.Closest(2);
 
-        Assert.AreEqual(1, closest.Value);
+        await Assert.That(closest.Value).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void ClosestNoSmallerItemShouldReturnFalse()
+    [Test]
+    public async Task ClosestNoSmallerItemShouldReturnFalse()
     {
         var set = new TreeSet<int>
         {
@@ -219,11 +218,11 @@ public class TreeSetTests
 
         var closest = set.Closest(1);
 
-        Assert.AreEqual(false, closest.HasValue);
+        await Assert.That(closest.HasValue).IsFalse();
     }
 
-    [TestMethod]
-    public void ExceptShouldReturnDifference()
+    [Test]
+    public async Task ExceptShouldReturnDifference()
     {
         var set1 = new TreeSet<int>
         {
@@ -241,12 +240,12 @@ public class TreeSetTests
 
         var difference = set1.Except(set2);
 
-        Assert.AreEqual(1, difference.Count);
-        Assert.IsTrue(difference.Contains(1));
+        await Assert.That(difference.Count).IsEqualTo(1);
+        await Assert.That(difference.Contains(1)).IsTrue();
     }
 
-    [TestMethod]
-    public void IntersectShouldReturnIntersection()
+    [Test]
+    public async Task IntersectShouldReturnIntersection()
     {
         var set1 = new TreeSet<int>
         {
@@ -264,13 +263,13 @@ public class TreeSetTests
 
         var intersection = set1.Intersect(set2);
 
-        Assert.AreEqual(2, intersection.Count);
-        Assert.IsTrue(intersection.Contains(2));
-        Assert.IsTrue(intersection.Contains(3));
+        await Assert.That(intersection.Count).IsEqualTo(2);
+        await Assert.That(intersection.Contains(2)).IsTrue();
+        await Assert.That(intersection.Contains(3)).IsTrue();
     }
 
-    [TestMethod]
-    public void UnionShouldReturnUnion()
+    [Test]
+    public async Task UnionShouldReturnUnion()
     {
         var set1 = new TreeSet<int>
         {
@@ -286,14 +285,14 @@ public class TreeSetTests
 
         var union = set1.Union(set2);
 
-        Assert.AreEqual(3, union.Count);
-        Assert.IsTrue(union.Contains(1));
-        Assert.IsTrue(union.Contains(2));
-        Assert.IsTrue(union.Contains(3));
+        await Assert.That(union.Count).IsEqualTo(3);
+        await Assert.That(union.Contains(1)).IsTrue();
+        await Assert.That(union.Contains(2)).IsTrue();
+        await Assert.That(union.Contains(3)).IsTrue();
     }
 
-    [TestMethod]
-    public void SymmetricExceptShouldReturnSymmetricDifference()
+    [Test]
+    public async Task SymmetricExceptShouldReturnSymmetricDifference()
     {
         var set1 = new TreeSet<int>
         {
@@ -311,15 +310,15 @@ public class TreeSetTests
 
         var symmetricDiff = set1.SymmetricExcept(set2);
 
-        Assert.AreEqual(2, symmetricDiff.Count);
-        Assert.IsTrue(symmetricDiff.Contains(1));
-        Assert.IsTrue(symmetricDiff.Contains(4));
-        Assert.IsFalse(symmetricDiff.Contains(2));
-        Assert.IsFalse(symmetricDiff.Contains(3));
+        await Assert.That(symmetricDiff.Count).IsEqualTo(2);
+        await Assert.That(symmetricDiff.Contains(1)).IsTrue();
+        await Assert.That(symmetricDiff.Contains(4)).IsTrue();
+        await Assert.That(symmetricDiff.Contains(2)).IsFalse();
+        await Assert.That(symmetricDiff.Contains(3)).IsFalse();
     }
 
-    [TestMethod]
-    public void IsSubsetOfTrueCaseShouldReturnTrue()
+    [Test]
+    public async Task IsSubsetOfTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -334,11 +333,11 @@ public class TreeSetTests
             3
         };
 
-        Assert.IsTrue(set1.IsSubsetOf(set2));
+        await Assert.That(set1.IsSubsetOf(set2)).IsTrue();
     }
 
-    [TestMethod]
-    public void IsSubsetOfFalseCaseShouldReturnFalse()
+    [Test]
+    public async Task IsSubsetOfFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -353,11 +352,11 @@ public class TreeSetTests
             3
         };
 
-        Assert.IsFalse(set1.IsSubsetOf(set2));
+        await Assert.That(set1.IsSubsetOf(set2)).IsFalse();
     }
 
-    [TestMethod]
-    public void IsSupersetOfTrueCaseShouldReturnTrue()
+    [Test]
+    public async Task IsSupersetOfTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -372,11 +371,11 @@ public class TreeSetTests
             2
         };
 
-        Assert.IsTrue(set1.IsSupersetOf(set2));
+        await Assert.That(set1.IsSupersetOf(set2)).IsTrue();
     }
 
-    [TestMethod]
-    public void IsSupersetOfFalseCaseShouldReturnFalse()
+    [Test]
+    public async Task IsSupersetOfFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -391,11 +390,11 @@ public class TreeSetTests
             3
         };
 
-        Assert.IsFalse(set1.IsSupersetOf(set2));
+        await Assert.That(set1.IsSupersetOf(set2)).IsFalse();
     }
 
-    [TestMethod]
-    public void OverlapsTrueCaseShouldReturnTrue()
+    [Test]
+    public async Task OverlapsTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -409,11 +408,11 @@ public class TreeSetTests
             3
         };
 
-        Assert.IsTrue(set1.Overlaps(set2));
+        await Assert.That(set1.Overlaps(set2)).IsTrue();
     }
 
-    [TestMethod]
-    public void OverlapsFalseCaseShouldReturnFalse()
+    [Test]
+    public async Task OverlapsFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -427,11 +426,11 @@ public class TreeSetTests
             4
         };
 
-        Assert.IsFalse(set1.Overlaps(set2));
+        await Assert.That(set1.Overlaps(set2)).IsFalse();
     }
 
-    [TestMethod]
-    public void SetEqualsTrueCaseShouldReturnTrue()
+    [Test]
+    public async Task SetEqualsTrueCaseShouldReturnTrue()
     {
         var set1 = new TreeSet<int>
         {
@@ -447,11 +446,11 @@ public class TreeSetTests
             2
         };
 
-        Assert.IsTrue(set1.SetEquals(set2));
+        await Assert.That(set1.SetEquals(set2)).IsTrue();
     }
 
-    [TestMethod]
-    public void SetEqualsFalseCaseShouldReturnFalse()
+    [Test]
+    public async Task SetEqualsFalseCaseShouldReturnFalse()
     {
         var set1 = new TreeSet<int>
         {
@@ -466,24 +465,24 @@ public class TreeSetTests
             3
         };
 
-        Assert.IsFalse(set1.SetEquals(set2));
+        await Assert.That(set1.SetEquals(set2)).IsFalse();
     }
 
-    [TestMethod]
-    public void FromOrderedEntriesShouldCreateSetFromOrderedData()
+    [Test]
+    public async Task FromOrderedEntriesShouldCreateSetFromOrderedData()
     {
         int[] entries = [1, 2, 3, 2, 1]; // Include duplicates
 
         var set = new TreeSet<int>(entries);
 
-        Assert.AreEqual(3, set.Count);
-        Assert.IsTrue(set.Contains(1));
-        Assert.IsTrue(set.Contains(2));
-        Assert.IsTrue(set.Contains(3));
+        await Assert.That(set.Count).IsEqualTo(3);
+        await Assert.That(set.Contains(1)).IsTrue();
+        await Assert.That(set.Contains(2)).IsTrue();
+        await Assert.That(set.Contains(3)).IsTrue();
     }
 
-    [TestMethod]
-    public void EnumerationShouldIterateInOrder()
+    [Test]
+    public async Task EnumerationShouldIterateInOrder()
     {
         var set = new TreeSet<int>
         {
@@ -498,14 +497,14 @@ public class TreeSetTests
             items.Add(item);
         }
 
-        Assert.AreEqual(3, items.Count);
-        Assert.AreEqual(1, items[0]);
-        Assert.AreEqual(2, items[1]);
-        Assert.AreEqual(3, items[2]);
+        await Assert.That(items.Count).IsEqualTo(3);
+        await Assert.That(items[0]).IsEqualTo(1);
+        await Assert.That(items[1]).IsEqualTo(2);
+        await Assert.That(items[2]).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void StringItemsShouldMaintainLexicographicOrder()
+    [Test]
+    public async Task StringItemsShouldMaintainLexicographicOrder()
     {
         var set = new TreeSet<string>
         {
@@ -516,14 +515,14 @@ public class TreeSetTests
 
         var items = set.ToList();
 
-        Assert.AreEqual(3, items.Count);
-        Assert.AreEqual("apple", items[0]);
-        Assert.AreEqual("banana", items[1]);
-        Assert.AreEqual("zebra", items[2]);
+        await Assert.That(items.Count).IsEqualTo(3);
+        await Assert.That(items[0]).IsEqualTo("apple");
+        await Assert.That(items[1]).IsEqualTo("banana");
+        await Assert.That(items[2]).IsEqualTo("zebra");
     }
 
-    //[TestMethod]
-    public void LargeDataSetShouldMaintainPerformance()
+    [Test]
+    public async Task LargeDataSetShouldMaintainPerformance()
     {
         var set = new TreeSet<int>();
 
@@ -533,12 +532,12 @@ public class TreeSetTests
             set.Add(i);
         }
 
-        Assert.AreEqual(10000, set.Count);
+        await Assert.That(set.Count).IsEqualTo(10000);
 
         // Verify some random accesses
-        Assert.IsTrue(set.Contains(0));
-        Assert.IsTrue(set.Contains(5000));
-        Assert.IsTrue(set.Contains(9999));
+        await Assert.That(set.Contains(0)).IsTrue();
+        await Assert.That(set.Contains(5000)).IsTrue();
+        await Assert.That(set.Contains(9999)).IsTrue();
 
         // Remove half the items
         for (var i = 0; i < 5000; i++)
@@ -546,29 +545,29 @@ public class TreeSetTests
             set.Remove(i);
         }
 
-        Assert.AreEqual(5000, set.Count);
-        Assert.IsFalse(set.Contains(0));
-        Assert.IsTrue(set.Contains(5000));
+        await Assert.That(set.Count).IsEqualTo(5000);
+        await Assert.That(set.Contains(0)).IsFalse();
+        await Assert.That(set.Contains(5000)).IsTrue();
     }
 
-    [TestMethod]
-    public void EmptySetOperationsShouldHandleGracefully()
+    [Test]
+    public async Task EmptySetOperationsShouldHandleGracefully()
     {
         var emptySet = new TreeSet<int>();
         var otherSet = new TreeSet<int> { 1 };
 
-        Assert.IsTrue(emptySet.Except(otherSet).IsEmpty);
-        Assert.IsTrue(emptySet.Intersect(otherSet).IsEmpty);
-        Assert.AreEqual(1, emptySet.Union(otherSet).Count);
-        Assert.AreEqual(1, emptySet.SymmetricExcept(otherSet).Count);
-        Assert.IsTrue(emptySet.IsSubsetOf(otherSet));
-        Assert.IsFalse(emptySet.IsSupersetOf(otherSet));
-        Assert.IsFalse(emptySet.Overlaps(otherSet));
-        Assert.IsFalse(emptySet.SetEquals(otherSet));
+        await Assert.That(emptySet.Except(otherSet).IsEmpty).IsTrue();
+        await Assert.That(emptySet.Intersect(otherSet).IsEmpty).IsTrue();
+        await Assert.That(emptySet.Union(otherSet).Count).IsEqualTo(1);
+        await Assert.That(emptySet.SymmetricExcept(otherSet).Count).IsEqualTo(1);
+        await Assert.That(emptySet.IsSubsetOf(otherSet)).IsTrue();
+        await Assert.That(emptySet.IsSupersetOf(otherSet)).IsFalse();
+        await Assert.That(emptySet.Overlaps(otherSet)).IsFalse();
+        await Assert.That(emptySet.SetEquals(otherSet)).IsFalse();
     }
 
-    [TestMethod]
-    public void SetOperationsShouldMatchReferenceImplementationOnLargerSets()
+    [Test]
+    public async Task SetOperationsShouldMatchReferenceImplementationOnLargerSets()
     {
         var leftItems = new List<int>();
         var rightItems = new List<int>();
@@ -581,22 +580,21 @@ public class TreeSetTests
         var left = new TreeSet<int>(leftItems);
         var right = new TreeSet<int>(rightItems);
 
-        CollectionAssert.AreEquivalent(leftItems.Except(rightItems).ToList(), left.Except(right).ToList());
-        CollectionAssert.AreEquivalent(leftItems.Intersect(rightItems).ToList(), left.Intersect(right).ToList());
-        CollectionAssert.AreEquivalent(leftItems.Union(rightItems).ToList(), left.Union(right).ToList());
-        CollectionAssert.AreEquivalent(leftItems.Except(rightItems).Union(rightItems.Except(leftItems)).ToList(),
-            left.SymmetricExcept(right).ToList());
+        await Assert.That(left.Except(right).ToList()).IsEquivalentTo(leftItems.Except(rightItems).ToList());
+        await Assert.That(left.Intersect(right).ToList()).IsEquivalentTo(leftItems.Intersect(rightItems).ToList());
+        await Assert.That(left.Union(right).ToList()).IsEquivalentTo(leftItems.Union(rightItems).ToList());
+        await Assert.That(left.SymmetricExcept(right).ToList()).IsEquivalentTo(leftItems.Except(rightItems).Union(rightItems.Except(leftItems)).ToList());
 
-        Assert.IsTrue(left.IsSubsetOf(left.Union(right)));
-        Assert.IsFalse(left.IsSubsetOf(right));
-        Assert.IsTrue(left.IsSupersetOf(left.Intersect(right)));
-        Assert.IsTrue(left.Overlaps(right));
-        Assert.IsFalse(left.SetEquals(right));
-        Assert.IsTrue(left.SetEquals([.. leftItems]));
+        await Assert.That(left.IsSubsetOf(left.Union(right))).IsTrue();
+        await Assert.That(left.IsSubsetOf(right)).IsFalse();
+        await Assert.That(left.IsSupersetOf(left.Intersect(right))).IsTrue();
+        await Assert.That(left.Overlaps(right)).IsTrue();
+        await Assert.That(left.SetEquals(right)).IsFalse();
+        await Assert.That(left.SetEquals([.. leftItems])).IsTrue();
     }
 
-    [TestMethod]
-    public void ExtendOnLargeBatchShouldRebuildOnceAndKeepSortedOrder()
+    [Test]
+    public async Task ExtendOnLargeBatchShouldRebuildOnceAndKeepSortedOrder()
     {
         var set = new TreeSet<int> { 10 };
         var batch = new List<int>();
@@ -607,9 +605,9 @@ public class TreeSetTests
 
         set.Extend(batch);
 
-        Assert.AreEqual(1001, set.Count);
-        Assert.IsTrue(set.Contains(0));
-        Assert.IsTrue(set.Contains(1000));
+        await Assert.That(set.Count).IsEqualTo(1001);
+        await Assert.That(set.Contains(0)).IsTrue();
+        await Assert.That(set.Contains(1000)).IsTrue();
         var items = new List<int>();
         foreach (var item in set)
         {
@@ -618,7 +616,7 @@ public class TreeSetTests
 
         for (var i = 1; i < items.Count; i++)
         {
-            Assert.IsTrue(items[i - 1] < items[i]);
+            await Assert.That(items[i - 1] < items[i]).IsTrue();
         }
     }
 }

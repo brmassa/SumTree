@@ -25,24 +25,17 @@ sealed partial class Build
                 // parallel test hosts overwrite each other.
                 CoverageDirectory.GlobFiles("*.cobertura.xml").ForEach(static report => report.DeleteFile());
                 CoverageMergedDirectory.DeleteDirectory();
-                // MSTest rejects the Microsoft.Testing.Platform coverage and the xunit report arguments, so only the
-                // results directory is passed until the test projects migrate off MSTest.
                 DotNetTest(settings => WithMsBuildProperties(settings
                     .SetConfiguration(Config)
                     .AddProcessAdditionalArguments(
-                        // "--coverage",
-                        // "--coverage-settings", CoverageSettingsFile, // Excludes source generated files
-                        // "--coverage-output-format", "cobertura",
-                        // "--report-xunit-trx", // Consumed by tools/slow-tests.cs
+                        "--coverage",
+                        "--coverage-settings", CoverageSettingsFile, // Excludes source generated files
+                        "--coverage-output-format", "cobertura",
+                        "--report-xunit-trx", // Consumed by tools/slow-tests.cs
                         "--results-directory", CoverageDirectory)));
 
                 var reportDirectory = CoverageMergedDirectory.DirectoryExists() ? CoverageMergedDirectory : CoverageDirectory;
                 var reports = reportDirectory.GlobFiles("*.cobertura.xml").ToArray();
-                if (reports.Length == 0)
-                {
-                    Log.Warning("No coverage report found in {Directory}; skipping coverage merge", reportDirectory);
-                    return;
-                }
                 if (reports.Length == 1)
                 {
                     reports[0].Move(CoverageResultFile, ExistsPolicy.FileOverwrite);
@@ -65,12 +58,6 @@ sealed partial class Build
             .Consumes(Test, CoverageResultFile)
             .Executes(() =>
             {
-                if (!CoverageResultFile.FileExists())
-                {
-                    Log.Warning("No coverage report at {CoverageResultFile}; skipping coverage report", CoverageResultFile);
-                    return;
-                }
-
                 _ = CoverageReportDirectory.CreateDirectory();
                 _ = ReportGenerator(
                     s => s

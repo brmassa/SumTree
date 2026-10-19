@@ -9,5 +9,4 @@ global using BenchmarkDotNet.Running;
 global using DiffMatchPatch;
 global using Rope.Compare;
 global using Rope;
-global using SumTree.TreeMap;
 global using SumTree;

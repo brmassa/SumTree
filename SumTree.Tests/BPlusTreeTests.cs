@@ -2,23 +2,21 @@ using CountTreeChar = SumTree.SumTree<char, long, SumTree.Tests.CountOperations>
 using TextTreeChar = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace SumTree.Tests;
-
-[TestClass]
 public class BPlusTreeTests
 {
-    [TestMethod]
-    [DataRow(0)]
-    [DataRow(1)]
-    [DataRow(1024)]
-    [DataRow(1025)]
-    [DataRow(8193)]
-    [DataRow(65537)]
-    [DataRow(2097152)]
-    public void BulkConstructionMaintainsOccupancyAndMinimumHeight(int length)
+    [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(1024)]
+    [Arguments(1025)]
+    [Arguments(8193)]
+    [Arguments(65537)]
+    [Arguments(2097152)]
+    public async Task BulkConstructionMaintainsOccupancyAndMinimumHeight(int length)
     {
         var source = new string('a', length);
         var tree = new TextTreeChar(source.AsMemory());
-        Check(tree, source);
+        await Check(tree, source);
         var leaves = (length + TextTreeChar.ChunkLength - 1) / TextTreeChar.ChunkLength;
         var height = 0;
         var capacity = 1L;
@@ -27,12 +25,12 @@ public class BPlusTreeTests
             capacity *= TextTreeChar.MaximumChildren;
             height++;
         }
-        Assert.AreEqual(height, tree.Depth);
-        Assert.AreEqual(leaves, tree.BufferCount);
+        await Assert.That(tree.Depth).IsEqualTo(height);
+        await Assert.That(tree.BufferCount).IsEqualTo(leaves);
     }
 
-    [TestMethod]
-    public void SplitsAndUnequalHeightJoinsRepairUnderfullRootsLocally()
+    [Test]
+    public async Task SplitsAndUnequalHeightJoinsRepairUnderfullRootsLocally()
     {
         var source = string.Concat(Enumerable.Repeat("Call(items[0]);\r\n", 6000));
         var tree = new TextTreeChar(source.AsMemory());
@@ -42,17 +40,17 @@ public class BPlusTreeTests
         foreach (var at in boundaries)
         {
             var (left, right) = tree.SplitAt(at);
-            Check(left, source[..at]);
-            Check(right, source[at..]);
-            Check(left + right, source);
-            Check(left + small + right, source.Insert(at, "{\r\n}"));
-            Check(small + right + left + small, "{\r\n}" + source[at..] + source[..at] + "{\r\n}");
+            await Check(left, source[..at]);
+            await Check(right, source[at..]);
+            await Check(left + right, source);
+            await Check(left + small + right, source.Insert(at, "{\r\n}"));
+            await Check(small + right + left + small, "{\r\n}" + source[at..] + source[..at] + "{\r\n}");
         }
-        Check(tree, source);
+        await Check(tree, source);
     }
 
-    [TestMethod]
-    public void ThreeWayLeafSplitsPropagateThroughFullParents()
+    [Test]
+    public async Task ThreeWayLeafSplitsPropagateThroughFullParents()
     {
         var source = new string('a', TextTreeChar.MaximumChildren * TextTreeChar.ChunkLength);
         var inserted = new string('b', TextTreeChar.ChunkLength);
@@ -63,13 +61,13 @@ public class BPlusTreeTests
             var at = 513 + i * 101;
             tree = tree.InsertRange(at, inserted.AsMemory());
             source = source.Insert(at, inserted);
-            Check(tree, source);
+            await Check(tree, source);
         }
-        Check(held, new string('a', TextTreeChar.MaximumChildren * TextTreeChar.ChunkLength));
+        await Check(held, new string('a', TextTreeChar.MaximumChildren * TextTreeChar.ChunkLength));
     }
 
-    [TestMethod]
-    public void RandomBulkEditsSplitsAndRootCollapseMatchReference()
+    [Test]
+    public async Task RandomBulkEditsSplitsAndRootCollapseMatchReference()
     {
         var text = string.Concat(Enumerable.Repeat("({items[0]})\r\n", 5000));
         var tree = new TextTreeChar(text.AsMemory());
@@ -105,25 +103,26 @@ public class BPlusTreeTests
 
                 text = text.Insert(at, insert);
             }
-            Check(tree, text);
+            await Check(tree, text);
         }
         foreach (var snapshot in held)
         {
-            Check(snapshot.Tree, snapshot.Text);
+            await Check(snapshot.Tree, snapshot.Text);
         }
 
         var empty = tree.RemoveRange(0, tree.Length);
-        Check(empty, "");
-        Check(empty.Add('x'), "x");
+        await Check(empty, "");
+        await Check(empty.Add('x'), "x");
     }
 
-    [TestMethod]
-    public void DeletingFullLeavesRedistributesMergesAndCollapsesTheRoot()
+    [NotInParallel("CountOperations")]
+    [Test]
+    public async Task DeletingFullLeavesRedistributesMergesAndCollapsesTheRoot()
     {
         var leafCount = CountTreeChar.MaximumChildren * CountTreeChar.MaximumChildren * CountTreeChar.MaximumChildren;
         var tree = new CountTreeChar(new string('x', leafCount * CountTreeChar.ChunkLength).AsMemory());
         var snapshots = new List<(CountTreeChar Tree, long Length)>();
-        Assert.AreEqual(3, tree.Depth);
+        await Assert.That(tree.Depth).IsEqualTo(3);
         for (var remaining = leafCount; remaining > 0; remaining--)
         {
             if (remaining % 97 == 0)
@@ -139,38 +138,39 @@ public class BPlusTreeTests
             };
             tree = tree.RemoveRange((long)index * CountTreeChar.ChunkLength, CountTreeChar.ChunkLength);
             tree.ValidateStructure();
-            Assert.AreEqual((long)(remaining - 1) * CountTreeChar.ChunkLength, tree.Length);
-            Assert.AreEqual(tree.Length, tree.Summary);
+            await Assert.That(tree.Length).IsEqualTo((long)(remaining - 1) * CountTreeChar.ChunkLength);
+            await Assert.That(tree.Summary).IsEqualTo(tree.Length);
         }
-        Assert.IsTrue(tree.IsEmpty);
-        Assert.AreEqual(0, tree.Depth);
+        await Assert.That(tree.IsEmpty).IsTrue();
+        await Assert.That(tree.Depth).IsEqualTo(0);
         foreach (var snapshot in snapshots)
         {
             snapshot.Tree.ValidateStructure();
-            Assert.AreEqual(snapshot.Length, snapshot.Tree.Summary);
+            await Assert.That(snapshot.Tree.Summary).IsEqualTo(snapshot.Length);
         }
     }
 
-    [TestMethod]
-    public void BackspaceAtALeafBoundaryCopiesOnlyOnePath()
+    [Test]
+    public async Task BackspaceAtALeafBoundaryCopiesOnlyOnePath()
     {
         var tree = new TextTreeChar(new string('a', 2_097_152).AsMemory());
         _ = tree.RemoveAt(1_048_575);
         var before = GC.GetAllocatedBytesForCurrentThread();
         var edited = tree.RemoveAt(1_048_575);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.IsLessThan(2048, allocated, $"Backspace allocated {allocated} bytes");
+        await Assert.That(allocated).IsLessThan(2048).Because($"Backspace allocated {allocated} bytes");
         edited.ValidateStructure();
-        Assert.AreEqual(2_097_151L, edited.Length);
-        Assert.AreEqual(2_097_152L, tree.Length);
+        await Assert.That(edited.Length).IsEqualTo(2_097_151L);
+        await Assert.That(tree.Length).IsEqualTo(2_097_152L);
     }
 
-    [TestMethod]
-    [DataRow(4096)]
-    [DataRow(131072)]
-    [DataRow(2097152)]
-    [DataRow(16777216)]
-    public void PointEditsAndAppendSplitsUseBoundedWork(int length)
+    [NotInParallel("CountOperations")]
+    [Test]
+    [Arguments(4096)]
+    [Arguments(131072)]
+    [Arguments(2097152)]
+    [Arguments(16777216)]
+    public async Task PointEditsAndAppendSplitsUseBoundedWork(int length)
     {
         var source = new string('a', length);
         var tree = new CountTreeChar(source.AsMemory());
@@ -178,38 +178,38 @@ public class BPlusTreeTests
         var budget = 8L * CountTreeChar.MaximumChildren * (tree.Depth + 2) * (tree.Depth + 2);
         CountOperations.Reset();
         var inserted = tree.InsertRange(length / 2 + 17, "edit\n".AsMemory());
-        Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Insertion combined {CountOperations.Combines} summaries");
-        Assert.IsLessThanOrEqualTo(2 * CountTreeChar.ChunkLength + 10, CountOperations.Scanned);
+        await Assert.That(CountOperations.Combines).IsLessThanOrEqualTo(budget).Because($"Insertion combined {CountOperations.Combines} summaries");
+        await Assert.That(CountOperations.Scanned).IsLessThanOrEqualTo(2 * CountTreeChar.ChunkLength + 10);
         inserted.ValidateStructure();
-        Assert.AreEqual((long)length + 5, inserted.Summary);
+        await Assert.That(inserted.Summary).IsEqualTo((long)length + 5);
 
         CountOperations.Reset();
         var deleted = inserted.RemoveRange(length / 2 + 17, 5);
-        Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Deletion combined {CountOperations.Combines} summaries");
-        Assert.IsLessThanOrEqualTo(4 * CountTreeChar.ChunkLength, CountOperations.Scanned);
+        await Assert.That(CountOperations.Combines).IsLessThanOrEqualTo(budget).Because($"Deletion combined {CountOperations.Combines} summaries");
+        await Assert.That(CountOperations.Scanned).IsLessThanOrEqualTo(4 * CountTreeChar.ChunkLength);
         deleted.ValidateStructure();
-        Assert.AreEqual(length, deleted.Summary);
+        await Assert.That(deleted.Summary).IsEqualTo(length);
 
         var fragment = new CountTreeChar(new string('b', CountTreeChar.ChunkLength).AsMemory());
         for (var i = 0; i < 80; i++)
         {
             CountOperations.Reset();
             tree += fragment;
-            Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Append combined {CountOperations.Combines} summaries");
-            Assert.AreEqual(0L, CountOperations.Scanned, "Appending full prepared leaves must not rescan text");
+            await Assert.That(CountOperations.Combines).IsLessThanOrEqualTo(budget).Because($"Append combined {CountOperations.Combines} summaries");
+            await Assert.That(CountOperations.Scanned).IsEqualTo(0L).Because("Appending full prepared leaves must not rescan text");
         }
         tree.ValidateStructure();
         before.ValidateStructure();
-        Assert.AreEqual(length, before.Summary);
-        Assert.AreEqual((long)length + 80 * CountTreeChar.ChunkLength, tree.Summary);
+        await Assert.That(before.Summary).IsEqualTo(length);
+        await Assert.That(tree.Summary).IsEqualTo((long)length + 80 * CountTreeChar.ChunkLength);
     }
 
-    static void Check(TextTreeChar tree, string text)
+    static async Task Check(TextTreeChar tree, string text)
     {
         tree.ValidateStructure();
-        Assert.AreEqual(text, tree.ToString());
-        Assert.AreEqual(text.Length, tree.Length);
-        Assert.AreEqual(TextSummaryOperations.SummarizeSpan(text), tree.Summary);
+        await Assert.That(tree.ToString()).IsEqualTo(text);
+        await Assert.That(tree.Length).IsEqualTo(text.Length);
+        await Assert.That(tree.Summary).IsEqualTo(TextSummaryOperations.SummarizeSpan(text));
     }
 }
 

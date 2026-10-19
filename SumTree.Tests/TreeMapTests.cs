@@ -1,31 +1,30 @@
-namespace SumTree.Tests;
 
-[TestClass]
+namespace SumTree.Tests;
 public class TreeMapTests
 {
-    [TestMethod]
-    public void EmptyTreeMapShouldHaveZeroCount()
+    [Test]
+    public async Task EmptyTreeMapShouldHaveZeroCount()
     {
         var map = new TreeMap<int, string>();
 
-        Assert.IsTrue(map.IsEmpty);
-        Assert.AreEqual(0, map.Count);
+        await Assert.That(map.IsEmpty).IsTrue();
+        await Assert.That(map.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void InsertSingleItemShouldBeRetrievable()
+    [Test]
+    public async Task InsertSingleItemShouldBeRetrievable()
     {
         var map = new TreeMap<int, string>();
 
         map.Insert(1, "one");
 
-        Assert.AreEqual("one", map.Get(1));
-        Assert.AreEqual(1, map.Count);
-        Assert.IsFalse(map.IsEmpty);
+        await Assert.That(map.Get(1)).IsEqualTo("one");
+        await Assert.That(map.Count).IsEqualTo(1);
+        await Assert.That(map.IsEmpty).IsFalse();
     }
 
-    [TestMethod]
-    public void InsertMultipleItemsShouldMaintainOrder()
+    [Test]
+    public async Task InsertMultipleItemsShouldMaintainOrder()
     {
         var map = new TreeMap<int, string>();
 
@@ -34,76 +33,76 @@ public class TreeMapTests
         map.Insert(2, "two");
 
         var items = map.ToList();
-        Assert.AreEqual(3, items.Count);
-        Assert.AreEqual(1, items[0].Key);
-        Assert.AreEqual(2, items[1].Key);
-        Assert.AreEqual(3, items[2].Key);
+        await Assert.That(items.Count).IsEqualTo(3);
+        await Assert.That(items[0].Key).IsEqualTo(1);
+        await Assert.That(items[1].Key).IsEqualTo(2);
+        await Assert.That(items[2].Key).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void InsertDuplicateKeyShouldReplaceValue()
+    [Test]
+    public async Task InsertDuplicateKeyShouldReplaceValue()
     {
         var map = new TreeMap<int, string>();
 
         map.Insert(1, "one");
         map.Insert(1, "ONE");
 
-        Assert.AreEqual("ONE", map.Get(1));
-        Assert.AreEqual(1, map.Count);
+        await Assert.That(map.Get(1)).IsEqualTo("ONE");
+        await Assert.That(map.Count).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void GetNonexistentKeyShouldReturnNull()
+    [Test]
+    public async Task GetNonexistentKeyShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
         var result = map.Get(999);
 
-        Assert.IsNull(result);
+        await Assert.That(result).IsNull();
     }
 
-    [TestMethod]
-    public void TryGetValueExistingKeyShouldReturnTrue()
+    [Test]
+    public async Task TryGetValueExistingKeyShouldReturnTrue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
 
         var found = map.TryGetValue(1, out var value);
 
-        Assert.IsTrue(found);
-        Assert.AreEqual("one", value);
+        await Assert.That(found).IsTrue();
+        await Assert.That(value).IsEqualTo("one");
     }
 
-    [TestMethod]
-    public void TryGetValueNonexistentKeyShouldReturnFalse()
+    [Test]
+    public async Task TryGetValueNonexistentKeyShouldReturnFalse()
     {
         var map = new TreeMap<int, string>();
 
         var found = map.TryGetValue(999, out var value);
 
-        Assert.IsFalse(found);
-        Assert.IsNull(value);
+        await Assert.That(found).IsFalse();
+        await Assert.That(value).IsNull();
     }
 
-    [TestMethod]
-    public void ContainsKeyExistingKeyShouldReturnTrue()
+    [Test]
+    public async Task ContainsKeyExistingKeyShouldReturnTrue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
 
-        Assert.IsTrue(map.ContainsKey(1));
+        await Assert.That(map.ContainsKey(1)).IsTrue();
     }
 
-    [TestMethod]
-    public void ContainsKeyNonexistentKeyShouldReturnFalse()
+    [Test]
+    public async Task ContainsKeyNonexistentKeyShouldReturnFalse()
     {
         var map = new TreeMap<int, string>();
 
-        Assert.IsFalse(map.ContainsKey(999));
+        await Assert.That(map.ContainsKey(999)).IsFalse();
     }
 
-    [TestMethod]
-    public void RemoveExistingKeyShouldReturnValueAndRemove()
+    [Test]
+    public async Task RemoveExistingKeyShouldReturnValueAndRemove()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -111,23 +110,23 @@ public class TreeMapTests
 
         var removed = map.Remove(1);
 
-        Assert.AreEqual("one", removed);
-        Assert.IsFalse(map.ContainsKey(1));
-        Assert.AreEqual(1, map.Count);
+        await Assert.That(removed).IsEqualTo("one");
+        await Assert.That(map.ContainsKey(1)).IsFalse();
+        await Assert.That(map.Count).IsEqualTo(1);
     }
 
-    [TestMethod]
-    public void RemoveNonexistentKeyShouldReturnNull()
+    [Test]
+    public async Task RemoveNonexistentKeyShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
         var removed = map.Remove(999);
 
-        Assert.IsNull(removed);
+        await Assert.That(removed).IsNull();
     }
 
-    [TestMethod]
-    public void ClearShouldRemoveAllItems()
+    [Test]
+    public async Task ClearShouldRemoveAllItems()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -135,12 +134,12 @@ public class TreeMapTests
 
         map.Clear();
 
-        Assert.IsTrue(map.IsEmpty);
-        Assert.AreEqual(0, map.Count);
+        await Assert.That(map.IsEmpty).IsTrue();
+        await Assert.That(map.Count).IsEqualTo(0);
     }
 
-    [TestMethod]
-    public void ExtendShouldAddMultipleItems()
+    [Test]
+    public async Task ExtendShouldAddMultipleItems()
     {
         var map = new TreeMap<int, string>();
         KeyValuePair<int, string>[] items =
@@ -152,14 +151,14 @@ public class TreeMapTests
 
         map.Extend(items);
 
-        Assert.AreEqual(3, map.Count);
-        Assert.AreEqual("one", map.Get(1));
-        Assert.AreEqual("two", map.Get(2));
-        Assert.AreEqual("three", map.Get(3));
+        await Assert.That(map.Count).IsEqualTo(3);
+        await Assert.That(map.Get(1)).IsEqualTo("one");
+        await Assert.That(map.Get(2)).IsEqualTo("two");
+        await Assert.That(map.Get(3)).IsEqualTo("three");
     }
 
-    [TestMethod]
-    public void RemoveRangeShouldRemoveItemsInRange()
+    [Test]
+    public async Task RemoveRangeShouldRemoveItemsInRange()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -170,16 +169,16 @@ public class TreeMapTests
 
         map.RemoveRange(2, 4); // Remove keys 2 and 3
 
-        Assert.AreEqual(3, map.Count);
-        Assert.IsTrue(map.ContainsKey(1));
-        Assert.IsFalse(map.ContainsKey(2));
-        Assert.IsFalse(map.ContainsKey(3));
-        Assert.IsTrue(map.ContainsKey(4));
-        Assert.IsTrue(map.ContainsKey(5));
+        await Assert.That(map.Count).IsEqualTo(3);
+        await Assert.That(map.ContainsKey(1)).IsTrue();
+        await Assert.That(map.ContainsKey(2)).IsFalse();
+        await Assert.That(map.ContainsKey(3)).IsFalse();
+        await Assert.That(map.ContainsKey(4)).IsTrue();
+        await Assert.That(map.ContainsKey(5)).IsTrue();
     }
 
-    [TestMethod]
-    public void ClosestShouldReturnClosestKeyValue()
+    [Test]
+    public async Task ClosestShouldReturnClosestKeyValue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -188,13 +187,13 @@ public class TreeMapTests
 
         var closest = map.Closest(2);
 
-        Assert.IsTrue(closest.HasValue);
-        Assert.AreEqual(1, closest.Value.Key);
-        Assert.AreEqual("one", closest.Value.Value);
+        await Assert.That(closest.HasValue).IsTrue();
+        await Assert.That(closest.Value.Key).IsEqualTo(1);
+        await Assert.That(closest.Value.Value).IsEqualTo("one");
     }
 
-    [TestMethod]
-    public void ClosestNoSmallerKeyShouldReturnEmpty()
+    [Test]
+    public async Task ClosestNoSmallerKeyShouldReturnEmpty()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -202,11 +201,11 @@ public class TreeMapTests
 
         var closest = map.Closest(1);
 
-        Assert.IsFalse(closest.HasValue);
+        await Assert.That(closest.HasValue).IsFalse();
     }
 
-    [TestMethod]
-    public void IterateFromShouldStartFromSpecifiedKey()
+    [Test]
+    public async Task IterateFromShouldStartFromSpecifiedKey()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -216,59 +215,59 @@ public class TreeMapTests
 
         var items = map.IterateFrom(2).ToList();
 
-        Assert.AreEqual(3, items.Count);
-        Assert.AreEqual(2, items[0].Key);
-        Assert.AreEqual(3, items[1].Key);
-        Assert.AreEqual(4, items[2].Key);
+        await Assert.That(items.Count).IsEqualTo(3);
+        await Assert.That(items[0].Key).IsEqualTo(2);
+        await Assert.That(items[1].Key).IsEqualTo(3);
+        await Assert.That(items[2].Key).IsEqualTo(4);
     }
 
-    [TestMethod]
-    public void UpdateExistingKeyShouldReturnResult()
+    [Test]
+    public async Task UpdateExistingKeyShouldReturnResult()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
 
         var result = map.Update(1, value => value.ToUpper());
 
-        Assert.AreEqual("ONE", result);
+        await Assert.That(result).IsEqualTo("ONE");
     }
 
-    [TestMethod]
-    public void UpdateNonexistentKeyShouldReturnNull()
+    [Test]
+    public async Task UpdateNonexistentKeyShouldReturnNull()
     {
         var map = new TreeMap<int, string>();
 
         var result = map.Update(999, value => value.ToUpper());
 
-        Assert.IsNull(result);
+        await Assert.That(result).IsNull();
     }
 
-    [TestMethod]
-    public void UpdateShouldWriteBackNewValue()
+    [Test]
+    public async Task UpdateShouldWriteBackNewValue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
 
         var result = map.Update(1, value => value.ToUpper());
 
-        Assert.AreEqual("ONE", result);
-        Assert.AreEqual("ONE", map.Get(1));
+        await Assert.That(result).IsEqualTo("ONE");
+        await Assert.That(map.Get(1)).IsEqualTo("ONE");
     }
 
-    [TestMethod]
-    public void UpdateNonexistentKeyShouldNotChangeMap()
+    [Test]
+    public async Task UpdateNonexistentKeyShouldNotChangeMap()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
 
         map.Update(999, value => value.ToUpper());
 
-        Assert.AreEqual(1, map.Count);
-        Assert.AreEqual("one", map.Get(1));
+        await Assert.That(map.Count).IsEqualTo(1);
+        await Assert.That(map.Get(1)).IsEqualTo("one");
     }
 
-    [TestMethod]
-    public void RetainShouldKeepOnlyMatchingItems()
+    [Test]
+    public async Task RetainShouldKeepOnlyMatchingItems()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -278,15 +277,15 @@ public class TreeMapTests
 
         map.Retain((key, _) => key % 2 == 0);
 
-        Assert.AreEqual(2, map.Count);
-        Assert.IsTrue(map.ContainsKey(2));
-        Assert.IsTrue(map.ContainsKey(4));
-        Assert.IsFalse(map.ContainsKey(1));
-        Assert.IsFalse(map.ContainsKey(3));
+        await Assert.That(map.Count).IsEqualTo(2);
+        await Assert.That(map.ContainsKey(2)).IsTrue();
+        await Assert.That(map.ContainsKey(4)).IsTrue();
+        await Assert.That(map.ContainsKey(1)).IsFalse();
+        await Assert.That(map.ContainsKey(3)).IsFalse();
     }
 
-    [TestMethod]
-    public void FirstShouldReturnFirstEntry()
+    [Test]
+    public async Task FirstShouldReturnFirstEntry()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -295,23 +294,23 @@ public class TreeMapTests
 
         var first = map.First();
 
-        Assert.IsTrue(first.HasValue);
-        Assert.AreEqual(1, first.Value.Key);
-        Assert.AreEqual("one", first.Value.Value);
+        await Assert.That(first.HasValue).IsTrue();
+        await Assert.That(first.Value.Key).IsEqualTo(1);
+        await Assert.That(first.Value.Value).IsEqualTo("one");
     }
 
-    [TestMethod]
-    public void FirstEmptyMapShouldReturnEmpty()
+    [Test]
+    public async Task FirstEmptyMapShouldReturnEmpty()
     {
         var map = new TreeMap<int, string>();
 
         var first = map.First();
 
-        Assert.IsFalse(first.HasValue);
+        await Assert.That(first.HasValue).IsFalse();
     }
 
-    [TestMethod]
-    public void LastShouldReturnLastEntry()
+    [Test]
+    public async Task LastShouldReturnLastEntry()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -320,23 +319,23 @@ public class TreeMapTests
 
         var last = map.Last();
 
-        Assert.IsTrue(last.HasValue);
-        Assert.AreEqual(3, last.Value.Key);
-        Assert.AreEqual("three", last.Value.Value);
+        await Assert.That(last.HasValue).IsTrue();
+        await Assert.That(last.Value.Key).IsEqualTo(3);
+        await Assert.That(last.Value.Value).IsEqualTo("three");
     }
 
-    [TestMethod]
-    public void LastEmptyMapShouldReturnEmpty()
+    [Test]
+    public async Task LastEmptyMapShouldReturnEmpty()
     {
         var map = new TreeMap<int, string>();
 
         var last = map.Last();
 
-        Assert.IsFalse(last.HasValue);
+        await Assert.That(last.HasValue).IsFalse();
     }
 
-    [TestMethod]
-    public void InsertTreeShouldMergeAnotherTreeMap()
+    [Test]
+    public async Task InsertTreeShouldMergeAnotherTreeMap()
     {
         var map1 = new TreeMap<int, string>();
         map1.Insert(1, "one");
@@ -348,14 +347,14 @@ public class TreeMapTests
 
         map1.InsertTree(map2);
 
-        Assert.AreEqual(3, map1.Count);
-        Assert.AreEqual("one", map1.Get(1));
-        Assert.AreEqual("TWO", map1.Get(2));
-        Assert.AreEqual("three", map1.Get(3));
+        await Assert.That(map1.Count).IsEqualTo(3);
+        await Assert.That(map1.Get(1)).IsEqualTo("one");
+        await Assert.That(map1.Get(2)).IsEqualTo("TWO");
+        await Assert.That(map1.Get(3)).IsEqualTo("three");
     }
 
-    [TestMethod]
-    public void KeysShouldReturnAllKeys()
+    [Test]
+    public async Task KeysShouldReturnAllKeys()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -364,14 +363,14 @@ public class TreeMapTests
 
         var keys = map.Keys.ToList();
 
-        Assert.AreEqual(3, keys.Count);
-        Assert.AreEqual(1, keys[0]);
-        Assert.AreEqual(2, keys[1]);
-        Assert.AreEqual(3, keys[2]);
+        await Assert.That(keys.Count).IsEqualTo(3);
+        await Assert.That(keys[0]).IsEqualTo(1);
+        await Assert.That(keys[1]).IsEqualTo(2);
+        await Assert.That(keys[2]).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void ValuesShouldReturnAllValues()
+    [Test]
+    public async Task ValuesShouldReturnAllValues()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -380,32 +379,32 @@ public class TreeMapTests
 
         var values = map.Values.ToList();
 
-        Assert.AreEqual(3, values.Count);
-        Assert.AreEqual("one", values[0]);
-        Assert.AreEqual("two", values[1]);
-        Assert.AreEqual("three", values[2]);
+        await Assert.That(values.Count).IsEqualTo(3);
+        await Assert.That(values[0]).IsEqualTo("one");
+        await Assert.That(values[1]).IsEqualTo("two");
+        await Assert.That(values[2]).IsEqualTo("three");
     }
 
-    [TestMethod]
-    public void IndexerGetShouldReturnValue()
+    [Test]
+    public async Task IndexerGetShouldReturnValue()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
 
-        Assert.AreEqual("one", map[1]);
+        await Assert.That(map[1]).IsEqualTo("one");
     }
 
-    [TestMethod]
-    public void IndexerGetShouldThrowForMissingKey()
+    [Test]
+    public async Task IndexerGetShouldThrowForMissingKey()
     {
         var map = new TreeMap<int, string>();
 
-        Assert.ThrowsExactly<KeyNotFoundException>(() => map[999]);
-        Assert.AreEqual(default, map.Get(999));
+        await Assert.That(() => map[999]).ThrowsExactly<KeyNotFoundException>();
+        await Assert.That(map.Get(999)).IsNull();
     }
 
-    [TestMethod]
-    public void SnapshotShouldBeUnaffectedByLaterMutations()
+    [Test]
+    public async Task SnapshotShouldBeUnaffectedByLaterMutations()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -415,33 +414,33 @@ public class TreeMapTests
         map.Insert(2, "two");
         map.Insert(1, "uno");
 
-        Assert.AreEqual(1, snapshot.Count);
-        Assert.AreEqual("one", snapshot.Get(1));
-        Assert.IsFalse(snapshot.ContainsKey(2));
-        Assert.AreEqual(2, map.Count);
-        Assert.AreEqual("uno", map.Get(1));
+        await Assert.That(snapshot.Count).IsEqualTo(1);
+        await Assert.That(snapshot.Get(1)).IsEqualTo("one");
+        await Assert.That(snapshot.ContainsKey(2)).IsFalse();
+        await Assert.That(map.Count).IsEqualTo(2);
+        await Assert.That(map.Get(1)).IsEqualTo("uno");
 
         map.TryRemove(1, out _);
 
-        Assert.AreEqual(1, snapshot.Count);
-        Assert.AreEqual("one", snapshot.Get(1));
-        Assert.AreEqual(1, map.Count);
-        Assert.IsNull(map.Get(1));
-        Assert.IsTrue(map.ContainsKey(2));
+        await Assert.That(snapshot.Count).IsEqualTo(1);
+        await Assert.That(snapshot.Get(1)).IsEqualTo("one");
+        await Assert.That(map.Count).IsEqualTo(1);
+        await Assert.That(map.Get(1)).IsNull();
+        await Assert.That(map.ContainsKey(2)).IsTrue();
     }
 
-    [TestMethod]
-    public void IndexerSetShouldInsertValue()
+    [Test]
+    public async Task IndexerSetShouldInsertValue()
     {
         var map = new TreeMap<int, string>();
 
         map[1] = "one";
 
-        Assert.AreEqual("one", map.Get(1));
+        await Assert.That(map.Get(1)).IsEqualTo("one");
     }
 
-    [TestMethod]
-    public void FromOrderedEntriesShouldCreateMapFromOrderedData()
+    [Test]
+    public async Task FromOrderedEntriesShouldCreateMapFromOrderedData()
     {
         KeyValuePair<int, string>[] entries =
         [
@@ -452,14 +451,14 @@ public class TreeMapTests
 
         var map = new TreeMap<int, string>(entries);
 
-        Assert.AreEqual(3, map.Count);
-        Assert.AreEqual("one", map.Get(1));
-        Assert.AreEqual("two", map.Get(2));
-        Assert.AreEqual("three", map.Get(3));
+        await Assert.That(map.Count).IsEqualTo(3);
+        await Assert.That(map.Get(1)).IsEqualTo("one");
+        await Assert.That(map.Get(2)).IsEqualTo("two");
+        await Assert.That(map.Get(3)).IsEqualTo("three");
     }
 
-    [TestMethod]
-    public void EnumerationShouldIterateInOrder()
+    [Test]
+    public async Task EnumerationShouldIterateInOrder()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -472,14 +471,14 @@ public class TreeMapTests
             items.Add(item);
         }
 
-        Assert.AreEqual(3, items.Count);
-        Assert.AreEqual(1, items[0].Key);
-        Assert.AreEqual(2, items[1].Key);
-        Assert.AreEqual(3, items[2].Key);
+        await Assert.That(items.Count).IsEqualTo(3);
+        await Assert.That(items[0].Key).IsEqualTo(1);
+        await Assert.That(items[1].Key).IsEqualTo(2);
+        await Assert.That(items[2].Key).IsEqualTo(3);
     }
 
-    [TestMethod]
-    public void StringKeysShouldMaintainLexicographicOrder()
+    [Test]
+    public async Task StringKeysShouldMaintainLexicographicOrder()
     {
         var map = new TreeMap<string, int>();
         map.Insert("zebra", 1);
@@ -488,14 +487,14 @@ public class TreeMapTests
 
         var keys = map.Keys.ToList();
 
-        Assert.AreEqual(3, keys.Count);
-        Assert.AreEqual("apple", keys[0]);
-        Assert.AreEqual("banana", keys[1]);
-        Assert.AreEqual("zebra", keys[2]);
+        await Assert.That(keys.Count).IsEqualTo(3);
+        await Assert.That(keys[0]).IsEqualTo("apple");
+        await Assert.That(keys[1]).IsEqualTo("banana");
+        await Assert.That(keys[2]).IsEqualTo("zebra");
     }
 
-    [TestMethod]
-    public void LargeDataSetShouldMaintainPerformance()
+    [Test]
+    public async Task LargeDataSetShouldMaintainPerformance()
     {
         var map = new TreeMap<int, string>();
 
@@ -505,12 +504,12 @@ public class TreeMapTests
             map.Insert(i, $"value_{i}");
         }
 
-        Assert.AreEqual(10000, map.Count);
+        await Assert.That(map.Count).IsEqualTo(10000);
 
         // Verify some random accesses
-        Assert.AreEqual("value_0", map.Get(0));
-        Assert.AreEqual("value_5000", map.Get(5000));
-        Assert.AreEqual("value_9999", map.Get(9999));
+        await Assert.That(map.Get(0)).IsEqualTo("value_0");
+        await Assert.That(map.Get(5000)).IsEqualTo("value_5000");
+        await Assert.That(map.Get(9999)).IsEqualTo("value_9999");
 
         // Remove half the items
         for (var i = 0; i < 5000; i++)
@@ -518,13 +517,13 @@ public class TreeMapTests
             map.Remove(i);
         }
 
-        Assert.AreEqual(5000, map.Count);
-        Assert.IsNull(map.Get(0));
-        Assert.AreEqual("value_5000", map.Get(5000));
+        await Assert.That(map.Count).IsEqualTo(5000);
+        await Assert.That(map.Get(0)).IsNull();
+        await Assert.That(map.Get(5000)).IsEqualTo("value_5000");
     }
 
-    [TestMethod]
-    public void MapKeySummaryShouldReportGreatestKeyWhenAllKeysAreNegative()
+    [Test]
+    public async Task MapKeySummaryShouldReportGreatestKeyWhenAllKeysAreNegative()
     {
         var sorted = new MapEntry<int, string>[]
         {
@@ -537,26 +536,26 @@ public class TreeMapTests
                 MapKeySummaryOperations<int, string>.SummarizeElement(sorted[1])),
             MapKeySummaryOperations<int, string>.SummarizeElement(sorted[2]));
 
-        Assert.IsFalse(summary.IsEmpty);
-        Assert.AreEqual(-1, summary.Key);
-        Assert.AreEqual(summary, MapKeySummaryOperations<int, string>.SummarizeSpan(sorted));
-        Assert.IsTrue(MapKeySummaryOperations<int, string>.Identity.CompareTo(summary) < 0);
+        await Assert.That(summary.IsEmpty).IsFalse();
+        await Assert.That(summary.Key).IsEqualTo(-1);
+        await Assert.That(MapKeySummaryOperations<int, string>.SummarizeSpan(sorted)).IsEqualTo(summary);
+        await Assert.That(MapKeySummaryOperations<int, string>.Identity.CompareTo(summary) < 0).IsTrue();
     }
 
-    [TestMethod]
-    public void MapKeyEmptyShouldBeEmptyForValueTypeKeys()
+    [Test]
+    public async Task MapKeyEmptyShouldBeEmptyForValueTypeKeys()
     {
         var empty = MapKey<int>.Empty;
         var zero = new MapKey<int>(0);
 
-        Assert.IsTrue(empty.IsEmpty);
-        Assert.IsFalse(zero.IsEmpty);
-        Assert.IsTrue(empty != zero);
-        Assert.IsTrue(empty < zero);
+        await Assert.That(empty.IsEmpty).IsTrue();
+        await Assert.That(zero.IsEmpty).IsFalse();
+        await Assert.That(empty != zero).IsTrue();
+        await Assert.That(empty < zero).IsTrue();
     }
 
-    [TestMethod]
-    public void FromUnorderedEntriesShouldThrow()
+    [Test]
+    public async Task FromUnorderedEntriesShouldThrow()
     {
         KeyValuePair<int, string>[] entries =
         [
@@ -564,11 +563,11 @@ public class TreeMapTests
             new KeyValuePair<int, string>(1, "one")
         ];
 
-        Assert.ThrowsExactly<ArgumentException>(() => new TreeMap<int, string>(entries));
+        await Assert.That(() => new TreeMap<int, string>(entries)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void FromDuplicateEntriesShouldThrow()
+    [Test]
+    public async Task FromDuplicateEntriesShouldThrow()
     {
         KeyValuePair<int, string>[] entries =
         [
@@ -576,11 +575,11 @@ public class TreeMapTests
             new KeyValuePair<int, string>(1, "duplicate")
         ];
 
-        Assert.ThrowsExactly<ArgumentException>(() => new TreeMap<int, string>(entries));
+        await Assert.That(() => new TreeMap<int, string>(entries)).ThrowsExactly<ArgumentException>();
     }
 
-    [TestMethod]
-    public void ExtendWithConflictingKeysShouldUseIncomingValues()
+    [Test]
+    public async Task ExtendWithConflictingKeysShouldUseIncomingValues()
     {
         var map = new TreeMap<int, string>();
         map.Insert(1, "one");
@@ -594,13 +593,13 @@ public class TreeMapTests
 
         map.Extend(pairs);
 
-        Assert.AreEqual(3, map.Count);
-        Assert.AreEqual("TWO", map.Get(2));
-        Assert.AreEqual("three", map.Get(3));
+        await Assert.That(map.Count).IsEqualTo(3);
+        await Assert.That(map.Get(2)).IsEqualTo("TWO");
+        await Assert.That(map.Get(3)).IsEqualTo("three");
     }
 
-    [TestMethod]
-    public void ExtendLargeBatchShouldMergeInOnePass()
+    [Test]
+    public async Task ExtendLargeBatchShouldMergeInOnePass()
     {
         var map = new TreeMap<int, string>();
         map.Insert(5, "five");
@@ -613,17 +612,17 @@ public class TreeMapTests
 
         map.Extend(batch);
 
-        Assert.AreEqual(100, map.Count);
-        Assert.AreEqual("value_5", map.Get(5));
-        Assert.AreEqual("value_99", map.Get(99));
+        await Assert.That(map.Count).IsEqualTo(100);
+        await Assert.That(map.Get(5)).IsEqualTo("value_5");
+        await Assert.That(map.Get(99)).IsEqualTo("value_99");
         for (var i = 1; i < 100; i++)
         {
-            Assert.IsTrue(map.ContainsKey(i));
+            await Assert.That(map.ContainsKey(i)).IsTrue();
         }
     }
 
-    [TestMethod]
-    public void RetainShouldKeepLookupsWorking()
+    [Test]
+    public async Task RetainShouldKeepLookupsWorking()
     {
         var map = new TreeMap<int, string>();
         for (var i = 0; i < 100; i++)
@@ -633,9 +632,9 @@ public class TreeMapTests
 
         map.Retain((key, _) => key % 2 == 0);
 
-        Assert.AreEqual(50, map.Count);
-        Assert.IsTrue(map.ContainsKey(42));
-        Assert.IsFalse(map.ContainsKey(43));
-        Assert.AreEqual("value_98", map.Get(98));
+        await Assert.That(map.Count).IsEqualTo(50);
+        await Assert.That(map.ContainsKey(42)).IsTrue();
+        await Assert.That(map.ContainsKey(43)).IsFalse();
+        await Assert.That(map.Get(98)).IsEqualTo("value_98");
     }
 }

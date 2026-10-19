@@ -1,12 +1,10 @@
 using TextTreeChar = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace SumTree.Tests;
-
-[TestClass]
 public class RangeQueryTests
 {
-    [TestMethod]
-    public void RangesAndTraversalMatchLinearReferenceAfterEdits()
+    [Test]
+    public async Task RangesAndTraversalMatchLinearReferenceAfterEdits()
     {
         var random = new Random(721);
         var text = string.Concat(Enumerable.Repeat("alpha\r\n({x})\rbeta\n", 2000));
@@ -22,11 +20,11 @@ public class RangeQueryTests
             var start = random.Next(text.Length + 1);
             var length = random.Next(text.Length - start + 1);
             var expected = TextSummaryOperations.SummarizeSpan(text.AsSpan(start, length));
-            Assert.AreEqual(expected, tree.GetRangeSummary(start, length));
-            Assert.AreEqual(TextSummaryOperations.SummarizeSpan(text.AsSpan(0, start)), tree.GetPrefixSummary(start));
+            await Assert.That(tree.GetRangeSummary(start, length)).IsEqualTo(expected);
+            await Assert.That(tree.GetPrefixSummary(start)).IsEqualTo(TextSummaryOperations.SummarizeSpan(text.AsSpan(0, start)));
             var output = new char[length];
             tree.CopyTo(start, output);
-            Assert.AreEqual(text.Substring(start, length), new string(output));
+            await Assert.That(new string(output)).IsEqualTo(text.Substring(start, length));
         }
         var builder = new StringBuilder();
         foreach (var chunk in tree.GetChunks())
@@ -34,22 +32,22 @@ public class RangeQueryTests
             builder.Append(chunk);
         }
 
-        Assert.AreEqual(text, builder.ToString());
+        await Assert.That(builder.ToString()).IsEqualTo(text);
         builder.Clear();
         foreach (var item in tree) { builder.Append(item); }
-        Assert.AreEqual(text, builder.ToString());
-        Assert.AreEqual(text, new string([.. tree]));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.GetRangeSummary(-1, 0));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.GetRangeSummary(0, tree.Length + 1));
-        Assert.AreEqual(TextSummaryOperations.Identity, default(TextTreeChar).GetPrefixSummary(0));
+        await Assert.That(builder.ToString()).IsEqualTo(text);
+        await Assert.That(new string([.. tree])).IsEqualTo(text);
+        await Assert.That(() => tree.GetRangeSummary(-1, 0)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() => tree.GetRangeSummary(0, tree.Length + 1)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(default(TextTreeChar).GetPrefixSummary(0)).IsEqualTo(TextSummaryOperations.Identity);
     }
 
-    [TestMethod]
-    [DataRow("")]
-    [DataRow("a\r\nb\rc\n\n")]
-    [DataRow("\r\n\r\n")]
-    [DataRow("last")]
-    public void LineHelpersHandleEveryLineAndEndpoint(string suffix)
+    [Test]
+    [Arguments("")]
+    [Arguments("a\r\nb\rc\n\n")]
+    [Arguments("\r\n\r\n")]
+    [Arguments("last")]
+    public async Task LineHelpersHandleEveryLineAndEndpoint(string suffix)
     {
         // The CRLF straddles the initial 1024-element leaf boundary.
         var text = new string('a', 1023) + "\r\n" + suffix;
@@ -58,41 +56,42 @@ public class RangeQueryTests
         var start = 0;
         for (var line = 1; line <= lines.Length; line++)
         {
-            Assert.AreEqual(start, tree.FindLineStart(line));
-            Assert.AreEqual(lines[line - 1], tree.GetLineContent(line));
+            await Assert.That(tree.FindLineStart(line)).IsEqualTo(start);
+            await Assert.That(tree.GetLineContent(line)).IsEqualTo(lines[line - 1]);
             start += lines[line - 1].Length;
             if (start < text.Length)
             {
                 start += text[start] == '\r' && start + 1 < text.Length && text[start + 1] == '\n' ? 2 : 1;
             }
         }
-        Assert.AreEqual(-1L, tree.FindLineStart(lines.Length + 1));
-        Assert.IsNull(tree.GetLineContent(lines.Length + 1));
+        await Assert.That(tree.FindLineStart(lines.Length + 1)).IsEqualTo(-1L);
+        await Assert.That(tree.GetLineContent(lines.Length + 1)).IsNull();
         for (var i = 0; i <= text.Length; i++)
         {
             var summary = LineNumberSummary.SummarizeSpan(text.AsSpan(0, i));
             var expected = (summary.Lines + 1, summary.LastLineCharacters + 1);
-            Assert.AreEqual(expected, tree.GetLineAndColumn(i));
+            await Assert.That(tree.GetLineAndColumn(i)).IsEqualTo(expected);
         }
-        Assert.AreEqual("", default(TextTreeChar).GetLineContent(1));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.FindLineStart(0));
+        await Assert.That(default(TextTreeChar).GetLineContent(1)).IsEqualTo("");
+        await Assert.That(() => tree.FindLineStart(0)).ThrowsExactly<ArgumentOutOfRangeException>();
     }
 
-    [TestMethod]
-    public void RangeQueriesScanOnlyBoundaryLeavesAndReuseFullSummaries()
+    [NotInParallel("CountOperations")]
+    [Test]
+    public async Task RangeQueriesScanOnlyBoundaryLeavesAndReuseFullSummaries()
     {
         var tree = new SumTree<char, long, CountOperations>(new string('a', 2_097_152).AsMemory());
         CountOperations.Reset();
-        Assert.AreEqual(tree.Length, tree.GetRangeSummary(0, tree.Length));
-        Assert.AreEqual(0L, CountOperations.Scanned);
-        Assert.AreEqual(0L, CountOperations.Combines);
-        Assert.AreEqual(1_000_003L, tree.GetRangeSummary(17, 1_000_003));
-        Assert.IsLessThanOrEqualTo(2048, CountOperations.Scanned);
-        Assert.IsLessThanOrEqualTo(2 * tree.Depth * 8, CountOperations.Combines);
+        await Assert.That(tree.GetRangeSummary(0, tree.Length)).IsEqualTo(tree.Length);
+        await Assert.That(CountOperations.Scanned).IsEqualTo(0L);
+        await Assert.That(CountOperations.Combines).IsEqualTo(0L);
+        await Assert.That(tree.GetRangeSummary(17, 1_000_003)).IsEqualTo(1_000_003L);
+        await Assert.That(CountOperations.Scanned).IsLessThanOrEqualTo(2048);
+        await Assert.That(CountOperations.Combines).IsLessThanOrEqualTo(2 * tree.Depth * 8);
     }
 
-    [TestMethod]
-    public void TypedQueriesAndConcreteTraversalDoNotAllocate()
+    [Test]
+    public async Task TypedQueriesAndConcreteTraversalDoNotAllocate()
     {
         var tree = new TextTreeChar(new string('x', 2_097_152).AsMemory());
         long Visit()
@@ -110,7 +109,7 @@ public class RangeQueryTests
         var before = GC.GetAllocatedBytesForCurrentThread();
         var result = Visit();
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.IsGreaterThan(0, result);
-        Assert.AreEqual(0L, allocated);
+        await Assert.That(result).IsGreaterThan(0);
+        await Assert.That(allocated).IsEqualTo(0L);
     }
 }

@@ -1,29 +1,27 @@
 using BalanceTree = SumTree.SumTree<char, SumTree.BracketBalanceSummary, SumTree.BracketBalanceSummaryOperations>;
 
 namespace SumTree.Tests;
-
-[TestClass]
 public class BracketBalanceTests
 {
-    [TestMethod]
-    [DataRow("", true, true)]
-    [DataRow("({[]})", true, true)]
-    [DataRow(")(", true, false)]
-    [DataRow("([)]", true, true)]
-    [DataRow("(()", false, false)]
-    [DataRow("\"(\" // )", true, true)]
-    public void RawCountsAndPrefixBalancesHaveDifferentContracts(string text, bool equalCounts, bool balancedPrefixes)
+    [Test]
+    [Arguments("", true, true)]
+    [Arguments("({[]})", true, true)]
+    [Arguments(")(", true, false)]
+    [Arguments("([)]", true, true)]
+    [Arguments("(()", false, false)]
+    [Arguments("\"(\" // )", true, true)]
+    public async Task RawCountsAndPrefixBalancesHaveDifferentContracts(string text, bool equalCounts, bool balancedPrefixes)
     {
         var counts = BracketCountSummary.SummarizeSpan(text);
         var summary = BracketBalanceSummaryOperations.SummarizeSpan(text);
-        Assert.AreEqual(equalCounts, counts.HasEqualCounts);
-        Assert.AreEqual(equalCounts, counts.IsBalanced);
-        Assert.AreEqual(balancedPrefixes, summary.HasBalancedPrefixes);
-        Assert.AreEqual(Reference(text), summary);
+        await Assert.That(counts.HasEqualCounts).IsEqualTo(equalCounts);
+        await Assert.That(counts.IsBalanced).IsEqualTo(equalCounts);
+        await Assert.That(summary.HasBalancedPrefixes).IsEqualTo(balancedPrefixes);
+        await Assert.That(summary).IsEqualTo(Reference(text));
     }
 
-    [TestMethod]
-    public void PrefixBalancesAreAssociativeAcrossEveryPartition()
+    [Test]
+    public async Task PrefixBalancesAreAssociativeAcrossEveryPartition()
     {
         var random = new Random(633);
         const string alphabet = "()[]{} x\r\n";
@@ -31,7 +29,7 @@ public class BracketBalanceTests
         {
             var text = new string([.. Enumerable.Range(0, 25).Select(_ => alphabet[random.Next(alphabet.Length)])]);
             var expected = Reference(text);
-            Assert.AreEqual(expected, BracketBalanceSummaryOperations.SummarizeSpan(text));
+            await Assert.That(BracketBalanceSummaryOperations.SummarizeSpan(text)).IsEqualTo(expected);
             for (var first = 0; first <= text.Length; first++)
             {
                 for (var second = first; second <= text.Length; second++)
@@ -39,8 +37,8 @@ public class BracketBalanceTests
                     var a = BracketBalanceSummaryOperations.SummarizeSpan(text.AsSpan(0, first));
                     var b = BracketBalanceSummaryOperations.SummarizeSpan(text.AsSpan(first, second - first));
                     var c = BracketBalanceSummaryOperations.SummarizeSpan(text.AsSpan(second));
-                    Assert.AreEqual(expected, (a + b) + c);
-                    Assert.AreEqual(expected, a + (b + c));
+                    await Assert.That((a + b) + c).IsEqualTo(expected);
+                    await Assert.That(a + (b + c)).IsEqualTo(expected);
                 }
             }
             var composed = BracketBalanceSummary.Identity;
@@ -48,12 +46,12 @@ public class BracketBalanceTests
             {
                 composed += BracketBalanceSummary.FromCharacter(element);
             }
-            Assert.AreEqual(expected, composed);
+            await Assert.That(composed).IsEqualTo(expected);
         }
     }
 
-    [TestMethod]
-    public void EditedSnapshotsRangesAndFirstInvalidPrefixMatchLinearScan()
+    [Test]
+    public async Task EditedSnapshotsRangesAndFirstInvalidPrefixMatchLinearScan()
     {
         var random = new Random(72);
         var text = new string('x', 1023) + ")(" + string.Concat(Enumerable.Repeat("([]{})", 1000));
@@ -72,10 +70,10 @@ public class BracketBalanceTests
                 tree = tree.RemoveRange(index, 5);
                 text = text.Remove(index, 5);
             }
-            Assert.AreEqual(Reference(text), tree.Summary);
+            await Assert.That(tree.Summary).IsEqualTo(Reference(text));
             index = random.Next(text.Length + 1);
             var length = random.Next(text.Length - index + 1);
-            Assert.AreEqual(Reference(text.Substring(index, length)), tree.GetRangeSummary(index, length));
+            await Assert.That(tree.GetRangeSummary(index, length)).IsEqualTo(Reference(text.Substring(index, length)));
             var depth = 0;
             long expected = -1;
             for (var i = 0; i < text.Length; i++)
@@ -84,41 +82,41 @@ public class BracketBalanceTests
                 if (text[i] == ')') { depth--; }
                 if (depth < 0) { expected = i; break; }
             }
-            Assert.AreEqual(expected, tree.FindPosition(new NegativeParenthesisPrefix()));
+            await Assert.That(tree.FindPosition(new NegativeParenthesisPrefix())).IsEqualTo(expected);
         }
-        Assert.AreEqual(original, snapshot.ToString());
-        Assert.AreEqual(Reference(original), snapshot.Summary);
+        await Assert.That(snapshot.ToString()).IsEqualTo(original);
+        await Assert.That(snapshot.Summary).IsEqualTo(Reference(original));
         tree.ValidateStructure();
     }
 
-    [TestMethod]
-    public void SummaryCounterOverflowThrowsInsteadOfWrapping()
+    [Test]
+    public async Task SummaryCounterOverflowThrowsInsteadOfWrapping()
     {
         var line = new LineNumberSummary(0, int.MaxValue, int.MaxValue);
-        Assert.ThrowsExactly<OverflowException>(() => line + LineNumberSummary.FromCharacter('x'));
+        await Assert.That(() => line + LineNumberSummary.FromCharacter('x')).ThrowsExactly<OverflowException>();
         var counts = new BracketCountSummary(int.MaxValue, 0, 0, 0, 0, 0);
-        Assert.ThrowsExactly<OverflowException>(() => counts + BracketCountSummary.FromCharacter('('));
+        await Assert.That(() => counts + BracketCountSummary.FromCharacter('(')).ThrowsExactly<OverflowException>();
         var total = new BracketCountSummary(int.MaxValue, 0, 1, 0, 0, 0);
-        Assert.ThrowsExactly<OverflowException>(() => total.TotalOpenBrackets);
+        await Assert.That(() => total.TotalOpenBrackets).ThrowsExactly<OverflowException>();
         var balance = new DelimiterBalanceSummary(long.MaxValue, 0);
-        Assert.ThrowsExactly<OverflowException>(() => balance + new DelimiterBalanceSummary(1, 0));
-        Assert.ThrowsExactly<OverflowException>(() => new DelimiterBalanceSummary(long.MinValue, long.MinValue) + new DelimiterBalanceSummary(-1, -1));
+        await Assert.That(() => balance + new DelimiterBalanceSummary(1, 0)).ThrowsExactly<OverflowException>();
+        await Assert.That(() => new DelimiterBalanceSummary(long.MinValue, long.MinValue) + new DelimiterBalanceSummary(-1, -1)).ThrowsExactly<OverflowException>();
     }
 
-    [TestMethod]
-    public void LargeSharedSnapshotsRejectIntCounterOverflowWithoutChangingEarlierVersions()
+    [Test]
+    public async Task LargeSharedSnapshotsRejectIntCounterOverflowWithoutChangingEarlierVersions()
     {
         var tree = new SumTree<char, TextSummary, TextSummaryOperations>(new string('x', 1024).AsMemory());
         for (var i = 0; i < 20; i++) { tree += tree; }
-        Assert.AreEqual(1_073_741_824L, tree.Length);
-        Assert.ThrowsExactly<OverflowException>(() => tree + tree);
-        Assert.AreEqual(1_073_741_824, tree.Summary.Lines.TotalCharacters);
+        await Assert.That(tree.Length).IsEqualTo(1_073_741_824L);
+        await Assert.That(() => tree + tree).ThrowsExactly<OverflowException>();
+        await Assert.That(tree.Summary.Lines.TotalCharacters).IsEqualTo(1_073_741_824);
 
         var newlines = new SumTree<char, TextSummary, TextSummaryOperations>(new string('\n', 1024).AsMemory());
         for (var i = 0; i < 20; i++) { newlines += newlines; }
         newlines += newlines.RemoveAt(newlines.Length - 1);
-        Assert.AreEqual(int.MaxValue, newlines.Length);
-        Assert.ThrowsExactly<OverflowException>(() => newlines.GetLineAndColumn(newlines.Length));
+        await Assert.That(newlines.Length).IsEqualTo(int.MaxValue);
+        await Assert.That(() => newlines.GetLineAndColumn(newlines.Length)).ThrowsExactly<OverflowException>();
     }
 
     static BracketBalanceSummary Reference(string text)

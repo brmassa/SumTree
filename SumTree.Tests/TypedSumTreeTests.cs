@@ -1,44 +1,42 @@
 using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace SumTree.Tests;
-
-[TestClass]
 public class TypedSumTreeTests
 {
-    [TestMethod]
-    public void EmptyTreeUsesTheOperationsIdentityEvenWhenItIsNotDefault()
+    [Test]
+    public async Task EmptyTreeUsesTheOperationsIdentityEvenWhenItIsNotDefault()
     {
         var empty = default(SumTree<int, Product, ProductOperations>);
-        Assert.AreEqual(1L, empty.Summary.Value);
-        Assert.AreEqual(0L, empty.Length);
-        Assert.AreEqual(-1L, empty.FindPosition(s => s.Value >= 2));
+        await Assert.That(empty.Summary.Value).IsEqualTo(1L);
+        await Assert.That(empty.Length).IsEqualTo(0L);
+        await Assert.That(empty.FindPosition(s => s.Value >= 2)).IsEqualTo(-1L);
         var tree = new SumTree<int, Product, ProductOperations>(new[] { 2, 3, 4 });
-        Assert.AreEqual(24L, tree.Summary.Value);
-        Assert.AreEqual(24L, (empty + tree + empty).Summary.Value);
-        Assert.AreEqual(1L, tree.FindPosition(s => s.Value >= 6));
-        Assert.AreEqual(1L, tree.Slice(1, 0).Summary.Value);
-        Assert.AreEqual(1L, tree.GetRangeSummary(1, 0).Value);
-        Assert.AreEqual(12L, tree.GetRangeSummary(1, 2).Value);
-        Assert.AreEqual(6L, tree.GetPrefixSummary(2).Value);
+        await Assert.That(tree.Summary.Value).IsEqualTo(24L);
+        await Assert.That((empty + tree + empty).Summary.Value).IsEqualTo(24L);
+        await Assert.That(tree.FindPosition(s => s.Value >= 6)).IsEqualTo(1L);
+        await Assert.That(tree.Slice(1, 0).Summary.Value).IsEqualTo(1L);
+        await Assert.That(tree.GetRangeSummary(1, 0).Value).IsEqualTo(1L);
+        await Assert.That(tree.GetRangeSummary(1, 2).Value).IsEqualTo(12L);
+        await Assert.That(tree.GetPrefixSummary(2).Value).IsEqualTo(6L);
     }
 
-    [TestMethod]
-    public void CrLfAcrossChunksSplitsAndEditsKeepsCompositeSummaryExact()
+    [Test]
+    public async Task CrLfAcrossChunksSplitsAndEditsKeepsCompositeSummaryExact()
     {
         var source = new string('a', 1023) + "\r\n({[]})\rtext\n" + new string('b', 3000);
         var tree = new TextTree(source.AsMemory());
-        AssertText(tree, source);
+        await AssertText(tree, source);
         var (left, right) = tree.SplitAt(1024);
-        AssertText(left + right, source);
-        AssertText(tree.InsertRange(1024, "x".AsMemory()), source.Insert(1024, "x"));
-        AssertText(tree.RemoveAt(1024), source.Remove(1024, 1));
-        Assert.AreEqual(1023L, tree.FindPosition(new LineTarget(1)));
-        Assert.AreEqual(1023L, tree.FindPosition(s => s.Lines.Lines >= 1));
-        Assert.AreEqual(-1L, tree.FindPosition(new LineTarget(100)));
+        await AssertText(left + right, source);
+        await AssertText(tree.InsertRange(1024, "x".AsMemory()), source.Insert(1024, "x"));
+        await AssertText(tree.RemoveAt(1024), source.Remove(1024, 1));
+        await Assert.That(tree.FindPosition(new LineTarget(1))).IsEqualTo(1023L);
+        await Assert.That(tree.FindPosition(s => s.Lines.Lines >= 1)).IsEqualTo(1023L);
+        await Assert.That(tree.FindPosition(new LineTarget(100))).IsEqualTo(-1L);
     }
 
-    [TestMethod]
-    public void RandomizedEditsSlicesAndRetainedSnapshotsMatchReference()
+    [Test]
+    public async Task RandomizedEditsSlicesAndRetainedSnapshotsMatchReference()
     {
         var text = new StringBuilder(string.Concat(Enumerable.Repeat("Call(items[0]);\r\n", 300)));
         var tree = new TextTree(text.ToString().AsMemory());
@@ -68,37 +66,37 @@ public class TypedSumTreeTests
             }
 
             var expected = text.ToString();
-            AssertText(tree, expected);
+            await AssertText(tree, expected);
             var start = random.Next(text.Length + 1);
             var length = random.Next(Math.Min(300, text.Length - start) + 1);
-            AssertText(tree.Slice(start, length), expected.Substring(start, length));
+            await AssertText(tree.Slice(start, length), expected.Substring(start, length));
             if (text.Length > 0)
             {
-                Assert.AreEqual(expected[start % text.Length], tree[start % text.Length]);
+                await Assert.That(tree[start % text.Length]).IsEqualTo(expected[start % text.Length]);
             }
         }
 
         foreach (var snapshot in snapshots)
         {
-            AssertText(snapshot.Tree, snapshot.Text);
+            await AssertText(snapshot.Tree, snapshot.Text);
         }
     }
 
-    [TestMethod]
-    public void EnumerationAndCopyMatchIndexedContentAcrossManyLeaves()
+    [Test]
+    public async Task EnumerationAndCopyMatchIndexedContentAcrossManyLeaves()
     {
         var expected = string.Concat(Enumerable.Repeat("Call(items[0]);\r\n", 300));
         var tree = new TextTree(expected.AsMemory());
-        CollectionAssert.AreEqual(expected.ToCharArray(), tree.ToArray());
-        CollectionAssert.AreEqual(expected.ToCharArray(), tree.ToList().ToArray());
+        await Assert.That(tree.ToArray()).IsEquivalentTo(expected.ToCharArray());
+        await Assert.That(tree.ToList().ToArray()).IsEquivalentTo(expected.ToCharArray());
         var destination = new char[expected.Length + 5];
         tree.CopyTo(destination.AsSpan(5));
-        Assert.AreEqual(expected, new string(destination, 5, expected.Length));
-        AssertText(TextTree.Empty.Add('a').AddRange("\r\n".AsMemory()).Insert(1, '('), "a(\r\n");
+        await Assert.That(new string(destination, 5, expected.Length)).IsEqualTo(expected);
+        await AssertText(TextTree.Empty.Add('a').AddRange("\r\n".AsMemory()).Insert(1, '('), "a(\r\n");
     }
 
-    [TestMethod]
-    public void RepeatedJoinsAndTypingStayBoundedAndKeepEarlierSummaries()
+    [Test]
+    public async Task RepeatedJoinsAndTypingStayBoundedAndKeepEarlierSummaries()
     {
         var fragment = "Call(items[0]);\r\n";
         var prepared = new TextTree(fragment.AsMemory());
@@ -112,24 +110,24 @@ public class TypedSumTreeTests
         {
             tree = tree.Insert(17 + i, 'x');
         }
-        Assert.IsTrue(tree.Depth < 46);
-        Assert.IsTrue(tree.BufferCount < 200, $"Typing left {tree.BufferCount} leaves");
+        await Assert.That(tree.Depth < 46).IsTrue();
+        await Assert.That(tree.BufferCount < 200).IsTrue().Because($"Typing left {tree.BufferCount} leaves");
         var original = string.Concat(Enumerable.Repeat(fragment, 2000));
-        AssertText(held, original);
-        AssertText(tree, original.Insert(17, new string('x', 2000)));
-        Assert.AreEqual(2000, tree.Summary.Brackets.OpenParentheses);
+        await AssertText(held, original);
+        await AssertText(tree, original.Insert(17, new string('x', 2000)));
+        await Assert.That(tree.Summary.Brackets.OpenParentheses).IsEqualTo(2000);
     }
 
-    [TestMethod]
-    public void TypedSeekCombinesCachedSubtreesAndScansAtMostOneLeaf()
+    [Test]
+    public async Task TypedSeekCombinesCachedSubtreesAndScansAtMostOneLeaf()
     {
         var owner = new CountingMemory(new string('a', 100_000));
         using (owner)
         {
             var tree = TextTree.FromBorrowedMemory(owner.Memory);
             owner.SpanRequests = 0;
-            Assert.AreEqual(49_999L, tree.FindPosition(new CharacterTarget(50_000)));
-            Assert.AreEqual(1, owner.SpanRequests, "A seek should access only the final leaf's memory");
+            await Assert.That(tree.FindPosition(new CharacterTarget(50_000))).IsEqualTo(49_999L);
+            await Assert.That(owner.SpanRequests).IsEqualTo(1).Because("A seek should access only the final leaf's memory");
             owner.SpanRequests = 0;
             long count = 0;
             foreach (var _ in tree)
@@ -137,13 +135,13 @@ public class TypedSumTreeTests
                 count++;
             }
 
-            Assert.AreEqual(tree.Length, count);
-            Assert.AreEqual(tree.BufferCount, owner.SpanRequests, "Traversal obtains each leaf span once");
+            await Assert.That(count).IsEqualTo(tree.Length);
+            await Assert.That(owner.SpanRequests).IsEqualTo(tree.BufferCount).Because("Traversal obtains each leaf span once");
         }
     }
 
-    [TestMethod]
-    public void TypedOwnershipCopiesMutableInputsAndPreservesCheapSplits()
+    [Test]
+    public async Task TypedOwnershipCopiesMutableInputsAndPreservesCheapSplits()
     {
         var input = new string('a', 100_000).ToCharArray();
         input[1023] = '\r'; input[1024] = '\n';
@@ -153,43 +151,43 @@ public class TypedSumTreeTests
         var edited = tree.InsertRange(1000, insertion);
         Array.Fill(input, 'z');
         Array.Fill(insertion, 'z');
-        AssertText(tree, expected);
-        AssertText(edited, expected.Insert(1000, "(\n)"));
+        await AssertText(tree, expected);
+        await AssertText(edited, expected.Insert(1000, "(\n)"));
 
         _ = new TextTree("abc".AsMemory()).SplitAt(1);
         var before = GC.GetAllocatedBytesForCurrentThread();
         var split = tree.SplitAt(54_321);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.IsTrue(allocated < 30_000, $"Split allocated {allocated} bytes");
-        AssertText(split.Left + split.Right, expected);
+        await Assert.That(allocated < 30_000).IsTrue().Because($"Split allocated {allocated} bytes");
+        await AssertText(split.Left + split.Right, expected);
     }
 
-    [TestMethod]
-    public void InvalidRangesAndShortCopyDestinationsAreRejected()
+    [Test]
+    public async Task InvalidRangesAndShortCopyDestinationsAreRejected()
     {
         var tree = new TextTree("abc".AsMemory());
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.SplitAt(-1));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.InsertRange(4, ReadOnlyMemory<char>.Empty));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.RemoveRange(1, long.MaxValue));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.Slice(0, -1));
-        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.ElementAt(3));
-        Assert.ThrowsExactly<ArgumentException>(() => tree.CopyTo(new char[2]));
-        Assert.AreEqual("", TextTree.Empty.ToString());
+        await Assert.That(() => tree.SplitAt(-1)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() => tree.InsertRange(4, ReadOnlyMemory<char>.Empty)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() => tree.RemoveRange(1, long.MaxValue)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() => tree.Slice(0, -1)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() => tree.ElementAt(3)).ThrowsExactly<ArgumentOutOfRangeException>();
+        await Assert.That(() => tree.CopyTo(new char[2])).ThrowsExactly<ArgumentException>();
+        await Assert.That(TextTree.Empty.ToString()).IsEqualTo("");
     }
 
-    [TestMethod]
+    [Test]
     public async Task TypedPublishedVersionsRemainReadableDuringFurtherEdits()
     {
         var initial = new TextTree("first\r\n".AsMemory());
         var store = new SumTreeSnapshotStore<char, TextSummary, TextSummaryOperations>(initial);
         var held = store.Current;
-        var reader = Task.Run(() =>
+        var reader = Task.Run(async () =>
         {
             for (var i = 0; i < 200; i++)
             {
                 var snapshot = store.Current;
-                AssertText(snapshot, snapshot.ToString());
-                AssertText(held, "first\r\n");
+                await AssertText(snapshot, snapshot.ToString());
+                await AssertText(held, "first\r\n");
             }
         });
         var tree = initial;
@@ -199,12 +197,12 @@ public class TypedSumTreeTests
         }
 
         await reader;
-        Assert.AreEqual(201, store.Current.Summary.Lines.Lines);
-        AssertText(held, "first\r\n");
+        await Assert.That(store.Current.Summary.Lines.Lines).IsEqualTo(201);
+        await AssertText(held, "first\r\n");
     }
 
-    [TestMethod]
-    public void BuilderShouldBatchAddsAndMatchDirectConstruction()
+    [Test]
+    public async Task BuilderShouldBatchAddsAndMatchDirectConstruction()
     {
         var expected = new char[5000];
         for (var i = 0; i < expected.Length; i++)
@@ -226,15 +224,15 @@ public class TypedSumTreeTests
             }
         }
 
-        Assert.AreEqual(expected.Length, builder.Length);
+        await Assert.That(builder.Length).IsEqualTo(expected.Length);
         var tree = builder.ToTree();
-        Assert.IsTrue(expected.SequenceEqual(tree));
-        Assert.AreEqual(TextSummaryOperations.SummarizeSpan(expected), tree.Summary);
-        Assert.AreEqual(expected.Length, builder.Length);
+        await Assert.That(expected.SequenceEqual(tree)).IsTrue();
+        await Assert.That(tree.Summary).IsEqualTo(TextSummaryOperations.SummarizeSpan(expected));
+        await Assert.That(builder.Length).IsEqualTo(expected.Length);
     }
 
-    [TestMethod]
-    public void BuilderShouldAppendToExistingTreeInOrder()
+    [Test]
+    public async Task BuilderShouldAppendToExistingTreeInOrder()
     {
         var initial = new TextTree("abc".AsMemory());
         var builder = new SumTreeBuilder<char, TextSummary, TextSummaryOperations>(initial);
@@ -243,57 +241,57 @@ public class TypedSumTreeTests
         builder.AddRange(new TextTree("gh".AsMemory()));
         builder.AddRange(new List<char> { 'i', 'j' });
 
-        Assert.IsFalse(builder.IsEmpty);
-        Assert.AreEqual(10, builder.Length);
-        AssertText(builder.ToTree(), "abcdefghij");
+        await Assert.That(builder.IsEmpty).IsFalse();
+        await Assert.That(builder.Length).IsEqualTo(10);
+        await AssertText(builder.ToTree(), "abcdefghij");
     }
 
-    [TestMethod]
-    public void EmptyBuilderShouldProduceEmptyTree()
+    [Test]
+    public async Task EmptyBuilderShouldProduceEmptyTree()
     {
         var builder = new SumTreeBuilder<char, TextSummary, TextSummaryOperations>();
 
-        Assert.IsTrue(builder.IsEmpty);
-        AssertText(builder.ToTree(), string.Empty);
+        await Assert.That(builder.IsEmpty).IsTrue();
+        await AssertText(builder.ToTree(), string.Empty);
     }
 
-    [TestMethod]
-    public void BuilderAddRangeShouldJoinTypedTreeFromEnumerable()
+    [Test]
+    public async Task BuilderAddRangeShouldJoinTypedTreeFromEnumerable()
     {
         var builder = new SumTreeBuilder<char, TextSummary, TextSummaryOperations>();
         builder.AddRange(new List<char> { 'a', 'b', 'c' });
         IEnumerable<char> tail = new TextTree("def".AsMemory());
         builder.AddRange(tail);
 
-        Assert.AreEqual(6, builder.Length);
-        AssertText(builder.ToTree(), "abcdef");
+        await Assert.That(builder.Length).IsEqualTo(6);
+        await AssertText(builder.ToTree(), "abcdef");
     }
 
-    [TestMethod]
-    public void TypedTreeEqualityShouldCompareElementsNotStructure()
+    [Test]
+    public async Task TypedTreeEqualityShouldCompareElementsNotStructure()
     {
         var a = new TextTree("hello world".AsMemory());
         var b = TextTree.Empty.Add('h').AddRange("ello world".AsMemory());
 
-        Assert.IsTrue(a.Equals(b));
-        Assert.IsTrue(a == b);
-        Assert.AreEqual(a.GetHashCode(), b.GetHashCode());
-        Assert.IsFalse(a != b);
-        Assert.IsTrue(a.Equals((object)b));
+        await Assert.That(a.Equals(b)).IsTrue();
+        await Assert.That(a == b).IsTrue();
+        await Assert.That(b.GetHashCode()).IsEqualTo(a.GetHashCode());
+        await Assert.That(a != b).IsFalse();
+        await Assert.That(a.Equals((object)b)).IsTrue();
 
         var longer = new TextTree("hello world!".AsMemory());
-        Assert.IsTrue(a != longer);
-        Assert.IsFalse(a.Equals(longer));
-        Assert.IsFalse(a.Equals("hello world"));
+        await Assert.That(a != longer).IsTrue();
+        await Assert.That(a.Equals(longer)).IsFalse();
+        await Assert.That(a.Equals("hello world")).IsFalse();
 
         var emptyA = TextTree.Empty;
         var emptyB = new TextTree(ReadOnlyMemory<char>.Empty);
-        Assert.IsTrue(emptyA == emptyB);
-        Assert.AreEqual(emptyA.GetHashCode(), emptyB.GetHashCode());
+        await Assert.That(emptyA == emptyB).IsTrue();
+        await Assert.That(emptyB.GetHashCode()).IsEqualTo(emptyA.GetHashCode());
     }
 
-    [TestMethod]
-    public void EqualityShouldIgnoreLeafBoundaries()
+    [Test]
+    public async Task EqualityShouldIgnoreLeafBoundaries()
     {
         var content = new char[1500];
         for (var i = 0; i < content.Length; i++)
@@ -306,24 +304,24 @@ public class TypedSumTreeTests
         var split = new TextTree(content.AsSpan(0, 600).ToArray())
             .AddRange(content.AsSpan(600).ToArray());
 
-        Assert.AreEqual(oneShot.Length, split.Length);
-        Assert.IsTrue(oneShot.Equals(split));
-        Assert.IsTrue(oneShot == split);
-        Assert.IsFalse(oneShot != split);
-        Assert.AreEqual(oneShot.GetHashCode(), split.GetHashCode());
+        await Assert.That(split.Length).IsEqualTo(oneShot.Length);
+        await Assert.That(oneShot.Equals(split)).IsTrue();
+        await Assert.That(oneShot == split).IsTrue();
+        await Assert.That(oneShot != split).IsFalse();
+        await Assert.That(split.GetHashCode()).IsEqualTo(oneShot.GetHashCode());
 
         var modifiedContent = (char[])content.Clone();
         modifiedContent[750] = modifiedContent[750] == 'z' ? 'y' : 'z';
         var modified = new TextTree(modifiedContent.AsMemory());
-        Assert.IsTrue(oneShot != modified);
+        await Assert.That(oneShot != modified).IsTrue();
     }
 
-    static void AssertText(TextTree tree, string expected)
+    static async Task AssertText(TextTree tree, string expected)
     {
         tree.ValidateStructure();
-        Assert.AreEqual(expected, tree.ToString());
-        Assert.AreEqual(expected.Length, tree.Length);
-        Assert.AreEqual(TextSummaryOperations.SummarizeSpan(expected), tree.Summary);
+        await Assert.That(tree.ToString()).IsEqualTo(expected);
+        await Assert.That(tree.Length).IsEqualTo(expected.Length);
+        await Assert.That(tree.Summary).IsEqualTo(TextSummaryOperations.SummarizeSpan(expected));
     }
 
     readonly struct LineTarget(int lines) : ISummarySeek<TextSummary>

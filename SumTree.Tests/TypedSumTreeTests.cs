@@ -210,6 +210,121 @@ public class TypedSumTreeTests
         AssertText(held, "first\r\n");
     }
 
+    [TestMethod]
+    public void BuilderShouldBatchAddsAndMatchDirectConstruction()
+    {
+        var expected = new char[5000];
+        for (var i = 0; i < expected.Length; i++)
+        {
+            expected[i] = (char)('a' + i % 26);
+        }
+
+        var builder = new SumTreeBuilder<char, TextSummary, TextSummaryOperations>();
+        builder.AddRange(expected.AsSpan(0, 3));
+        var index = 3;
+        while (index < expected.Length)
+        {
+            builder.Add(expected[index++]);
+            if (index % 700 == 0 && index < expected.Length)
+            {
+                var take = Math.Min(13, expected.Length - index);
+                builder.AddRange(expected.AsSpan(index, take));
+                index += take;
+            }
+        }
+
+        Assert.AreEqual(expected.Length, builder.Length);
+        var tree = builder.ToTree();
+        Assert.IsTrue(expected.SequenceEqual(tree));
+        Assert.AreEqual(TextSummaryOperations.SummarizeSpan(expected), tree.Summary);
+        Assert.AreEqual(expected.Length, builder.Length);
+    }
+
+    [TestMethod]
+    public void BuilderShouldAppendToExistingTreeInOrder()
+    {
+        var initial = new TextTree("abc".AsMemory());
+        var builder = new SumTreeBuilder<char, TextSummary, TextSummaryOperations>(initial);
+        builder.Add('d');
+        builder.AddRange("ef".AsMemory());
+        builder.AddRange(new TextTree("gh".AsMemory()));
+        builder.AddRange(new List<char> { 'i', 'j' });
+
+        Assert.IsFalse(builder.IsEmpty);
+        Assert.AreEqual(10, builder.Length);
+        AssertText(builder.ToTree(), "abcdefghij");
+    }
+
+    [TestMethod]
+    public void EmptyBuilderShouldProduceEmptyTree()
+    {
+        var builder = new SumTreeBuilder<char, TextSummary, TextSummaryOperations>();
+
+        Assert.IsTrue(builder.IsEmpty);
+        AssertText(builder.ToTree(), string.Empty);
+    }
+
+    [TestMethod]
+    public void BuilderAddRangeShouldJoinTypedTreeFromEnumerable()
+    {
+        var builder = new SumTreeBuilder<char, TextSummary, TextSummaryOperations>();
+        builder.AddRange(new List<char> { 'a', 'b', 'c' });
+        IEnumerable<char> tail = new TextTree("def".AsMemory());
+        builder.AddRange(tail);
+
+        Assert.AreEqual(6, builder.Length);
+        AssertText(builder.ToTree(), "abcdef");
+    }
+
+    [TestMethod]
+    public void TypedTreeEqualityShouldCompareElementsNotStructure()
+    {
+        var a = new TextTree("hello world".AsMemory());
+        var b = TextTree.Empty.Add('h').AddRange("ello world".AsMemory());
+
+        Assert.IsTrue(a.Equals(b));
+        Assert.IsTrue(a == b);
+        Assert.AreEqual(a.GetHashCode(), b.GetHashCode());
+        Assert.IsFalse(a != b);
+        Assert.IsTrue(a.Equals((object)b));
+
+        var longer = new TextTree("hello world!".AsMemory());
+        Assert.IsTrue(a != longer);
+        Assert.IsFalse(a.Equals(longer));
+        Assert.IsFalse(a.Equals("hello world"));
+
+        var emptyA = TextTree.Empty;
+        var emptyB = new TextTree(ReadOnlyMemory<char>.Empty);
+        Assert.IsTrue(emptyA == emptyB);
+        Assert.AreEqual(emptyA.GetHashCode(), emptyB.GetHashCode());
+    }
+
+    [TestMethod]
+    public void EqualityShouldIgnoreLeafBoundaries()
+    {
+        var content = new char[1500];
+        for (var i = 0; i < content.Length; i++)
+        {
+            content[i] = (char)('a' + i % 26);
+        }
+
+        // One shot: leaves 1024 + 476. Split: leaves 600 + 900.
+        var oneShot = new TextTree(content.AsMemory());
+        var split = new TextTree(content.AsSpan(0, 600).ToArray())
+            .AddRange(content.AsSpan(600).ToArray());
+
+        Assert.AreEqual(oneShot.Length, split.Length);
+        Assert.IsTrue(oneShot.Equals(split));
+        Assert.IsTrue(oneShot == split);
+        Assert.IsFalse(oneShot != split);
+        Assert.AreEqual(oneShot.GetHashCode(), split.GetHashCode());
+
+        var modifiedContent = (char[])content.Clone();
+        modifiedContent[750] = modifiedContent[750] == 'z' ? 'y' : 'z';
+        var modified = new TextTree(modifiedContent.AsMemory());
+        Assert.IsTrue(oneShot != modified);
+    }
+
     static void AssertText(TextTree tree, string expected)
     {
         tree.ValidateStructure();

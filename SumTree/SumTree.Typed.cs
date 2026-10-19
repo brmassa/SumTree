@@ -11,7 +11,7 @@ namespace SumTree;
 /// Elements and summaries must be immutable. Publish versions through a snapshot store or
 /// external synchronization. Index/range arguments are validated strictly.
 /// </remarks>
-public readonly struct SumTree<T, TSummary, TOps> : IReadOnlyList<T>
+public readonly struct SumTree<T, TSummary, TOps> : IReadOnlyList<T>, IEquatable<SumTree<T, TSummary, TOps>>
     where T : IEquatable<T>
     where TSummary : struct
     where TOps : struct, ISummaryOperations<T, TSummary>
@@ -24,7 +24,7 @@ public readonly struct SumTree<T, TSummary, TOps> : IReadOnlyList<T>
 
     public static SumTree<T, TSummary, TOps> Empty => default;
     public long Length => _root?.Length ?? 0;
-    public int Count => checked((int)Length);
+    public int Count => (int)Math.Min(Length, int.MaxValue);
     public int Depth => _root?.Depth ?? 0;
     public int BufferCount => _root?.BufferCount ?? 0;
     public bool IsEmpty => _root is null;
@@ -388,6 +388,87 @@ public readonly struct SumTree<T, TSummary, TOps> : IReadOnlyList<T>
     IEnumerator IEnumerable.GetEnumerator() => Enumerate(_root).GetEnumerator();
     public static SumTree<T, TSummary, TOps> operator +(SumTree<T, TSummary, TOps> left,
         SumTree<T, TSummary, TOps> right) => new(JoinRoots(left._root, right._root));
+
+    /// <summary>Determines whether two trees contain the same elements in the same order.</summary>
+    /// <remarks>
+    /// Structural sharing is not considered; two separately built trees compare equal when their
+    /// elements match, even if their leaf boundaries differ.
+    /// </remarks>
+    public bool Equals(SumTree<T, TSummary, TOps> other)
+    {
+        if (Length != other.Length)
+        {
+            return false;
+        }
+
+        var left = GetChunks();
+        var right = other.GetChunks();
+        var hasLeft = left.MoveNext();
+        var hasRight = right.MoveNext();
+        var a = hasLeft ? left.Current : default;
+        var b = hasRight ? right.Current : default;
+
+        while (true)
+        {
+            if (a.IsEmpty && hasLeft)
+            {
+                hasLeft = left.MoveNext();
+                a = hasLeft ? left.Current : default;
+                continue;
+            }
+
+            if (b.IsEmpty && hasRight)
+            {
+                hasRight = right.MoveNext();
+                b = hasRight ? right.Current : default;
+                continue;
+            }
+
+            if (a.IsEmpty && b.IsEmpty)
+            {
+                return !hasLeft && !hasRight;
+            }
+
+            if (a.IsEmpty || b.IsEmpty)
+            {
+                return false;
+            }
+
+            // Chunk boundaries may differ between the trees, so compare only the overlap
+            // and keep the unconsumed remainder for the next round.
+            var count = Math.Min(a.Length, b.Length);
+            if (!a[..count].SequenceEqual(b[..count]))
+            {
+                return false;
+            }
+
+            a = a[count..];
+            b = b[count..];
+        }
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) =>
+        obj is SumTree<T, TSummary, TOps> other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Length);
+        foreach (var item in this)
+        {
+            hash.Add(item);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    public static bool operator ==(SumTree<T, TSummary, TOps> left, SumTree<T, TSummary, TOps> right) =>
+        left.Equals(right);
+
+    public static bool operator !=(SumTree<T, TSummary, TOps> left, SumTree<T, TSummary, TOps> right) =>
+        !left.Equals(right);
 
     // Interface consumers cannot retain spans. Use one iterator and one traversal
     // stack rather than allocating recursive iterators for every node.

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -193,13 +194,13 @@ public class TreeMapTests
 
         var closest = map.Closest(2);
 
-        Assert.IsNotNull(closest);
+        Assert.IsTrue(closest.HasValue);
         Assert.AreEqual(1, closest.Value.Key);
         Assert.AreEqual("one", closest.Value.Value);
     }
 
     [TestMethod]
-    public void ClosestNoSmallerKeyShouldReturnNull()
+    public void ClosestNoSmallerKeyShouldReturnEmpty()
     {
         var map = new TreeMap<int, string>();
         map.Insert(3, "three");
@@ -207,7 +208,7 @@ public class TreeMapTests
 
         var closest = map.Closest(1);
 
-        Assert.IsNull(closest);
+        Assert.IsFalse(closest.HasValue);
     }
 
     [TestMethod]
@@ -249,6 +250,30 @@ public class TreeMapTests
     }
 
     [TestMethod]
+    public void UpdateShouldWriteBackNewValue()
+    {
+        var map = new TreeMap<int, string>();
+        map.Insert(1, "one");
+
+        var result = map.Update(1, value => value.ToUpper());
+
+        Assert.AreEqual("ONE", result);
+        Assert.AreEqual("ONE", map.Get(1));
+    }
+
+    [TestMethod]
+    public void UpdateNonexistentKeyShouldNotChangeMap()
+    {
+        var map = new TreeMap<int, string>();
+        map.Insert(1, "one");
+
+        map.Update(999, value => value.ToUpper());
+
+        Assert.AreEqual(1, map.Count);
+        Assert.AreEqual("one", map.Get(1));
+    }
+
+    [TestMethod]
     public void RetainShouldKeepOnlyMatchingItems()
     {
         var map = new TreeMap<int, string>();
@@ -276,19 +301,19 @@ public class TreeMapTests
 
         var first = map.First();
 
-        Assert.IsNotNull(first);
+        Assert.IsTrue(first.HasValue);
         Assert.AreEqual(1, first.Value.Key);
         Assert.AreEqual("one", first.Value.Value);
     }
 
     [TestMethod]
-    public void FirstEmptyMapShouldReturnNull()
+    public void FirstEmptyMapShouldReturnEmpty()
     {
         var map = new TreeMap<int, string>();
 
         var first = map.First();
 
-        Assert.IsNull(first);
+        Assert.IsFalse(first.HasValue);
     }
 
     [TestMethod]
@@ -301,19 +326,19 @@ public class TreeMapTests
 
         var last = map.Last();
 
-        Assert.IsNotNull(last);
+        Assert.IsTrue(last.HasValue);
         Assert.AreEqual(3, last.Value.Key);
         Assert.AreEqual("three", last.Value.Value);
     }
 
     [TestMethod]
-    public void LastEmptyMapShouldReturnNull()
+    public void LastEmptyMapShouldReturnEmpty()
     {
         var map = new TreeMap<int, string>();
 
         var last = map.Last();
 
-        Assert.IsNull(last);
+        Assert.IsFalse(last.HasValue);
     }
 
     [TestMethod]
@@ -374,6 +399,41 @@ public class TreeMapTests
         map.Insert(1, "one");
 
         Assert.AreEqual("one", map[1]);
+    }
+
+    [TestMethod]
+    public void IndexerGetShouldThrowForMissingKey()
+    {
+        var map = new TreeMap<int, string>();
+
+        Assert.ThrowsExactly<KeyNotFoundException>(() => map[999]);
+        Assert.AreEqual(default, map.Get(999));
+    }
+
+    [TestMethod]
+    public void SnapshotShouldBeUnaffectedByLaterMutations()
+    {
+        var map = new TreeMap<int, string>();
+        map.Insert(1, "one");
+
+        var snapshot = map.Snapshot();
+
+        map.Insert(2, "two");
+        map.Insert(1, "uno");
+
+        Assert.AreEqual(1, snapshot.Count);
+        Assert.AreEqual("one", snapshot.Get(1));
+        Assert.IsFalse(snapshot.ContainsKey(2));
+        Assert.AreEqual(2, map.Count);
+        Assert.AreEqual("uno", map.Get(1));
+
+        map.TryRemove(1, out _);
+
+        Assert.AreEqual(1, snapshot.Count);
+        Assert.AreEqual("one", snapshot.Get(1));
+        Assert.AreEqual(1, map.Count);
+        Assert.IsNull(map.Get(1));
+        Assert.IsTrue(map.ContainsKey(2));
     }
 
     [TestMethod]
@@ -467,5 +527,121 @@ public class TreeMapTests
         Assert.AreEqual(5000, map.Count);
         Assert.IsNull(map.Get(0));
         Assert.AreEqual("value_5000", map.Get(5000));
+    }
+
+    [TestMethod]
+    public void MapKeySummaryShouldReportGreatestKeyWhenAllKeysAreNegative()
+    {
+        var sorted = new MapEntry<int, string>[]
+        {
+            new(-5, "a"), new(-3, "c"), new(-1, "b")
+        };
+
+        var summary = MapKeySummaryOperations<int, string>.Combine(
+            MapKeySummaryOperations<int, string>.Combine(
+                MapKeySummaryOperations<int, string>.SummarizeElement(sorted[0]),
+                MapKeySummaryOperations<int, string>.SummarizeElement(sorted[1])),
+            MapKeySummaryOperations<int, string>.SummarizeElement(sorted[2]));
+
+        Assert.IsFalse(summary.IsEmpty);
+        Assert.AreEqual(-1, summary.Key);
+        Assert.AreEqual(summary, MapKeySummaryOperations<int, string>.SummarizeSpan(sorted));
+        Assert.IsTrue(MapKeySummaryOperations<int, string>.Identity.CompareTo(summary) < 0);
+    }
+
+    [TestMethod]
+    public void MapKeyEmptyShouldBeEmptyForValueTypeKeys()
+    {
+        var empty = MapKey<int>.Empty;
+        var zero = new MapKey<int>(0);
+
+        Assert.IsTrue(empty.IsEmpty);
+        Assert.IsFalse(zero.IsEmpty);
+        Assert.IsTrue(empty != zero);
+        Assert.IsTrue(empty < zero);
+    }
+
+    [TestMethod]
+    public void FromUnorderedEntriesShouldThrow()
+    {
+        KeyValuePair<int, string>[] entries =
+        [
+            new KeyValuePair<int, string>(3, "three"),
+            new KeyValuePair<int, string>(1, "one")
+        ];
+
+        Assert.ThrowsExactly<ArgumentException>(() => new TreeMap<int, string>(entries));
+    }
+
+    [TestMethod]
+    public void FromDuplicateEntriesShouldThrow()
+    {
+        KeyValuePair<int, string>[] entries =
+        [
+            new KeyValuePair<int, string>(1, "one"),
+            new KeyValuePair<int, string>(1, "duplicate")
+        ];
+
+        Assert.ThrowsExactly<ArgumentException>(() => new TreeMap<int, string>(entries));
+    }
+
+    [TestMethod]
+    public void ExtendWithConflictingKeysShouldUseIncomingValues()
+    {
+        var map = new TreeMap<int, string>();
+        map.Insert(1, "one");
+        map.Insert(2, "two");
+
+        KeyValuePair<int, string>[] pairs =
+        [
+            new KeyValuePair<int, string>(2, "TWO"),
+            new KeyValuePair<int, string>(3, "three")
+        ];
+
+        map.Extend(pairs);
+
+        Assert.AreEqual(3, map.Count);
+        Assert.AreEqual("TWO", map.Get(2));
+        Assert.AreEqual("three", map.Get(3));
+    }
+
+    [TestMethod]
+    public void ExtendLargeBatchShouldMergeInOnePass()
+    {
+        var map = new TreeMap<int, string>();
+        map.Insert(5, "five");
+
+        var batch = new List<KeyValuePair<int, string>>();
+        for (var i = 0; i < 100; i++)
+        {
+            batch.Add(new KeyValuePair<int, string>(i, $"value_{i}"));
+        }
+
+        map.Extend(batch);
+
+        Assert.AreEqual(100, map.Count);
+        Assert.AreEqual("value_5", map.Get(5));
+        Assert.AreEqual("value_99", map.Get(99));
+        for (var i = 1; i < 100; i++)
+        {
+            Assert.IsTrue(map.ContainsKey(i));
+        }
+    }
+
+    [TestMethod]
+    public void RetainShouldKeepLookupsWorking()
+    {
+        var map = new TreeMap<int, string>();
+        for (var i = 0; i < 100; i++)
+        {
+            map.Insert(i, $"value_{i}");
+        }
+
+        map.Retain((key, _) => key % 2 == 0);
+
+        Assert.AreEqual(50, map.Count);
+        Assert.IsTrue(map.ContainsKey(42));
+        Assert.IsFalse(map.ContainsKey(43));
+        Assert.AreEqual("value_98", map.Get(98));
     }
 }

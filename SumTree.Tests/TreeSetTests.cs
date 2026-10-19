@@ -571,4 +571,59 @@ public class TreeSetTests
         Assert.IsFalse(emptySet.Overlaps(otherSet));
         Assert.IsFalse(emptySet.SetEquals(otherSet));
     }
+
+    [TestMethod]
+    public void SetOperationsShouldMatchReferenceImplementationOnLargerSets()
+    {
+        var leftItems = new List<int>();
+        var rightItems = new List<int>();
+        for (var i = 0; i < 500; i++)
+        {
+            if (i % 3 == 0) { leftItems.Add(i); }
+            if (i % 2 == 0) { rightItems.Add(i); }
+        }
+
+        var left = new TreeSet<int>(leftItems);
+        var right = new TreeSet<int>(rightItems);
+
+        CollectionAssert.AreEquivalent(leftItems.Except(rightItems).ToList(), left.Except(right).ToList());
+        CollectionAssert.AreEquivalent(leftItems.Intersect(rightItems).ToList(), left.Intersect(right).ToList());
+        CollectionAssert.AreEquivalent(leftItems.Union(rightItems).ToList(), left.Union(right).ToList());
+        CollectionAssert.AreEquivalent(leftItems.Except(rightItems).Union(rightItems.Except(leftItems)).ToList(),
+            left.SymmetricExcept(right).ToList());
+
+        Assert.IsTrue(left.IsSubsetOf(left.Union(right)));
+        Assert.IsFalse(left.IsSubsetOf(right));
+        Assert.IsTrue(left.IsSupersetOf(left.Intersect(right)));
+        Assert.IsTrue(left.Overlaps(right));
+        Assert.IsFalse(left.SetEquals(right));
+        Assert.IsTrue(left.SetEquals([.. leftItems]));
+    }
+
+    [TestMethod]
+    public void ExtendOnLargeBatchShouldRebuildOnceAndKeepSortedOrder()
+    {
+        var set = new TreeSet<int> { 10 };
+        var batch = new List<int>();
+        for (var i = 1000; i >= 0; i--)
+        {
+            batch.Add(i);
+        }
+
+        set.Extend(batch);
+
+        Assert.AreEqual(1001, set.Count);
+        Assert.IsTrue(set.Contains(0));
+        Assert.IsTrue(set.Contains(1000));
+        var items = new List<int>();
+        foreach (var item in set)
+        {
+            items.Add(item);
+        }
+
+        for (var i = 1; i < items.Count; i++)
+        {
+            Assert.IsTrue(items[i - 1] < items[i]);
+        }
+    }
 }

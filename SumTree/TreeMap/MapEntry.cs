@@ -94,15 +94,18 @@ public readonly struct MapEntry<TKey, TValue> : IEquatable<MapEntry<TKey, TValue
 public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapKey<TKey>>
     where TKey : IComparable<TKey>, IEquatable<TKey>
 {
+    readonly bool _hasValue;
+
     /// <summary>
     /// Gets the key value. May be null for empty/default keys.
     /// </summary>
     public TKey? Key { get; }
 
     /// <summary>
-    /// Gets whether this is an empty key.
+    /// Gets whether this is an empty key. Explicitly tracked so value-type keys
+    /// such as 0 are not mistaken for the empty sentinel.
     /// </summary>
-    public bool IsEmpty => Key == null;
+    public bool IsEmpty => !_hasValue || Key is null;
 
     /// <summary>
     /// Initializes a new MapKey with the specified key value.
@@ -111,12 +114,13 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     public MapKey(TKey? key)
     {
         Key = key;
+        _hasValue = true;
     }
 
     /// <summary>
     /// Gets the default (empty) MapKey.
     /// </summary>
-    public static MapKey<TKey> Empty => new(default);
+    public static MapKey<TKey> Empty => default;
 
     /// <summary>
     /// Determines whether this key is equal to another key.
@@ -125,17 +129,12 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <returns>True if the keys are equal, false otherwise.</returns>
     public bool Equals(MapKey<TKey> other)
     {
-        if (Key == null && other.Key == null)
+        if (IsEmpty || other.IsEmpty)
         {
-            return true;
+            return IsEmpty && other.IsEmpty;
         }
 
-        if (Key == null || other.Key == null)
-        {
-            return false;
-        }
-
-        return Key.Equals(other.Key);
+        return Key!.Equals(other.Key);
     }
 
     /// <summary>
@@ -154,7 +153,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <returns>The hash code.</returns>
     public override int GetHashCode()
     {
-        return Key?.GetHashCode() ?? 0;
+        return IsEmpty ? 0 : Key!.GetHashCode();
     }
 
     /// <summary>
@@ -164,22 +163,17 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <returns>A value indicating the relative order of the keys.</returns>
     public int CompareTo(MapKey<TKey> other)
     {
-        if (Key == null && other.Key == null)
+        if (IsEmpty || other.IsEmpty)
         {
-            return 0;
+            if (IsEmpty && other.IsEmpty)
+            {
+                return 0;
+            }
+
+            return IsEmpty ? -1 : 1;
         }
 
-        if (Key == null)
-        {
-            return -1;
-        }
-
-        if (other.Key == null)
-        {
-            return 1;
-        }
-
-        return Key.CompareTo(other.Key);
+        return Key!.CompareTo(other.Key);
     }
 
     /// <summary>
@@ -188,7 +182,7 @@ public readonly struct MapKey<TKey> : IEquatable<MapKey<TKey>>, IComparable<MapK
     /// <returns>A string representation.</returns>
     public override string ToString()
     {
-        return Key?.ToString() ?? "<empty>";
+        return IsEmpty ? "<empty>" : Key!.ToString() ?? "<empty>";
     }
 
     /// <summary>

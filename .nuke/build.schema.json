@@ -25,19 +25,19 @@
       "type": "string",
       "enum": [
         "CheckNewCommits",
+        "CheckSharedBuild",
         "Clean",
         "Compile",
-        "CreateCommit",
-        "ExtractChangelogLatestVersion",
-        "ExtractChangelogUnreleased",
-        "GitHubCreateCommit",
+        "CreateReleaseCommit",
+        "CreateReleaseTag",
         "GitHubCreateRelease",
-        "GitHubCreateReleaseAndPublish",
         "GitHubCreateTag",
+        "GitLabCreateRelease",
+        "GitLabCreateTag",
         "Pack",
-        "PackOnNewCommits",
+        "PackNuGet",
         "Publish",
-        "PublishOnNewCommits",
+        "PushNuGet",
         "Restore",
         "ShowCurrentVersion",
         "Test",
@@ -117,45 +117,75 @@
   "allOf": [
     {
       "properties": {
-        "ChangelogFile": {
-          "type": "string",
-          "description": "Changelog file"
-        },
         "Configuration": {
           "type": "string",
-          "description": "Configuration to build - Default is 'Debug' (local) or 'Release' (server)"
+          "description": "Config to build (default set by the project)"
         },
-        "GitHubApiBaseUrl": {
+        "GithubRepository": {
           "type": "string",
-          "description": "GitHub API URL"
+          "description": "GitHub owner/repo path (default: brmassa/SumTree)"
         },
-        "GitHubRepository": {
+        "GithubToken": {
           "type": "string",
-          "description": "GitHub repository"
-        },
-        "GitHubToken": {
-          "type": "string",
-          "description": "GitHub token"
-        },
-        "IncludeSource": {
-          "type": "boolean",
-          "description": "Include source package (default: true)"
-        },
-        "IncludeSymbols": {
-          "type": "boolean",
-          "description": "Include symbols package (default: true)"
-        },
-        "NugetApiKey": {
-          "type": "string",
+          "description": "GitHub token (repo scope, or the Actions-provided GITHUB_TOKEN) with contents:write. Omit to skip pushing/releasing to GitHub",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
-        "PackageDirectory": {
+        "GitlabProjectPath": {
           "type": "string",
-          "description": "Output directory for NuGet packages (default: ./packages)"
+          "description": "GitLab group/project path (default: brmassa/sumtree)"
         },
-        "RepositoryCompareLink": {
+        "GitlabToken": {
           "type": "string",
-          "description": "Repository compare link"
+          "description": "GitLab personal/project access token with api + write_repository scope. Omit to skip pushing/releasing to GitLab",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "NuGetApiKey": {
+          "type": "string",
+          "description": "NuGet API key used by PushNuGet. Absent = pack only",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "NuGetSource": {
+          "type": "string",
+          "description": "NuGet feed to push to (default: nuget.org)"
+        },
+        "PublishDirectory": {
+          "type": "string",
+          "description": "publish-directory (default: ./.publish/{runtimeIdentifier})"
+        },
+        "PublishFramework": {
+          "type": "string",
+          "description": "Framework for published release archives (default: net10.0). NuGet packages include all target frameworks"
+        },
+        "PublishReadyToRun": {
+          "type": "boolean",
+          "description": "publish-ready-to-run (default: false)"
+        },
+        "PublishSelfContained": {
+          "type": "boolean",
+          "description": "publish-self-contained (default: set by the project)"
+        },
+        "PublishSingleFile": {
+          "type": "boolean",
+          "description": "publish-single-file (default: set by the project)"
+        },
+        "PublishTrimmed": {
+          "type": "boolean",
+          "description": "publish-trimmed (default: set by the project)"
+        },
+        "ReleaseBranch": {
+          "type": "string",
+          "description": "Branch the release commit is pushed to (default: main)"
+        },
+        "RuntimeIdentifier": {
+          "type": "string",
+          "description": "Runtime identifier for the build (e.g., win-x64, linux-x64, osx-x64) (default: linux-x64)"
+        },
+        "SharedBuildDirectories": {
+          "type": "array",
+          "description": "Project directories whose shared NUKE files must match this checkout",
+          "items": {
+            "type": "string"
+          }
         },
         "Solution": {
           "type": "string",

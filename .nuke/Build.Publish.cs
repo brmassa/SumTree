@@ -1,132 +1,70 @@
-using System.Linq;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tools.DotNet;
-
-namespace SumTree.Nuke;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
-/// This partial is responsible for the library publish process (NuGet packaging).
+/// This partial is responsible for the publish process.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
-    [Parameter("Output directory for NuGet packages (default: ./packages)")]
-    public readonly AbsolutePath PackageDirectory;
+    [Parameter(
+        "Runtime identifier for the build (e.g., win-x64, linux-x64, osx-x64) (default: linux-x64)"
+    )]
+    readonly string RuntimeIdentifier = "linux-x64";
 
-    private AbsolutePath PackageDir => PackageDirectory ?? RootDirectory / "packages";
+    [Parameter("publish-directory (default: ./.publish/{runtimeIdentifier})")]
+    readonly AbsolutePath PublishDirectory;
 
-    [Parameter("Include symbols package (default: true)")] public readonly bool IncludeSymbols = true;
+    AbsolutePath PublishDir => PublishDirectory ?? RootDirectory / ".publish" / RuntimeIdentifier;
 
-    [Parameter("Include source package (default: true)")] public readonly bool IncludeSource = true;
+    [Parameter("publish-self-contained (default: set by the project)")]
+    readonly bool PublishSelfContained = DefaultPublishSelfContained;
 
-    [Parameter] [Secret] string NugetApiKey;
+    [Parameter("publish-single-file (default: set by the project)")]
+    readonly bool PublishSingleFile = DefaultPublishSingleFile;
 
-    /// <summary>
-    /// Creates NuGet packages for the library
-    /// </summary>
-    private Target Pack => td => td
-        .DependsOn(Compile, ExtractChangelogLatestVersion)
-        .Produces(PackageDir / "*.zip")
-        .Executes(() =>
-        {
-            // Escape the release notes string
-            var escapedReleaseNotes = (ChangelogLatestVersion ?? string.Empty)
-                .Replace("\"", "\\\"")
-                .Replace("\r", "")
-                .Replace("\n", "\\n")
-                .Replace(",", "_");
+    [Parameter("publish-trimmed (default: set by the project)")]
+    readonly bool PublishTrimmed = DefaultPublishTrimmed;
 
-            DotNetTasks.DotNetPack(s => s
-                .SetProject(Solution.SumTree)
-                .SetConfiguration(ConfigurationSet)
-                .SetOutputDirectory(PackageDir)
-                .SetVersion(CurrentVersion)
-                .SetAssemblyVersion(CurrentVersion)
-                .SetInformationalVersion(CurrentVersion)
-                .SetPackageReleaseNotes(escapedReleaseNotes)
-                .SetNoBuild(true)
-                .SetNoRestore(true)
-                .SetIncludeSymbols(IncludeSymbols)
-                .SetIncludeSource(IncludeSource)
-                .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg)
-            );
-        });
+    [Parameter("publish-ready-to-run (default: false)")]
+    readonly bool PublishReadyToRun;
 
-    /// <summary>
-    /// Publishes NuGet packages to nuget.org
-    /// </summary>
-    private Target Publish => td => td
-        .DependsOn(Pack)
-        .Requires(() => !string.IsNullOrEmpty(NugetApiKey))
-        .Executes(() =>
-        {
-            var packageFiles = PackageDir.GlobFiles("*.nupkg")
-                .Where(x => !x.Name.EndsWith(".symbols.nupkg"));
-
-            foreach (var packageFile in packageFiles)
+    /// <summary>Publishes every release project into its <see cref="PublishOutput"/>.</summary>
+    public Target Publish => td =>
+        td
+            .DependsOn(Restore)
+            .Executes(() =>
             {
-                DotNetTasks.DotNetNuGetPush(s => s
-                    .SetTargetPath(packageFile)
-                    .SetSource("https://api.nuget.org/v3/index.json")
-                    .SetApiKey(NugetApiKey)
-                    .SetSkipDuplicate(true)
-                );
-            }
-        });
+                var projects = ReleaseProjects.ToList();
+                projects.Select(PublishOutput).Distinct().ForEach(static directory => directory.CreateOrCleanDirectory());
 
-    /// <summary>
-    /// Creates NuGet packages for the library (only when there are new commits)
-    /// </summary>
-    public Target PackOnNewCommits => td => td
-        .DependsOn(Compile, ExtractChangelogLatestVersion)
-        .OnlyWhenStatic(() => HasNewCommits)
-        .Produces(PackageDir / "*.zip")
-        .Executes(() =>
-        {
-            // Escape the release notes string
-            var escapedReleaseNotes = (ChangelogLatestVersion ?? string.Empty)
-                .Replace("\"", "\\\"")
-                .Replace("\r", "")
-                .Replace("\n", "\\n")
-                .Replace(",", "_");
+                foreach (var project in projects)
+                {
+                    _ = DotNetPublish(settings =>
+                    {
+                        var configured = WithMsBuildProperties(settings
+                            .SetNoLogo(true)
+                            .SetProject(project)
+                            .SetConfiguration(Config)
+                            .SetOutput(PublishOutput(project))
+                            .SetRuntime(RuntimeIdentifier)
+                            .SetSelfContained(PublishSelfContained)
+                            .SetPublishSingleFile(PublishSingleFile)
+                            .SetPublishReadyToRun(PublishReadyToRun)
+                            .SetPublishTrimmed(PublishTrimmed)
+                            .SetVersion(Version)
+                            .SetAssemblyVersion(Version)
+                            .SetInformationalVersion(Version));
+                        ConfigurePublish(project, ref configured);
+                        return configured;
+                    });
+                }
 
-            DotNetTasks.DotNetPack(s => s
-                .SetProject(Solution.SumTree)
-                .SetConfiguration(ConfigurationSet)
-                .SetOutputDirectory(PackageDir)
-                .SetVersion(CurrentVersion)
-                .SetAssemblyVersion(CurrentVersion)
-                .SetInformationalVersion(CurrentVersion)
-                .SetPackageReleaseNotes(escapedReleaseNotes)
-                .SetNoBuild(true)
-                .SetNoRestore(true)
-                .SetIncludeSymbols(IncludeSymbols)
-                .SetIncludeSource(IncludeSource)
-                .SetSymbolPackageFormat(DotNetSymbolPackageFormat.snupkg)
-            );
-        });
+                OnPublished();
+            });
 
-    /// <summary>
-    /// Publishes NuGet packages to nuget.org (only when there are new commits)
-    /// </summary>
-    public Target PublishOnNewCommits => td => td
-        .DependsOn(PackOnNewCommits)
-        .OnlyWhenStatic(() => HasNewCommits)
-        .Requires(() => !string.IsNullOrEmpty(NugetApiKey))
-        .Executes(() =>
-        {
-            var packageFiles = PackageDir.GlobFiles("*.nupkg")
-                .Where(x => !x.Name.EndsWith(".symbols.nupkg"));
+    /// <summary>Adjusts the publish settings of one project.</summary>
+    partial void ConfigurePublish(Project project, ref DotNetPublishSettings settings);
 
-            foreach (var packageFile in packageFiles)
-            {
-                DotNetTasks.DotNetNuGetPush(s => s
-                    .SetTargetPath(packageFile)
-                    .SetSource("https://api.nuget.org/v3/index.json")
-                    .SetApiKey(NugetApiKey)
-                    .SetSkipDuplicate(true)
-                );
-            }
-        });
+    /// <summary>Runs after every release project is published, for project specific follow-up steps.</summary>
+    partial void OnPublished();
 }

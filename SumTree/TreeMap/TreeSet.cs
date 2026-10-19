@@ -1,5 +1,3 @@
-using System.Collections;
-
 namespace SumTree.TreeMap;
 
 /// <summary>
@@ -59,8 +57,7 @@ public readonly struct Unit : IEquatable<Unit>
 public class TreeSet<T> : IEnumerable<T>
     where T : IComparable<T>, IEquatable<T>
 {
-    private readonly TreeMap<T, Unit> _map;
-    private static readonly Unit Marker = new();
+    TreeMap<T, Unit> _map;
 
     /// <summary>
     /// Initializes a new empty TreeSet.
@@ -71,16 +68,19 @@ public class TreeSet<T> : IEnumerable<T>
     }
 
     /// <summary>
-    /// Initializes a new TreeSet from ordered entries.
+    /// Initializes a new TreeSet from a sequence of elements.
+    /// Duplicates are dropped; the input does not need to be sorted.
     /// </summary>
-    /// <param name="orderedEntries">The ordered entries to initialize with.</param>
+    /// <param name="orderedEntries">The elements to initialize with.</param>
     public TreeSet(IEnumerable<T> orderedEntries)
     {
-        _map = new TreeMap<T, Unit>();
-        foreach (var entry in orderedEntries)
-        {
-            _map.Insert(entry, Marker);
-        }
+        ArgumentNullException.ThrowIfNull(orderedEntries);
+        _map = CreateMap(orderedEntries);
+    }
+
+    TreeSet(TreeMap<T, Unit> map)
+    {
+        _map = map;
     }
 
     /// <summary>
@@ -100,9 +100,7 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if the element was added, false if it already existed.</returns>
     public bool Add(T item)
     {
-        var existed = _map.ContainsKey(item);
-        _map.Insert(item, Marker);
-        return !existed;
+        return _map.Insert(item, default);
     }
 
     /// <summary>
@@ -112,13 +110,7 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if the element was removed, false if it didn't exist.</returns>
     public bool Remove(T item)
     {
-        if (_map.ContainsKey(item))
-        {
-            _map.Remove(item);
-            return true;
-        }
-
-        return false;
+        return _map.TryRemove(item, out _);
     }
 
     /// <summary>
@@ -145,7 +137,28 @@ public class TreeSet<T> : IEnumerable<T>
     /// <param name="items">The elements to add.</param>
     public void Extend(IEnumerable<T> items)
     {
-        foreach (var item in items)
+        ArgumentNullException.ThrowIfNull(items);
+
+        var materialized = items as ICollection<T> ?? [.. items];
+        if (materialized.Count == 0)
+        {
+            return;
+        }
+
+        if (_map.IsEmpty)
+        {
+            _map = CreateMap(materialized);
+            return;
+        }
+
+        if (materialized.Count > _map.Count)
+        {
+            // Rebuilding once is cheaper than inserting a large batch element by element.
+            _map = CreateMap(_map.Keys.Concat(materialized));
+            return;
+        }
+
+        foreach (var item in materialized)
         {
             Add(item);
         }
@@ -168,9 +181,11 @@ public class TreeSet<T> : IEnumerable<T>
     public Maybe<T> First()
     {
         if (_map.IsEmpty)
+        {
             return Maybe<T>.None;
+        }
 
-        return new Maybe<T>(_map.First()!.Value.Key);
+        return new Maybe<T>(_map.First().Value.Key);
     }
 
     /// <summary>
@@ -180,9 +195,11 @@ public class TreeSet<T> : IEnumerable<T>
     public Maybe<T> Last()
     {
         if (_map.IsEmpty)
+        {
             return Maybe<T>.None;
+        }
 
-        return new Maybe<T>(_map.Last()!.Value.Key);
+        return new Maybe<T>(_map.Last().Value.Key);
     }
 
 
@@ -204,16 +221,40 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>A new set containing the difference.</returns>
     public TreeSet<T> Except(TreeSet<T> other)
     {
-        var result = new TreeSet<T>();
-        foreach (var item in this)
+        ArgumentNullException.ThrowIfNull(other);
+        var collected = new List<T>();
+        using var left = GetEnumerator();
+        using var right = other.GetEnumerator();
+        var hasLeft = left.MoveNext();
+        var hasRight = right.MoveNext();
+
+        while (hasLeft)
         {
-            if (!other.Contains(item))
+            if (!hasRight)
             {
-                result.Add(item);
+                collected.Add(left.Current);
+                hasLeft = left.MoveNext();
+                continue;
+            }
+
+            var comparison = left.Current.CompareTo(right.Current);
+            if (comparison < 0)
+            {
+                collected.Add(left.Current);
+                hasLeft = left.MoveNext();
+            }
+            else if (comparison > 0)
+            {
+                hasRight = right.MoveNext();
+            }
+            else
+            {
+                hasLeft = left.MoveNext();
+                hasRight = right.MoveNext();
             }
         }
 
-        return result;
+        return FromSortedUnique(collected);
     }
 
     /// <summary>
@@ -223,16 +264,33 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>A new set containing the intersection.</returns>
     public TreeSet<T> Intersect(TreeSet<T> other)
     {
-        var result = new TreeSet<T>();
-        foreach (var item in this)
+        ArgumentNullException.ThrowIfNull(other);
+        var collected = new List<T>();
+        using var left = GetEnumerator();
+        using var right = other.GetEnumerator();
+        var hasLeft = left.MoveNext();
+        var hasRight = right.MoveNext();
+
+        while (hasLeft && hasRight)
         {
-            if (other.Contains(item))
+            var comparison = left.Current.CompareTo(right.Current);
+            if (comparison < 0)
             {
-                result.Add(item);
+                hasLeft = left.MoveNext();
+            }
+            else if (comparison > 0)
+            {
+                hasRight = right.MoveNext();
+            }
+            else
+            {
+                collected.Add(left.Current);
+                hasLeft = left.MoveNext();
+                hasRight = right.MoveNext();
             }
         }
 
-        return result;
+        return FromSortedUnique(collected);
     }
 
     /// <summary>
@@ -242,18 +300,47 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>A new set containing the union.</returns>
     public TreeSet<T> Union(TreeSet<T> other)
     {
-        var result = new TreeSet<T>();
-        foreach (var item in this)
+        ArgumentNullException.ThrowIfNull(other);
+        var collected = new List<T>();
+        using var left = GetEnumerator();
+        using var right = other.GetEnumerator();
+        var hasLeft = left.MoveNext();
+        var hasRight = right.MoveNext();
+
+        while (hasLeft && hasRight)
         {
-            result.Add(item);
+            var comparison = left.Current.CompareTo(right.Current);
+            if (comparison < 0)
+            {
+                collected.Add(left.Current);
+                hasLeft = left.MoveNext();
+            }
+            else if (comparison > 0)
+            {
+                collected.Add(right.Current);
+                hasRight = right.MoveNext();
+            }
+            else
+            {
+                collected.Add(left.Current);
+                hasLeft = left.MoveNext();
+                hasRight = right.MoveNext();
+            }
         }
 
-        foreach (var item in other)
+        while (hasLeft)
         {
-            result.Add(item);
+            collected.Add(left.Current);
+            hasLeft = left.MoveNext();
         }
 
-        return result;
+        while (hasRight)
+        {
+            collected.Add(right.Current);
+            hasRight = right.MoveNext();
+        }
+
+        return FromSortedUnique(collected);
     }
 
     /// <summary>
@@ -263,24 +350,46 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>A new set containing the symmetric difference.</returns>
     public TreeSet<T> SymmetricExcept(TreeSet<T> other)
     {
-        var result = new TreeSet<T>();
-        foreach (var item in this)
+        ArgumentNullException.ThrowIfNull(other);
+        var collected = new List<T>();
+        using var left = GetEnumerator();
+        using var right = other.GetEnumerator();
+        var hasLeft = left.MoveNext();
+        var hasRight = right.MoveNext();
+
+        while (hasLeft && hasRight)
         {
-            if (!other.Contains(item))
+            var comparison = left.Current.CompareTo(right.Current);
+            if (comparison < 0)
             {
-                result.Add(item);
+                collected.Add(left.Current);
+                hasLeft = left.MoveNext();
+            }
+            else if (comparison > 0)
+            {
+                collected.Add(right.Current);
+                hasRight = right.MoveNext();
+            }
+            else
+            {
+                hasLeft = left.MoveNext();
+                hasRight = right.MoveNext();
             }
         }
 
-        foreach (var item in other)
+        while (hasLeft)
         {
-            if (!this.Contains(item))
-            {
-                result.Add(item);
-            }
+            collected.Add(left.Current);
+            hasLeft = left.MoveNext();
         }
 
-        return result;
+        while (hasRight)
+        {
+            collected.Add(right.Current);
+            hasRight = right.MoveNext();
+        }
+
+        return FromSortedUnique(collected);
     }
 
     /// <summary>
@@ -290,7 +399,28 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if this set is a subset of the other set, false otherwise.</returns>
     public bool IsSubsetOf(TreeSet<T> other)
     {
-        return this.All(item => other.Contains(item));
+        ArgumentNullException.ThrowIfNull(other);
+        using var left = GetEnumerator();
+        using var right = other.GetEnumerator();
+        var hasRight = right.MoveNext();
+
+        while (left.MoveNext())
+        {
+            var item = left.Current;
+            while (hasRight && right.Current.CompareTo(item) < 0)
+            {
+                hasRight = right.MoveNext();
+            }
+
+            if (!hasRight || right.Current.CompareTo(item) != 0)
+            {
+                return false;
+            }
+
+            hasRight = right.MoveNext();
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -300,7 +430,8 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if this set is a superset of the other set, false otherwise.</returns>
     public bool IsSupersetOf(TreeSet<T> other)
     {
-        return other.All(item => this.Contains(item));
+        ArgumentNullException.ThrowIfNull(other);
+        return other.IsSubsetOf(this);
     }
 
     /// <summary>
@@ -310,7 +441,30 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if the sets overlap, false otherwise.</returns>
     public bool Overlaps(TreeSet<T> other)
     {
-        return this.Any(item => other.Contains(item));
+        ArgumentNullException.ThrowIfNull(other);
+        using var left = GetEnumerator();
+        using var right = other.GetEnumerator();
+        var hasLeft = left.MoveNext();
+        var hasRight = right.MoveNext();
+
+        while (hasLeft && hasRight)
+        {
+            var comparison = left.Current.CompareTo(right.Current);
+            if (comparison < 0)
+            {
+                hasLeft = left.MoveNext();
+            }
+            else if (comparison > 0)
+            {
+                hasRight = right.MoveNext();
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -320,7 +474,8 @@ public class TreeSet<T> : IEnumerable<T>
     /// <returns>True if the sets are equal, false otherwise.</returns>
     public bool SetEquals(TreeSet<T> other)
     {
-        return this.Count == other.Count && this.All(item => other.Contains(item));
+        ArgumentNullException.ThrowIfNull(other);
+        return Count == other.Count && IsSubsetOf(other);
     }
 
     /// <summary>
@@ -332,6 +487,50 @@ public class TreeSet<T> : IEnumerable<T>
         return _map.Keys.GetEnumerator();
     }
 
+    static TreeMap<T, Unit> CreateMap(IEnumerable<T> items)
+    {
+        var list = new List<T>(items);
+
+        var sorted = true;
+        for (var i = 1; i < list.Count; i++)
+        {
+            if (list[i - 1].CompareTo(list[i]) > 0)
+            {
+                sorted = false;
+                break;
+            }
+        }
+
+        if (!sorted)
+        {
+            list.Sort();
+        }
+
+        var pairs = new List<KeyValuePair<T, Unit>>(list.Count);
+        for (var i = 0; i < list.Count; i++)
+        {
+            if (i > 0 && list[i - 1].Equals(list[i]))
+            {
+                continue;
+            }
+
+            pairs.Add(new KeyValuePair<T, Unit>(list[i], default));
+        }
+
+        return new TreeMap<T, Unit>(pairs);
+    }
+
+    static TreeSet<T> FromSortedUnique(List<T> items)
+    {
+        var pairs = new List<KeyValuePair<T, Unit>>(items.Count);
+        foreach (var item in items)
+        {
+            pairs.Add(new KeyValuePair<T, Unit>(item, default));
+        }
+
+        return new TreeSet<T>(new TreeMap<T, Unit>(pairs));
+    }
+
     /// <summary>
     /// Returns an enumerator that iterates through the set.
     /// </summary>
@@ -340,18 +539,4 @@ public class TreeSet<T> : IEnumerable<T>
     {
         return GetEnumerator();
     }
-}
-
-public readonly struct Maybe<T>
-{
-    public bool HasValue { get; }
-    public T Value { get; }
-
-    public Maybe(T value)
-    {
-        HasValue = true;
-        Value = value;
-    }
-
-    public static Maybe<T> None => new();
 }

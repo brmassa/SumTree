@@ -1,48 +1,71 @@
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tools.DotNet;
-using Nuke.Common.Utilities.Collections;
-using Serilog;
-
-namespace SumTree.Nuke;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
 /// This partial is responsible for the build process.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
-    private Target Clean => s => s
+    Target Clean => td => td
         .Executes(() =>
         {
-            Solution.SumTree.Directory.GlobDirectories("**/bin", "**/obj", "**/output").ForEach((path) =>
-                path.DeleteDirectory()
-            );
-            Solution.SumTree_Tests.Directory.GlobDirectories("**/bin", "**/obj", "**/output").ForEach((path) =>
-                path.DeleteDirectory()
-            );
-            (RootDirectory / "packages").DeleteDirectory();
+            Solution.AllProjects
+                .Where(static project => project.Path != BuildProjectDirectory / "Build.csproj")
+                .SelectMany(static project => new[]
+                {
+                    project.Directory / "bin",
+                    project.Directory / "obj",
+                    project.Directory / "output",
+                })
+                .Distinct()
+                .Where(static path => path.DirectoryExists())
+                .ForEach(static path => path.DeleteDirectory());
+            PublishDir.DeleteDirectory();
             CoverageDirectory.DeleteDirectory();
         });
 
-    private Target Restore => td => td
+    Target Restore => td => td
+        .DependsOn(RestoreDependencies)
         .After(Clean)
         .Executes(() =>
         {
-            _ = DotNetTasks.DotNetRestore(s => s
-                .SetProjectFile(Solution));
+            _ = DotNetRestore(s => WithMsBuildProperties(s.SetProjectFile(Solution)));
         });
 
-    private Target Compile => td => td
-        .After(Restore)
+    Target Compile => td => td
+        .DependsOn(Restore)
         .Executes(() =>
         {
-            Log.Debug("Configuration {Configuration}", ConfigurationSet);
-            Log.Debug("configuration {configuration}", Configuration);
-            _ = DotNetTasks.DotNetBuild(s => s
-                .SetProjectFile(Solution)
-                .SetConfiguration(ConfigurationSet)
-                .EnableNoRestore()
-            );
+            Log.Debug("Config {Config}", Config);
+
+            // A project opts out with <ExcludeFromBuild>true</ExcludeFromBuild>; then the projects are built one by one.
+            var excluded = Solution.AllProjects
+                .Where(static project => project.Path.FileExists()
+                                  && project.Path.ReadAllText().Contains("<ExcludeFromBuild>true", StringComparison.Ordinal))
+                .ToList();
+            if (excluded.Count == 0)
+            {
+                _ = DotNetBuild(settings => WithMsBuildProperties(settings
+                    .SetNoLogo(true)
+                    .SetProjectFile(Solution)
+                    .SetConfiguration(Config)
+                    .EnableNoRestore()));
+            }
+            else
+            {
+                foreach (var project in Solution.AllProjects.Except(excluded))
+                {
+                    _ = DotNetBuild(settings => WithMsBuildProperties(settings
+                        .SetNoLogo(true)
+                        .SetProjectFile(project)
+                        .SetConfiguration(Config)
+                        .EnableNoRestore()));
+                }
+            }
+
+            OnCompiled();
         });
+
+    /// <summary>Runs after a successful build, for project specific follow-up steps.</summary>
+    partial void OnCompiled();
 }

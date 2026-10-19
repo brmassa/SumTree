@@ -1,17 +1,13 @@
 namespace Benchmarks;
 
-using System.Linq;
-using BenchmarkDotNet.Attributes;
-using Rope;
-
 [MemoryDiagnoser]
 public class LastIndexOf
 {
-    private static readonly Rope<char> FragmentedRope = BenchmarkData.LongDiffText1.Chunk(256).Select(c => c.ToRope()).Combine();
+    static readonly Rope<char> FragmentedRope = BenchmarkData.LongDiffText1.Chunk(256).Select(c => c.ToRope()).Combine();
 
-    private static readonly Rope<char> FragmentedFind = FragmentedRope[(int)(FragmentedRope.Length * 0.33)..(int)(FragmentedRope.Length * 0.66)];
+    static readonly Rope<char> FragmentedFind = FragmentedRope[(int)(FragmentedRope.Length * 0.33)..(int)(FragmentedRope.Length * 0.66)];
 
-    private static readonly Rope<char> Find = "[[New Haven Register]]".ToRope();
+    static readonly Rope<char> Find = "[[New Haven Register]]".ToRope();
 
     [Benchmark(Description = "Rope<char>")]
     public void RopeOfChar()
@@ -34,6 +30,6 @@ public class LastIndexOf
     [Benchmark]
     public void String()
     {
-        _ = BenchmarkData.LongDiffText1String.LastIndexOf("[[New Haven Register]]");
+        _ = BenchmarkData.LongDiffText1String.LastIndexOf("[[New Haven Register]]", StringComparison.Ordinal);
     }
 }

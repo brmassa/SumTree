@@ -1,31 +1,32 @@
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Exporters;
-using BenchmarkDotNet.Running;
+namespace Benchmarks;
 
-namespace Benchmarks
+public class Program
 {
-    public class Program
+    public static void Main(string[] args)
     {
-        public static void Main(string[] args)
+        if (args.Length > 0 && args[0] == "--editor-session-diagnostics")
         {
-            var config = DefaultConfig.Instance
-                .AddExporter(RPlotExporter.Default)
-                .WithOptions(ConfigOptions.DisableOptimizationsValidator)
-                ;
-            var summaries = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
+            EditorSessionDiagnostics.Run(args.Length > 1 ? args[1] : "artifacts/editor-performance/editor-sessions.json");
+            return;
+        }
 
-            // var s = Stopwatch.StartNew();
-            // var test = new DiffOnLongText();
+        if (args is ["--editor-validate"])
+        {
+            EditorDiagnostics.ValidateAll();
+            return;
+        }
 
-            // //// //var test = new IndexOf();
-            // //// var test = new Equals() { Length = 10 };
-            // for (var i = 0; i < 1; i++)
-            // {
-            // //    //     test.RopeOfChar();
-            //     test.RopeOfCharDiff();
-            // }
+        if (args.Length > 0 && args[0] == "--editor-diagnostics")
+        {
+            EditorDiagnostics.Run(args.Length > 1 ? args[1] : "docs/internal/benchmarks/editor-diagnostics.json");
+            return;
+        }
 
-            // Console.WriteLine(s.Elapsed);
+        var config = DefaultConfig.Instance.AddExporter(RPlotExporter.Default);
+        var summaries = BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args, config);
+        if (summaries.Any(summary => summary.HasCriticalValidationErrors || summary.Reports.Any(report => !report.Success)))
+        {
+            Environment.ExitCode = 1;
         }
     }
 }

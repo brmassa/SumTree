@@ -1,0 +1,54 @@
+name: Check new release
+
+# Checks for commits since the last tag; if there are any, updates CHANGELOG.md, tags the release
+# and pushes the commit+tag to this GitHub repository, then dispatches publish-on-tag.yml for the new tag.
+# Forks leave `RELEASE_REPOSITORY` unset, so they only receive the commit and tag by mirroring.
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+
+env:
+  NUKE_TELEMETRY_OPTOUT: "1"
+  IGNORE_NORMALISATION_GIT_HEAD_MOVE: "1"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  release-check:
+    if: ${{ vars.RELEASE_REPOSITORY != '' }}
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            10.0.x
+            11.0.x
+
+      - name: Tag release if there are new commits
+        run: |
+          echo "HEAD_BEFORE=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          ./build.sh Test GitHubCreateTag \
+            --configuration Release \
+            --github-repository "${{ github.repository }}" \
+            --github-token "${{ secrets.GITHUB_TOKEN }}" \
+            --release-branch "${{ github.event.repository.default_branch }}" \
+            --verbosity minimal
+
+      # A tag pushed with GITHUB_TOKEN starts no workflows, so publish-on-tag.yml is dispatched for it explicitly.
+      - name: Publish the new release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$HEAD_BEFORE" ]; then
+            gh workflow run publish-on-tag.yml --ref "$(git tag --points-at HEAD | head -n1)"
+          fi

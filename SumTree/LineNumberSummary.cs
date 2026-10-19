@@ -4,10 +4,15 @@ namespace SumTree;
 /// Summary for tracking line numbers and character positions in text.
 /// Useful for text editors to quickly navigate to specific lines.
 /// </summary>
-public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<LineNumberSummary>
+/// <remarks>
+/// Character counts are UTF-16 code units. Counters are signed 32-bit values;
+/// composition throws OverflowException when a counter exceeds that range.
+/// </remarks>
+public readonly struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<LineNumberSummary>
 {
     /// <summary>
-    /// The number of lines in this segment (newline characters encountered).
+    /// The number of line breaks in this segment. CR and LF each count as one;
+    /// a CRLF pair counts as one even when split across segments.
     /// </summary>
     public int Lines { get; }
 
@@ -22,11 +27,24 @@ public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<Lin
     /// </summary>
     public int TotalCharacters { get; }
 
-    public LineNumberSummary(int lines, int lastLineCharacters, int totalCharacters)
+    /// <summary>Whether this nonempty segment starts with LF, for CRLF boundary merging.</summary>
+    public bool StartsWithLineFeed { get; }
+
+    /// <summary>Whether this nonempty segment ends with CR, for CRLF boundary merging.</summary>
+    public bool EndsWithCarriageReturn { get; }
+
+    /// <summary>
+    /// Creates a summary. Supply boundary flags when representing actual text that
+    /// starts with LF or ends with CR; seek targets may omit them.
+    /// </summary>
+    public LineNumberSummary(int lines, int lastLineCharacters, int totalCharacters,
+        bool startsWithLineFeed = false, bool endsWithCarriageReturn = false)
     {
         Lines = lines;
         LastLineCharacters = lastLineCharacters;
         TotalCharacters = totalCharacters;
+        StartsWithLineFeed = startsWithLineFeed;
+        EndsWithCarriageReturn = endsWithCarriageReturn;
     }
 
     /// <summary>
@@ -36,102 +54,22 @@ public struct LineNumberSummary : IEquatable<LineNumberSummary>, IComparable<Lin
     /// <returns>A summary for the single character.</returns>
     public static LineNumberSummary FromCharacter(char character)
     {
-        return character == '\n'
-            ? new LineNumberSummary(1, 0, 1)
+        return character is '\r' or '\n'
+            ? new LineNumberSummary(1, 0, 1, character == '\n', character == '\r')
             : new LineNumberSummary(0, 1, 1);
     }
 
     /// <summary>
-    /// Combines two line number summaries.
+    /// Summarizes a span of characters in a single pass, treating CR, LF and CRLF as line breaks.
     /// </summary>
-    /// <param name="left">The left summary.</param>
-    /// <param name="right">The right summary.</param>
-    /// <returns>The combined summary.</returns>
-    public static LineNumberSummary operator +(LineNumberSummary left, LineNumberSummary right)
-    {
-        var totalLines = left.Lines + right.Lines;
-        var lastLineChars =
-            right.Lines > 0 ? right.LastLineCharacters : left.LastLineCharacters + right.LastLineCharacters;
-        var totalChars = left.TotalCharacters + right.TotalCharacters;
-
-        return new LineNumberSummary(totalLines, lastLineChars, totalChars);
-    }
-
-    /// <summary>
-    /// Gets the zero/identity summary (empty text).
-    /// </summary>
-    public static LineNumberSummary Zero => new(0, 0, 0);
-
-    /// <summary>
-    /// Checks if this summary represents empty content.
-    /// </summary>
-    public bool IsEmpty => Lines == 0 && LastLineCharacters == 0 && TotalCharacters == 0;
-
-    public bool Equals(LineNumberSummary other)
-    {
-        return Lines == other.Lines &&
-               LastLineCharacters == other.LastLineCharacters &&
-               TotalCharacters == other.TotalCharacters;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is LineNumberSummary other && this.Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(Lines, LastLineCharacters, TotalCharacters);
-    }
-
-    public int CompareTo(LineNumberSummary other)
-    {
-        var linesComparison = Lines.CompareTo(other.Lines);
-        if (linesComparison != 0) return linesComparison;
-
-        var lastLineComparison = LastLineCharacters.CompareTo(other.LastLineCharacters);
-        if (lastLineComparison != 0) return lastLineComparison;
-
-        return TotalCharacters.CompareTo(other.TotalCharacters);
-    }
-
-    public static bool operator ==(LineNumberSummary left, LineNumberSummary right) => left.Equals(right);
-    public static bool operator !=(LineNumberSummary left, LineNumberSummary right) => !left.Equals(right);
-    public static bool operator <(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) < 0;
-    public static bool operator <=(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) <= 0;
-    public static bool operator >(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) > 0;
-    public static bool operator >=(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) >= 0;
-
-    public override string ToString()
-    {
-        return $"Lines: {Lines}, LastLineChars: {LastLineCharacters}, TotalChars: {TotalCharacters}";
-    }
-}
-
-/// <summary>
-/// Summary dimension for tracking line numbers in character sequences.
-/// </summary>
-public class LineNumberDimension : SummaryDimensionBase<char, LineNumberSummary>
-{
-    /// <summary>
-    /// Gets the singleton instance of the line number dimension.
-    /// </summary>
-    public static readonly LineNumberDimension Instance = new();
-
-    /// <inheritdoc/>
-    public override LineNumberSummary Identity => LineNumberSummary.Zero;
-
-    /// <inheritdoc/>
-    public override LineNumberSummary SummarizeElement(char element)
-    {
-        return LineNumberSummary.FromCharacter(element);
-    }
-
-    /// <inheritdoc/>
-    public override LineNumberSummary SummarizeSpan(ReadOnlySpan<char> elements)
+    /// <param name="elements">The span to summarize.</param>
+    /// <returns>The summary of the span.</returns>
+    public static LineNumberSummary SummarizeSpan(ReadOnlySpan<char> elements)
     {
         if (elements.IsEmpty)
-            return Identity;
+        {
+            return Zero;
+        }
 
         var lines = 0;
         var lastLineCharacters = 0;
@@ -168,20 +106,95 @@ public class LineNumberDimension : SummaryDimensionBase<char, LineNumberSummary>
             }
         }
 
-
-
-        return new LineNumberSummary(lines, lastLineCharacters, totalCharacters);
+        return new LineNumberSummary(lines, lastLineCharacters, totalCharacters,
+            elements[0] == '\n', elements[^1] == '\r');
     }
 
-    /// <inheritdoc/>
-    public override LineNumberSummary Combine(LineNumberSummary left, LineNumberSummary right)
+    /// <summary>
+    /// Combines two line number summaries.
+    /// </summary>
+    /// <param name="left">The left summary.</param>
+    /// <param name="right">The right summary.</param>
+    /// <returns>The combined summary.</returns>
+    public static LineNumberSummary operator +(LineNumberSummary left, LineNumberSummary right)
     {
-        return left + right;
+        if (left.IsEmpty)
+        {
+            return right;
+        }
+
+        if (right.IsEmpty)
+        {
+            return left;
+        }
+
+        var totalLines = checked(left.Lines + right.Lines -
+                         (left.EndsWithCarriageReturn && right.StartsWithLineFeed ? 1 : 0));
+        var lastLineChars =
+            right.Lines > 0 ? right.LastLineCharacters : checked(left.LastLineCharacters + right.LastLineCharacters);
+        var totalChars = checked(left.TotalCharacters + right.TotalCharacters);
+
+        return new LineNumberSummary(totalLines, lastLineChars, totalChars,
+            left.StartsWithLineFeed, right.EndsWithCarriageReturn);
     }
 
-    /// <inheritdoc/>
-    public override bool CanExtend(LineNumberSummary summary)
+    /// <summary>
+    /// Gets the zero/identity summary (empty text).
+    /// </summary>
+    public static LineNumberSummary Zero => new(0, 0, 0);
+
+    /// <summary>
+    /// Checks if this summary represents empty content.
+    /// </summary>
+    public bool IsEmpty => Lines == 0 && LastLineCharacters == 0 && TotalCharacters == 0;
+
+    public bool Equals(LineNumberSummary other)
     {
-        return !summary.IsEmpty;
+        return Lines == other.Lines &&
+               LastLineCharacters == other.LastLineCharacters &&
+               TotalCharacters == other.TotalCharacters &&
+               StartsWithLineFeed == other.StartsWithLineFeed &&
+               EndsWithCarriageReturn == other.EndsWithCarriageReturn;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is LineNumberSummary other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Lines, LastLineCharacters, TotalCharacters,
+            StartsWithLineFeed, EndsWithCarriageReturn);
+    }
+
+    public int CompareTo(LineNumberSummary other)
+    {
+        var linesComparison = Lines.CompareTo(other.Lines);
+        if (linesComparison != 0)
+        {
+            return linesComparison;
+        }
+
+        var lastLineComparison = LastLineCharacters.CompareTo(other.LastLineCharacters);
+        if (lastLineComparison != 0)
+        {
+            return lastLineComparison;
+        }
+
+        // Ordering describes a seek position; boundary flags only affect composition.
+        return TotalCharacters.CompareTo(other.TotalCharacters);
+    }
+
+    public static bool operator ==(LineNumberSummary left, LineNumberSummary right) => left.Equals(right);
+    public static bool operator !=(LineNumberSummary left, LineNumberSummary right) => !left.Equals(right);
+    public static bool operator <(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) < 0;
+    public static bool operator <=(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) <= 0;
+    public static bool operator >(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) > 0;
+    public static bool operator >=(LineNumberSummary left, LineNumberSummary right) => left.CompareTo(right) >= 0;
+
+    public override string ToString()
+    {
+        return $"Lines: {Lines}, LastLineChars: {LastLineCharacters}, TotalChars: {TotalCharacters}";
     }
 }

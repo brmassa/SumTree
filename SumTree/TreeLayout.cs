@@ -5,7 +5,7 @@ namespace SumTree;
 /// </summary>
 /// <remarks>
 /// None of these values depend on the element type, so they live here instead of inside
-/// <c>SumTree&lt;T&gt;</c> or <c>FastSumTree&lt;T&gt;</c>, where the runtime keeps a separate
+/// <c>SumTree&lt;T&gt;</c> and its typed variant, where the runtime keeps a separate
 /// copy of every static field for each closed generic type.
 /// </remarks>
 static class TreeLayout

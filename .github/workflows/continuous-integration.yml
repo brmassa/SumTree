@@ -23,14 +23,16 @@ jobs:
     name: ubuntu-latest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: |
+            10.0.x
+            11.0.x
       - name: "Cache: .nuke/temp, ~/.nuget/packages"
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .nuke/temp
@@ -39,12 +41,12 @@ jobs:
       - name: "Run: TestReport, Compile, Restore, Pack"
         run: ./build.cmd TestReport Compile Restore Pack
       - name: "Publish: coverage.xml"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage.xml
           path: coverage/coverage.xml
       - name: "Publish: packages"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packages
           path: packages

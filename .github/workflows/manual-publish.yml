@@ -39,14 +39,16 @@ jobs:
     name: Manual Publish to NuGet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: "10.0.x"
+          dotnet-version: |
+            10.0.x
+            11.0.x
       - name: "Cache: .nuke/temp, ~/.nuget/packages"
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             .nuke/temp
@@ -78,13 +80,13 @@ jobs:
           echo "Packages that would be published:"
           ls -la packages/*.nupkg || echo "No packages found"
       - name: "Publish: packages"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: packages-manual-${{ github.run_number }}
           path: packages/**/*.nupkg
         if: always()
       - name: "Publish: coverage (if tests ran)"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-manual-${{ github.run_number }}
           path: coverage/**/*.xml

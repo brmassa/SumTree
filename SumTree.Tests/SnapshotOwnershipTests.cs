@@ -22,14 +22,12 @@ public class SnapshotOwnershipTests
         var expected = new string(input);
         var dimensions = new Dictionary<Type, object> { [typeof(LineNumberSummary)] = LineNumberDimension.Instance };
         var tree = new SumTree<char>(input.AsMemory(), dimensions);
-        var fast = input.ToFastSumTree();
         var fromArray = input.ToSumTree();
         dimensions.Clear();
         Array.Fill(input, 'z');
 
         Assert.AreEqual(expected, tree.ToString());
         Assert.AreEqual(expected, fromArray.ToString());
-        Assert.AreEqual(expected, fast.ToStringFast());
         Assert.AreEqual(1, tree.GetSummary<LineNumberSummary>().Lines);
         Assert.AreEqual(1L, tree.FindPosition<LineNumberSummary>(s => s.Lines >= 1));
         var (left, right) = tree.SplitAt(length / 2);
@@ -44,13 +42,11 @@ public class SnapshotOwnershipTests
         var inserted = original.InsertRange(1, input.AsMemory());
         var appended = original.AddRange(input);
         var fromSpan = ((ReadOnlySpan<char>)input).ToSumTree();
-        var fastAppended = "a\nb".ToFastSumTree().AddRange(input);
         input[1] = '!';
 
         Assert.AreEqual("ax\ny\nb", inserted.ToString());
         Assert.AreEqual("a\nbx\ny", appended.ToString());
         Assert.AreEqual("x\ny", fromSpan.ToString());
-        Assert.AreEqual("a\nbx\ny", fastAppended.ToStringFast());
         Assert.AreEqual(2, inserted.GetSummary<LineNumberSummary>().Lines);
         Assert.AreEqual(2, appended.GetSummary<LineNumberSummary>().Lines);
         Assert.AreEqual("a\nb", original.ToString());
@@ -62,11 +58,9 @@ public class SnapshotOwnershipTests
         using var owner = new TestMemory("prefix:a\nb:suffix");
         var memory = owner.Memory.Slice(7, 3);
         var tree = new SumTree<char>(memory);
-        var fast = new FastSumTree<char>(memory);
         owner.Release();
 
         Assert.AreEqual("a\nb", tree.ToString());
-        Assert.AreEqual("a\nb", fast.ToStringFast());
     }
 
     [TestMethod]
@@ -75,13 +69,11 @@ public class SnapshotOwnershipTests
         using var owner = new TestMemory("a\nb");
         var dimensions = new Dictionary<Type, object> { [typeof(LineNumberSummary)] = LineNumberDimension.Instance };
         var tree = SumTree<char>.FromBorrowedMemory(owner.Memory, dimensions);
-        var fast = FastSumTree<char>.FromBorrowedMemory(owner.Memory);
         dimensions.Clear();
         owner.SpanRequests = 0;
 
         Assert.AreEqual("a\nb", tree.ToString());
-        Assert.AreEqual("a\nb", fast.ToStringFast());
-        Assert.IsGreaterThanOrEqualTo(2, owner.SpanRequests, "Borrowed trees should read their retained memory owner");
+        Assert.IsGreaterThanOrEqualTo(1, owner.SpanRequests, "Borrowed trees should read their retained memory owner");
         Assert.AreEqual(1, tree.GetSummary<LineNumberSummary>().Lines);
     }
 
@@ -109,20 +101,15 @@ public class SnapshotOwnershipTests
     {
         var input = new string('a', 1_000_000).ToCharArray();
         var tree = input.ToSumTree();
-        var fast = input.ToFastSumTree();
         // Warm up split code independently of the measured large document.
         _ = "abc".ToSumTree().SplitAt(1);
-        _ = "abc".ToFastSumTree().SplitAt(1);
         var before = GC.GetAllocatedBytesForCurrentThread();
         var parts = tree.SplitAt(456_789);
-        var fastParts = fast.SplitAt(456_789);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.IsLessThan(100_000, allocated, $"Splits allocated {allocated} bytes; backing buffers should be shared");
         Assert.AreEqual(456_789L, parts.Left.Length);
         Assert.AreEqual(543_211L, parts.Right.Length);
-        Assert.AreEqual(parts.Left.Length, fastParts.Left.Length);
-        Assert.AreEqual(parts.Right.Length, fastParts.Right.Length);
     }
 
     [TestMethod]

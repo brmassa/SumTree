@@ -24,29 +24,30 @@
     "ExecutableTarget": {
       "type": "string",
       "enum": [
+        "BuildExamples",
         "CheckNewCommits",
         "Clean",
+        "CleanExamples",
         "Compile",
-        "CreateCommit",
-        "ExtractChangelogLatestVersion",
-        "ExtractChangelogUnreleased",
-        "FullBuild",
-        "GitHubCreateCommit",
+        "CreateExamplesReadme",
+        "CreateReleaseCommit",
+        "CreateReleaseTag",
         "GitHubCreateRelease",
         "GitHubCreateTag",
-        "ListPackages",
+        "GitLabCreateRelease",
+        "GitLabCreateTag",
         "Pack",
+        "PackageExamples",
+        "PackNuGet",
         "Publish",
+        "PublishExamples",
+        "PushNuGet",
         "Restore",
         "ShowCurrentVersion",
         "Test",
         "TestReport",
         "UpdateChangelog",
-        "UpdateProjectVersions",
-        "ValidateGitHubIntegration",
-        "ValidatePackaging",
-        "ValidatePublishing",
-        "ValidateSolution"
+        "UpdateProjectVersions"
       ]
     },
     "Verbosity": {
@@ -120,69 +121,79 @@
   "allOf": [
     {
       "properties": {
-        "ChangelogFile": {
-          "type": "string",
-          "description": "Changelog file"
-        },
         "Configuration": {
           "type": "string",
-          "description": "Configuration to build - Default is 'Debug' (local) or 'Release' (server)"
+          "description": "Config to build - Default is 'Debug' (local) or 'Release' (server)"
         },
-        "DryRun": {
-          "type": "boolean",
-          "description": "Perform dry run (validate but don't publish)"
+        "ExampleRuntimes": {
+          "type": "array",
+          "description": "Runtime identifiers for examples (default: win-x64,linux-x64)",
+          "items": {
+            "type": "string"
+          }
         },
-        "GitHubApiBaseUrl": {
+        "ExamplesOutputDirectory": {
           "type": "string",
-          "description": "GitHub API URL"
+          "description": "Examples output directory (default: ./examples-output)"
         },
-        "GitHubRepository": {
+        "GithubRepository": {
           "type": "string",
-          "description": "GitHub repository"
+          "description": "GitHub owner/repo path (default: brmassa/SumTree)"
         },
-        "GitHubToken": {
+        "GithubToken": {
           "type": "string",
-          "description": "GitHub token"
-        },
-        "IncludeSource": {
-          "type": "boolean",
-          "description": "Include source package (default: true)"
-        },
-        "IncludeSymbols": {
-          "type": "boolean",
-          "description": "Include symbols package (default: true)"
-        },
-        "NugetApiKey": {
-          "type": "string",
+          "description": "GitHub token (repo scope, or the Actions-provided GITHUB_TOKEN) with contents:write. Omit to skip pushing/releasing to GitHub",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
-        "NugetSource": {
+        "GitlabProjectPath": {
           "type": "string",
-          "description": "NuGet source URL (default: nuget.org)"
+          "description": "GitLab group/project path (default: brmassa/sumtree)"
         },
-        "PackageDirectory": {
+        "GitlabToken": {
           "type": "string",
-          "description": "Output directory for NuGet packages (default: ./packages)"
+          "description": "GitLab personal/project access token with api + write_repository scope. Omit to skip pushing/releasing to GitLab",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
-        "RepositoryCompareLink": {
+        "NuGetApiKey": {
           "type": "string",
-          "description": "Repository compare link"
+          "description": "NuGet API key used by PushNuGet. Absent = pack only",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
-        "SkipCi": {
+        "NuGetSource": {
+          "type": "string",
+          "description": "NuGet feed to push to (default: nuget.org)"
+        },
+        "PublishDirectory": {
+          "type": "string",
+          "description": "publish-directory (default: ./.publish/{runtimeIdentifier})"
+        },
+        "PublishReadyToRun": {
           "type": "boolean",
-          "description": "Skip CI checks (add [skip ci] to commit message)"
+          "description": "publish-ready-to-run (default: false)"
         },
-        "SkipDuplicate": {
+        "PublishSelfContained": {
           "type": "boolean",
-          "description": "Skip duplicate packages when publishing"
+          "description": "publish-self-contained (default: set by the project)"
+        },
+        "PublishSingleFile": {
+          "type": "boolean",
+          "description": "publish-single-file (default: set by the project)"
+        },
+        "PublishTrimmed": {
+          "type": "boolean",
+          "description": "publish-trimmed (default: set by the project)"
+        },
+        "ReleaseBranch": {
+          "type": "string",
+          "description": "Branch the release commit is pushed to (default: main)"
+        },
+        "RuntimeIdentifier": {
+          "type": "string",
+          "description": "Runtime identifier for the build (e.g., win-x64, linux-x64, osx-x64) (default: linux-x64)"
         },
         "Solution": {
           "type": "string",
           "description": "Path to a solution file that is automatically loaded"
-        },
-        "VersionOverride": {
-          "type": "string",
-          "description": "Override version for packaging"
         }
       }
     },

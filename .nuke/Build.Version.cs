@@ -1,320 +1,200 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using Nuke.Common;
-using Nuke.Common.Git;
-using Nuke.Common.ProjectModel;
-using Nuke.Common.Tools.Git;
-using Nuke.Common.Tools.GitVersion;
-using Serilog;
-
-namespace SumTree.Nuke;
+namespace Build;
 
 /// <summary>
 /// This is the main build file for the project.
-/// This partial is responsible for the versioning using GitVersion.
+/// This partial calculates release versions from reachable release tags and Conventional Commit messages.
 /// </summary>
-partial class Build
+sealed partial class Build
 {
-    [GitRepository] private readonly GitRepository _repository;
-
-    [GitVersion] private readonly GitVersion _gitVersion;
-
     /// <summary>
-    /// The current version, using GitVersion with fallback.
+    /// The release version derived from the highest reachable release tag and commits after it.
     /// </summary>
-    private string VersionFull
+    string Version => CachedVersion ??= ResolveVersion();
+
+    string CachedVersion;
+
+    string ResolveVersion()
     {
-        get
-        {
-            if (_gitVersion?.MajorMinorPatch != null)
-            {
-                var gitVersionValue = _gitVersion.MajorMinorPatch;
-                var calculatedVersion = CalculateNextVersion();
-
-                // Use fallback if GitVersion gives unreasonable result (0.x.x when we have tagged releases > 1.0)
-                if (gitVersionValue.StartsWith("0.") && !calculatedVersion.StartsWith("0."))
-                {
-                    Log.Warning("GitVersion returned {GitVersion} but fallback calculated {Fallback}. Using fallback.",
-                        gitVersionValue, calculatedVersion);
-                    return calculatedVersion;
-                }
-
-                Log.Debug("Using GitVersion: {Version}", gitVersionValue);
-                return gitVersionValue;
-            }
-
-            var fallbackVersion = CalculateNextVersion();
-            Log.Debug("Using fallback version calculation: {Version}", fallbackVersion);
-            return fallbackVersion;
-        }
+        var range = HasAnyTags ? $"{CurrentTag}..HEAD" : "HEAD";
+        var messageLines = Git($"log --format=%B {range}", logOutput: false).Select(static output => output.Text);
+        return BumpVersion(CurrentVersion, messageLines);
     }
 
-    private string VersionMajor => _gitVersion?.Major.ToString(CultureInfo.InvariantCulture) ?? GetFallbackMajor();
+    public string VersionMajor => Version.Split('.')[0];
 
-    private string VersionMajorMinor =>
-        _gitVersion != null ? $"{_gitVersion.Major}.{_gitVersion.Minor}" : GetFallbackMajorMinor();
+    public string VersionMajorMinor => string.Join('.', Version.Split('.').Take(2));
 
     /// <summary>
     /// The version in a format that can be used as a tag.
     /// </summary>
-    private string TagName => $"v{VersionFull}";
+    string TagName => $"v{Version}";
 
     /// <summary>
-    /// Checks if there are new commits since the last tag.
+    /// Checks if there are new commits since the last tag that warrant a release.
     /// </summary>
-    private bool HasNewCommits => _gitVersion != null ? _gitVersion.CommitsSinceVersionSource != "0" : GetCommitsSinceLastTag() > 0;
+    bool HasNewCommits => CommitsSinceCurrentTag > 0 && Version != CurrentVersion;
 
-    private string _currentVersion;
-
-    private string CurrentTag
+    int CommitsSinceCurrentTag
     {
         get
         {
-            if (_currentVersion != null)
-            {
-                return _currentVersion;
-            }
-
             try
             {
-                _currentVersion = GitTasks.Git("describe --tags --abbrev=0")
-                    .FirstOrDefault().Text;
+                var range = HasAnyTags ? $"{CurrentTag}..HEAD" : "HEAD";
+                return int.Parse(Git($"rev-list --count {range}", logOutput: false).Single().Text, CultureInfo.InvariantCulture);
             }
             catch
             {
-                _currentVersion = "v1.0.0";
+                return 0;
             }
-
-            return _currentVersion;
         }
     }
 
-    private string CurrentFullVersion => CurrentTag.TrimStart('v');
+    string CachedTag;
 
     /// <summary>
-    /// Calculates the next version by incrementing from the last tag
+    /// The highest release tag reachable from HEAD, or "0.0.0" before the first release. `describe` is not used
+    /// because it selects the closest tag, which is wrong when a stray tag was created after a newer release.
     /// </summary>
-    private string CalculateNextVersion()
+    string CurrentTag
     {
-        var commitsSinceTag = GetCommitsSinceLastTag();
-        Log.Debug("Commits since last tag: {Count}", commitsSinceTag);
-
-        if (commitsSinceTag == 0)
+        get
         {
-            Log.Debug("No commits since tag, returning current version: {Version}", CurrentFullVersion);
-            return CurrentFullVersion;
-        }
-
-        var currentVersion = CurrentFullVersion;
-        Log.Debug("Current tag version: {Version}", currentVersion);
-        var parts = currentVersion.Split('.');
-
-        if (parts.Length >= 2)
-        {
-            if (int.TryParse(parts[0], out var major) && int.TryParse(parts[1], out var minor))
+            if (CachedTag is null)
             {
-                // Increment minor version for new commits
-                var nextVersion = $"{major}.{minor + 1}.0";
-                Log.Debug("Calculated next version: {Version}", nextVersion);
-                return nextVersion;
+                try
+                {
+                    CachedTag = Git("tag --merged HEAD --sort=-version:refname", logOutput: false)
+                        .Select(static output => output.Text)
+                        .FirstOrDefault(static tag => ReleaseTagRegex().IsMatch(tag)) ?? "0.0.0";
+                }
+                catch
+                {
+                    CachedTag = "0.0.0";
+                }
             }
+            return CachedTag;
         }
-
-        // Fallback to current version if parsing fails
-        Log.Warning("Could not parse version {Version}, returning as-is", currentVersion);
-        return currentVersion;
     }
+    string CurrentVersion => CurrentTag.TrimStart('v');
 
     /// <summary>
-    /// Gets the number of commits since the last tag
+    /// Whether a tag is reachable from HEAD (false on the very first release). A tag on a commit outside
+    /// HEAD's history does not count: it cannot bound a changelog range.
     /// </summary>
-    private int GetCommitsSinceLastTag()
-    {
-        try
-        {
-            // Count commits between tag and HEAD
-            var commitCountText = GitTasks.Git($"rev-list --count {CurrentTag}..HEAD")
-                .FirstOrDefault().Text;
-
-            if (int.TryParse(commitCountText, out var directCount))
-            {
-                return directCount;
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Warning(ex, "Could not calculate commits since last tag");
-        }
-
-        return 1; // Assume there are changes if we can't determine
-    }
+    bool HasAnyTags => CurrentTag != "0.0.0";
 
     /// <summary>
-    /// Gets fallback major version when GitVersion is not available.
+    /// Returns <paramref name="version"/> bumped by the largest change in the commit message lines, using the
+    /// release rules: major for `type!:` or `BREAKING CHANGE:`, minor for `feat:`, patch for `fix:` and
+    /// `perf:`; any other type leaves the version unchanged.
     /// </summary>
-    private string GetFallbackMajor()
+    internal static string BumpVersion(string version, IEnumerable<string> messageLines)
     {
-        var version = CurrentFullVersion;
-        var parts = version.Split('.');
-        return parts.Length > 0 ? parts[0] : "1";
+        var current = System.Version.Parse(version);
+        var bump = messageLines.Select(GetReleaseBump).DefaultIfEmpty(ReleaseBump.None).Max();
+        return bump switch
+        {
+            ReleaseBump.Major => $"{current.Major + 1}.0.0",
+            ReleaseBump.Minor => $"{current.Major}.{current.Minor + 1}.0",
+            ReleaseBump.Patch => $"{current.Major}.{current.Minor}.{current.Build + 1}",
+            _ => version,
+        };
     }
 
-    /// <summary>
-    /// Gets fallback major.minor version when GitVersion is not available.
-    /// </summary>
-    private string GetFallbackMajorMinor()
-    {
-        var version = CurrentFullVersion;
-        var parts = version.Split('.');
-        if (parts.Length >= 2)
-        {
-            return $"{parts[0]}.{parts[1]}";
-        }
+    static ReleaseBump GetReleaseBump(string line) =>
+        BreakingChangeRegex().IsMatch(line) ? ReleaseBump.Major
+        : FeatureRegex().IsMatch(line) ? ReleaseBump.Minor
+        : PatchRegex().IsMatch(line) ? ReleaseBump.Patch
+        : ReleaseBump.None;
 
-        return parts.Length == 1 ? $"{parts[0]}.0" : "1.0";
+    enum ReleaseBump
+    {
+        None,
+        Patch,
+        Minor,
+        Major,
     }
 
-    /// <summary>
-    /// Gets version from environment variables (useful for CI/CD).
-    /// </summary>
-    private string GetEnvironmentVersion()
-    {
-        // Check for GitHub Actions tag reference
-        var githubRef = Environment.GetEnvironmentVariable("GITHUB_REF");
-        if (!string.IsNullOrEmpty(githubRef) && githubRef.StartsWith("refs/tags/"))
-        {
-            var tag = githubRef.Substring("refs/tags/".Length);
-            if (tag.StartsWith("v") && IsValidVersion(tag.Substring(1)))
-            {
-                return tag;
-            }
-        }
+    [GeneratedRegex(@"^v\d+\.\d+\.\d+$")]
+    private static partial Regex ReleaseTagRegex();
 
-        return null;
-    }
+    [GeneratedRegex(@"^\w+(\([\w\-\.]+\))?!:|BREAKING[ -]CHANGE:")]
+    private static partial Regex BreakingChangeRegex();
 
-    /// <summary>
-    /// Validates if a string is a valid semantic version.
-    /// </summary>
-    private bool IsValidVersion(string version)
-    {
-        if (string.IsNullOrEmpty(version))
-        {
-            return false;
-        }
+    [GeneratedRegex(@"^feat(\([\w\-\.]+\))?:")]
+    private static partial Regex FeatureRegex();
 
-        var parts = version.Split('.');
-        if (parts.Length < 2 || parts.Length > 4)
-        {
-            return false;
-        }
-
-        return parts.Take(3).All(part => int.TryParse(part, out _));
-    }
+    [GeneratedRegex(@"^fix(\([\w\-\.]+\))?:|^perf(\([\w\-\.]+\))?:")]
+    private static partial Regex PatchRegex();
 
     /// <summary>
     /// Prints the current version.
     /// </summary>
-    private Target ShowCurrentVersion => td => td
-        .Executes(() =>
-        {
-            Log.Information("Current version:  {Version}", CurrentFullVersion);
-            Log.Information("Current tag:      {Version}", CurrentTag);
-            Log.Information("Next version:     {Version}", VersionFull);
+    Target ShowCurrentVersion => td =>
+        td
+            .Executes(() =>
+            {
+                Log.Information("Current version:\t\t{Version}", CurrentVersion);
+                Log.Information("Current tag:\t\t{Version}", CurrentTag);
+                Log.Information("Next version:\t\t{Version}", Version);
+            });
 
-            if (_gitVersion == null)
+    /// <summary>
+    /// Stamps the release version into every configured project with a <c>&lt;Version&gt;</c> element, so committed
+    /// project versions match the tag and local builds report it.
+    /// </summary>
+    public Target UpdateProjectVersions => td =>
+        td
+            .DependsOn(CheckNewCommits)
+            .OnlyWhenDynamic(() => HasNewCommits)
+            .Executes(() =>
             {
-                Log.Warning("GitVersion is not available - using fallback version from git tags");
-                var envVersion = GetEnvironmentVersion();
-                if (envVersion != null)
+                var projects = VersionedProjects
+                    .Where(static project => project.Path.ReadAllText().Contains("<Version>", StringComparison.Ordinal));
+                foreach (var project in projects)
                 {
-                    Log.Information("Environment version detected: {Version}", envVersion);
+                    var path = project.Path;
+                    var text = File.ReadAllText(path);
+                    var stamped = ProjectVersionRegex().Replace(text, $"<Version>{Version}</Version>", 1);
+                    if (stamped == text)
+                    {
+                        continue;
+                    }
+
+                    var bom = File.ReadAllBytes(path) is [0xEF, 0xBB, 0xBF, ..];
+                    File.WriteAllText(path, stamped, new UTF8Encoding(bom));
+                    Log.Information("{Project}: version {Version}", project.Name, Version);
                 }
-            }
-            else
-            {
-                Log.Information("GitVersion available - commits since last version: {Commits}", _gitVersion.CommitsSinceVersionSource);
-            }
-        });
+            });
+
+    [GeneratedRegex(@"<Version>[^<]*</Version>")]
+    private static partial Regex ProjectVersionRegex();
 
     /// <summary>
     /// Checks if there are new commits since the last tag.
     /// If there are no new commits, the whole publish process is skipped.
     /// </summary>
-    private Target CheckNewCommits => td => td
-        .DependsOn(ShowCurrentVersion)
-        .Executes(() =>
-        {
-            Log.Information("Next version:    {Version}", TagName);
-
-            if (_gitVersion != null)
+    public Target CheckNewCommits => td =>
+        td
+            .DependsOn(ShowCurrentVersion)
+            .Executes(() =>
             {
+                Log.Information("Next version:\t\t{Version}", TagName);
+                Log.Information("Checking for new commits...");
+
                 // If there are no new commits since the last tag, skip tag creation
                 // Nuke will stop here and not execute any of the following targets
-                Log.Information(HasNewCommits
-                    ? $"There are {_gitVersion.CommitsSinceVersionSource} new commits since last tag."
-                    : "No new commits since last tag. Skipping tag creation.");
-            }
-            else
-            {
-                Log.Warning("GitVersion not available - continuing with CI/CD pipeline");
-                Log.Information("Using fallback versioning strategy");
-            }
-        });
-
-    /// <summary>
-    /// Update each project Version
-    /// </summary>
-    private Target UpdateProjectVersions => td => td
-        .DependsOn(CheckNewCommits)
-        .Executes(() =>
-        {
-            Log.Information("Projects: {ProjectsCount}",
-                _solution.Projects.Count);
-
-            var projectsToVersion = new List<Project>
-            {
-                _solution.SumTree,
-            };
-
-            projectsToVersion.ForEach(project =>
-            {
-                if (project == null)
+                if (HasNewCommits)
                 {
-                    return;
+                    Log.Information(
+                        "There are {CommitsSinceCurrentTag} new commits since last tag",
+                        CommitsSinceCurrentTag
+                    );
                 }
-
-                Log.Information(
-                    "{project}:\tfrom {version} to {VersionFull}",
-                    project.Name,
-                    project.GetProperty("Version"), VersionFull);
-                var msbuildProject = project.GetMSBuildProject();
-                msbuildProject.SetProperty("Version", VersionFull);
-                msbuildProject.Save(project.Path);
+                else
+                {
+                    Log.Information("No new commits since last tag. Skipping tag creation");
+                }
             });
-        });
-
-    public Target CreateCommit => td => td
-        .DependsOn(CheckNewCommits, UpdateProjectVersions)
-        .OnlyWhenStatic(() => HasNewCommits)
-        .Executes(() =>
-        {
-            try
-            {
-                // Add all the changes to the current branch
-                GitTasks.Git("add -A");
-
-                // Commit the changes to the current branch
-                GitTasks.Git("config --global user.name \"github-actions\"");
-                GitTasks.Git("config --global user.email \"github-actions@github.com\"");
-                GitTasks.Git($"commit -m \"chore: Automatic commit creation: {Date}\"");
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error creating commit");
-                throw;
-            }
-        });
 }

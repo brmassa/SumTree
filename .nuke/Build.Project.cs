@@ -21,6 +21,9 @@ sealed partial class Build
     const bool DefaultPublishSingleFile = false;
     const bool DefaultPublishTrimmed = false;
 
+    const string DefaultConfiguration = "Release";
+    const string TestReportArgument = "--report-trx";
+
     IEnumerable<Project> ReleaseProjects => PackableProjects;
     IEnumerable<Project> VersionedProjects => PackableProjects;
 

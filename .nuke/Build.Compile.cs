@@ -32,7 +32,7 @@ sealed partial class Build
         });
 
     Target Compile => td => td
-        .After(Restore)
+        .DependsOn(Restore)
         .Executes(() =>
         {
             Log.Debug("Config {Config}", Config);

@@ -118,7 +118,7 @@
       "properties": {
         "Configuration": {
           "type": "string",
-          "description": "Config to build - Default is 'Debug' (local) or 'Release' (server)"
+          "description": "Config to build (default set by the project)"
         },
         "GithubRepository": {
           "type": "string",

@@ -1,10 +1,6 @@
 // Copyright 2010 Google Inc.
 // All Right Reserved.
 
-using BenchmarkDotNet.Attributes;
-using DiffMatchPatch;
-using Rope.Compare;
-
 namespace Benchmarks;
 
 [MemoryDiagnoser]

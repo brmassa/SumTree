@@ -24,12 +24,9 @@
     "ExecutableTarget": {
       "type": "string",
       "enum": [
-        "BuildExamples",
         "CheckNewCommits",
         "Clean",
-        "CleanExamples",
         "Compile",
-        "CreateExamplesReadme",
         "CreateReleaseCommit",
         "CreateReleaseTag",
         "GitHubCreateRelease",
@@ -37,10 +34,8 @@
         "GitLabCreateRelease",
         "GitLabCreateTag",
         "Pack",
-        "PackageExamples",
         "PackNuGet",
         "Publish",
-        "PublishExamples",
         "PushNuGet",
         "Restore",
         "ShowCurrentVersion",
@@ -125,17 +120,6 @@
           "type": "string",
           "description": "Config to build - Default is 'Debug' (local) or 'Release' (server)"
         },
-        "ExampleRuntimes": {
-          "type": "array",
-          "description": "Runtime identifiers for examples (default: win-x64,linux-x64)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "ExamplesOutputDirectory": {
-          "type": "string",
-          "description": "Examples output directory (default: ./examples-output)"
-        },
         "GithubRepository": {
           "type": "string",
           "description": "GitHub owner/repo path (default: brmassa/SumTree)"
@@ -166,6 +150,10 @@
         "PublishDirectory": {
           "type": "string",
           "description": "publish-directory (default: ./.publish/{runtimeIdentifier})"
+        },
+        "PublishFramework": {
+          "type": "string",
+          "description": "Framework for published release archives (default: net10.0). NuGet packages include all target frameworks"
         },
         "PublishReadyToRun": {
           "type": "boolean",

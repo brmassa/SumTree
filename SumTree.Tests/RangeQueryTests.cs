@@ -1,8 +1,4 @@
-using System;
-using System.Linq;
-using System.Text;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
+using TextTreeChar = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace SumTree.Tests;
 
@@ -14,7 +10,7 @@ public class RangeQueryTests
     {
         var random = new Random(721);
         var text = string.Concat(Enumerable.Repeat("alpha\r\n({x})\rbeta\n", 2000));
-        var tree = new TextTree(text.AsMemory());
+        var tree = new TextTreeChar(text.AsMemory());
         for (var edit = 0; edit < 100; edit++)
         {
             var offset = random.Next(text.Length + 1);
@@ -45,7 +41,7 @@ public class RangeQueryTests
         Assert.AreEqual(text, new string([.. tree]));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.GetRangeSummary(-1, 0));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.GetRangeSummary(0, tree.Length + 1));
-        Assert.AreEqual(TextSummaryOperations.Identity, default(TextTree).GetPrefixSummary(0));
+        Assert.AreEqual(TextSummaryOperations.Identity, default(TextTreeChar).GetPrefixSummary(0));
     }
 
     [TestMethod]
@@ -57,7 +53,7 @@ public class RangeQueryTests
     {
         // The CRLF straddles the initial 1024-element leaf boundary.
         var text = new string('a', 1023) + "\r\n" + suffix;
-        var tree = new TextTree(text.AsMemory());
+        var tree = new TextTreeChar(text.AsMemory());
         var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var start = 0;
         for (var line = 1; line <= lines.Length; line++)
@@ -78,7 +74,7 @@ public class RangeQueryTests
             var expected = (summary.Lines + 1, summary.LastLineCharacters + 1);
             Assert.AreEqual(expected, tree.GetLineAndColumn(i));
         }
-        Assert.AreEqual("", default(TextTree).GetLineContent(1));
+        Assert.AreEqual("", default(TextTreeChar).GetLineContent(1));
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => tree.FindLineStart(0));
     }
 
@@ -98,7 +94,7 @@ public class RangeQueryTests
     [TestMethod]
     public void TypedQueriesAndConcreteTraversalDoNotAllocate()
     {
-        var tree = new TextTree(new string('x', 2_097_152).AsMemory());
+        var tree = new TextTreeChar(new string('x', 2_097_152).AsMemory());
         long Visit()
         {
             long sum = 0;

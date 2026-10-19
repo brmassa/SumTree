@@ -1,6 +1,3 @@
-using BenchmarkDotNet.Attributes;
-using SumTree;
-
 namespace Benchmarks;
 
 /// <summary>Compares newline scanners with identical CR/LF/CRLF semantics.</summary>

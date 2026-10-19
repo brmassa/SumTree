@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using CountTree = SumTree.SumTree<char, long, SumTree.Tests.CountOperations>;
-using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
+using CountTreeChar = SumTree.SumTree<char, long, SumTree.Tests.CountOperations>;
+using TextTreeChar = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace SumTree.Tests;
 
@@ -21,14 +17,14 @@ public class BPlusTreeTests
     public void BulkConstructionMaintainsOccupancyAndMinimumHeight(int length)
     {
         var source = new string('a', length);
-        var tree = new TextTree(source.AsMemory());
+        var tree = new TextTreeChar(source.AsMemory());
         Check(tree, source);
-        var leaves = (length + TextTree.ChunkLength - 1) / TextTree.ChunkLength;
+        var leaves = (length + TextTreeChar.ChunkLength - 1) / TextTreeChar.ChunkLength;
         var height = 0;
         var capacity = 1L;
         while (capacity < leaves)
         {
-            capacity *= TextTree.MaximumChildren;
+            capacity *= TextTreeChar.MaximumChildren;
             height++;
         }
         Assert.AreEqual(height, tree.Depth);
@@ -39,8 +35,8 @@ public class BPlusTreeTests
     public void SplitsAndUnequalHeightJoinsRepairUnderfullRootsLocally()
     {
         var source = string.Concat(Enumerable.Repeat("Call(items[0]);\r\n", 6000));
-        var tree = new TextTree(source.AsMemory());
-        var small = new TextTree("{\r\n}".AsMemory());
+        var tree = new TextTreeChar(source.AsMemory());
+        var small = new TextTreeChar("{\r\n}".AsMemory());
         var boundaries = new[] { 0, 1, 1023, 1024, 1025, 4096, 8193, source.Length / 2,
             source.Length - 1024, source.Length - 1, source.Length };
         foreach (var at in boundaries)
@@ -58,9 +54,9 @@ public class BPlusTreeTests
     [TestMethod]
     public void ThreeWayLeafSplitsPropagateThroughFullParents()
     {
-        var source = new string('a', TextTree.MaximumChildren * TextTree.ChunkLength);
-        var inserted = new string('b', TextTree.ChunkLength);
-        var tree = new TextTree(source.AsMemory());
+        var source = new string('a', TextTreeChar.MaximumChildren * TextTreeChar.ChunkLength);
+        var inserted = new string('b', TextTreeChar.ChunkLength);
+        var tree = new TextTreeChar(source.AsMemory());
         var held = tree;
         for (var i = 0; i < 80; i++)
         {
@@ -69,16 +65,16 @@ public class BPlusTreeTests
             source = source.Insert(at, inserted);
             Check(tree, source);
         }
-        Check(held, new string('a', TextTree.MaximumChildren * TextTree.ChunkLength));
+        Check(held, new string('a', TextTreeChar.MaximumChildren * TextTreeChar.ChunkLength));
     }
 
     [TestMethod]
     public void RandomBulkEditsSplitsAndRootCollapseMatchReference()
     {
         var text = string.Concat(Enumerable.Repeat("({items[0]})\r\n", 5000));
-        var tree = new TextTree(text.AsMemory());
+        var tree = new TextTreeChar(text.AsMemory());
         var random = new Random(7321);
-        var held = new List<(TextTree Tree, string Text)>();
+        var held = new List<(TextTreeChar Tree, string Text)>();
         for (var edit = 0; edit < 700; edit++)
         {
             if (edit % 73 == 0)
@@ -96,7 +92,7 @@ public class BPlusTreeTests
             else
             {
                 var insert = new string(edit % 2 == 0 ? '\r' : '\n', random.Next(2500));
-                var prepared = new TextTree(insert.AsMemory());
+                var prepared = new TextTreeChar(insert.AsMemory());
                 if (edit % 4 == 1)
                 {
                     var (left, right) = tree.SplitAt(at);
@@ -124,9 +120,9 @@ public class BPlusTreeTests
     [TestMethod]
     public void DeletingFullLeavesRedistributesMergesAndCollapsesTheRoot()
     {
-        var leafCount = CountTree.MaximumChildren * CountTree.MaximumChildren * CountTree.MaximumChildren;
-        var tree = new CountTree(new string('x', leafCount * CountTree.ChunkLength).AsMemory());
-        var snapshots = new List<(CountTree Tree, long Length)>();
+        var leafCount = CountTreeChar.MaximumChildren * CountTreeChar.MaximumChildren * CountTreeChar.MaximumChildren;
+        var tree = new CountTreeChar(new string('x', leafCount * CountTreeChar.ChunkLength).AsMemory());
+        var snapshots = new List<(CountTreeChar Tree, long Length)>();
         Assert.AreEqual(3, tree.Depth);
         for (var remaining = leafCount; remaining > 0; remaining--)
         {
@@ -141,9 +137,9 @@ public class BPlusTreeTests
                 1 => remaining - 1,
                 _ => remaining / 2
             };
-            tree = tree.RemoveRange((long)index * CountTree.ChunkLength, CountTree.ChunkLength);
+            tree = tree.RemoveRange((long)index * CountTreeChar.ChunkLength, CountTreeChar.ChunkLength);
             tree.ValidateStructure();
-            Assert.AreEqual((long)(remaining - 1) * CountTree.ChunkLength, tree.Length);
+            Assert.AreEqual((long)(remaining - 1) * CountTreeChar.ChunkLength, tree.Length);
             Assert.AreEqual(tree.Length, tree.Summary);
         }
         Assert.IsTrue(tree.IsEmpty);
@@ -158,7 +154,7 @@ public class BPlusTreeTests
     [TestMethod]
     public void BackspaceAtALeafBoundaryCopiesOnlyOnePath()
     {
-        var tree = new TextTree(new string('a', 2_097_152).AsMemory());
+        var tree = new TextTreeChar(new string('a', 2_097_152).AsMemory());
         _ = tree.RemoveAt(1_048_575);
         var before = GC.GetAllocatedBytesForCurrentThread();
         var edited = tree.RemoveAt(1_048_575);
@@ -177,24 +173,24 @@ public class BPlusTreeTests
     public void PointEditsAndAppendSplitsUseBoundedWork(int length)
     {
         var source = new string('a', length);
-        var tree = new CountTree(source.AsMemory());
+        var tree = new CountTreeChar(source.AsMemory());
         var before = tree;
-        var budget = 8L * CountTree.MaximumChildren * (tree.Depth + 2) * (tree.Depth + 2);
+        var budget = 8L * CountTreeChar.MaximumChildren * (tree.Depth + 2) * (tree.Depth + 2);
         CountOperations.Reset();
         var inserted = tree.InsertRange(length / 2 + 17, "edit\n".AsMemory());
         Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Insertion combined {CountOperations.Combines} summaries");
-        Assert.IsLessThanOrEqualTo(2 * CountTree.ChunkLength + 10, CountOperations.Scanned);
+        Assert.IsLessThanOrEqualTo(2 * CountTreeChar.ChunkLength + 10, CountOperations.Scanned);
         inserted.ValidateStructure();
         Assert.AreEqual((long)length + 5, inserted.Summary);
 
         CountOperations.Reset();
         var deleted = inserted.RemoveRange(length / 2 + 17, 5);
         Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Deletion combined {CountOperations.Combines} summaries");
-        Assert.IsLessThanOrEqualTo(4 * CountTree.ChunkLength, CountOperations.Scanned);
+        Assert.IsLessThanOrEqualTo(4 * CountTreeChar.ChunkLength, CountOperations.Scanned);
         deleted.ValidateStructure();
         Assert.AreEqual(length, deleted.Summary);
 
-        var fragment = new CountTree(new string('b', CountTree.ChunkLength).AsMemory());
+        var fragment = new CountTreeChar(new string('b', CountTreeChar.ChunkLength).AsMemory());
         for (var i = 0; i < 80; i++)
         {
             CountOperations.Reset();
@@ -205,10 +201,10 @@ public class BPlusTreeTests
         tree.ValidateStructure();
         before.ValidateStructure();
         Assert.AreEqual(length, before.Summary);
-        Assert.AreEqual((long)length + 80 * CountTree.ChunkLength, tree.Summary);
+        Assert.AreEqual((long)length + 80 * CountTreeChar.ChunkLength, tree.Summary);
     }
 
-    static void Check(TextTree tree, string text)
+    static void Check(TextTreeChar tree, string text)
     {
         tree.ValidateStructure();
         Assert.AreEqual(text, tree.ToString());

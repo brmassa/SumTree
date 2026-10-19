@@ -1,5 +1,3 @@
-using BenchmarkDotNet.Attributes;
-using SumTree;
 using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace Benchmarks;

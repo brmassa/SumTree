@@ -2,7 +2,6 @@
 
     <PropertyGroup>
         <IsTestProject>true</IsTestProject>
-        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>

@@ -1,7 +1,4 @@
 using System.Text;
-using BenchmarkDotNet.Attributes;
-using Rope;
-using SumTree;
 using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace Benchmarks;
@@ -62,6 +59,10 @@ public class EditorEditBenchmarks
     {
         _workload = new EditorWorkload(DocumentLength, Pattern);
         _workload.Validate();
+        if (StringEdits() != _workload.ExpectedText)
+        {
+            throw new InvalidOperationException("String edit trace differs from the reference.");
+        }
     }
 
     [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
@@ -86,6 +87,18 @@ public class EditorEditBenchmarks
         }
 
         return tree;
+    }
+
+    [Benchmark(OperationsPerInvoke = EditorWorkload.EditCount)]
+    public string StringEdits()
+    {
+        var text = _workload.InitialText;
+        foreach (var change in _workload.Changes)
+        {
+            text = text.Remove(change.Position, change.RemoveLength).Insert(change.Position, change.Text);
+        }
+
+        return text;
     }
 
     // Includes cloning the initial mutable document for an independent invocation.

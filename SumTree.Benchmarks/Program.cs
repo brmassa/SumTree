@@ -1,13 +1,15 @@
-using BenchmarkDotNet.Configs;
-using BenchmarkDotNet.Exporters;
-using BenchmarkDotNet.Running;
-
 namespace Benchmarks;
 
 public class Program
 {
     public static void Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == "--editor-session-diagnostics")
+        {
+            EditorSessionDiagnostics.Run(args.Length > 1 ? args[1] : "artifacts/editor-performance/editor-sessions.json");
+            return;
+        }
+
         if (args is ["--editor-validate"])
         {
             EditorDiagnostics.ValidateAll();

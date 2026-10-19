@@ -28,4 +28,10 @@ sealed partial class Build
     Dictionary<string, object> MsBuildProperties => [];
     Target[] PackDependencies => [Publish];
     Target[] ReleaseCommitDependencies => [UpdateProjectVersions];
+
+    [Parameter("Framework for published release archives (default: net10.0). NuGet packages include all target frameworks.")]
+    readonly string PublishFramework = "net10.0";
+
+    partial void ConfigurePublish(Project project, ref DotNetPublishSettings settings) =>
+        settings = settings.SetFramework(PublishFramework);
 }

@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using BalanceTree = SumTree.SumTree<char, SumTree.BracketBalanceSummary, SumTree.BracketBalanceSummaryOperations>;
 
 namespace SumTree.Tests;

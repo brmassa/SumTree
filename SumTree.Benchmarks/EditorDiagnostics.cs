@@ -1,10 +1,5 @@
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
-using SumTree;
 using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
 namespace Benchmarks;
@@ -13,6 +8,7 @@ namespace Benchmarks;
 public static class EditorDiagnostics
 {
     const int WarmupTraces = 3;
+    const int MinimumWarmupMilliseconds = 250;
     const int MeasuredTraces = 5;
 
     public static void ValidateAll()
@@ -90,6 +86,7 @@ public static class EditorDiagnostics
             DocumentSizes = EditorWorkload.DocumentSizes.ToArray(),
             EditorWorkload.EditCount,
             WarmupTraces,
+            MinimumWarmupMilliseconds,
             MeasuredTraces,
             EditorSnapshotBenchmarks.SnapshotCount,
             TypedHandleBytes = Unsafe.SizeOf<TextTree>(),
@@ -112,7 +109,8 @@ public static class EditorDiagnostics
     static LatencyResult Measure<T>(string backend, int size, EditorPattern pattern, Func<T> initial,
         Func<T, int, T> apply, string expected) where T : notnull
     {
-        for (var trace = 0; trace < WarmupTraces; trace++)
+        var warmup = Stopwatch.StartNew();
+        for (var trace = 0; trace < WarmupTraces || warmup.ElapsedMilliseconds < MinimumWarmupMilliseconds; trace++)
         {
             var warm = initial();
             for (var i = 0; i < EditorWorkload.EditCount; i++)

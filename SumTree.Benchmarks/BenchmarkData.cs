@@ -1,5 +1,3 @@
-using Rope;
-
 namespace Benchmarks;
 
 public static class BenchmarkData

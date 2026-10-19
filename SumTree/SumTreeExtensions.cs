@@ -10,18 +10,12 @@ public static class SumTreeExtensions
     /// <summary>
     /// Creates a new SumTree from a string.
     /// </summary>
-    public static SumTree<char> ToSumTree(this string text)
-    {
-        return new SumTree<char>(text.AsMemory());
-    }
+    public static SumTree<char> ToSumTree(this string text) => new(text.AsMemory());
 
     /// <summary>
     /// Creates a new SumTree from an array.
     /// </summary>
-    public static SumTree<T> ToSumTree<T>(this T[] array) where T : IEquatable<T>
-    {
-        return new SumTree<T>(array.AsMemory());
-    }
+    public static SumTree<T> ToSumTree<T>(this T[] array) where T : IEquatable<T> => new(array.AsMemory());
 
     /// <summary>
     /// Creates a new SumTree from an enumerable.
@@ -43,7 +37,7 @@ public static class SumTreeExtensions
     /// </summary>
     public static SumTree<T> ToSumTree<T>(this ReadOnlyMemory<T> memory) where T : IEquatable<T>
     {
-        return new SumTree<T>(memory);
+        return new(memory);
     }
 
     /// <summary>
@@ -215,10 +209,7 @@ public static class SumTreeExtensions
     /// <summary>
     /// Checks if the tree contains an element.
     /// </summary>
-    public static bool Contains<T>(this SumTree<T> tree, T item) where T : IEquatable<T>
-    {
-        return tree.IndexOf(item) >= 0;
-    }
+    public static bool Contains<T>(this SumTree<T> tree, T item) where T : IEquatable<T> => tree.IndexOf(item) >= 0;
 
     /// <summary>
     /// Finds the first occurrence of a pattern within the tree.
@@ -435,10 +426,7 @@ public static class SumTreeExtensions
     /// Checks if the tree contains a pattern using a custom comparer.
     /// </summary>
     public static bool Contains<T>(this SumTree<T> tree, SumTree<T> pattern, IEqualityComparer<T> comparer)
-        where T : IEquatable<T>
-    {
-        return tree.IndexOf(pattern, comparer) >= 0;
-    }
+        where T : IEquatable<T> => tree.IndexOf(pattern, comparer) >= 0;
 
     /// <summary>
     /// Finds the first occurrence of an element starting from a specific index.
@@ -764,7 +752,7 @@ public static class SumTreeExtensions
 
         public LeasedSpan(ArrayPool<T> pool, int length)
         {
-            this._pool = pool;
+            _pool = pool;
             _rented = pool.Rent(length);
             _span = _rented.AsSpan().Slice(0, length);
         }

@@ -114,9 +114,17 @@ public static class SumTreeHelpers
 
         var targetLines = lineNumber - 1; // Convert to 0-based for internal counting
         var end = sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= targetLines);
-        if (end < 0) return -1;
+        if (end < 0)
+        {
+            return -1;
+        }
+
         var start = end + 1;
-        if (sumTree[end] == '\r' && start < sumTree.Length && sumTree[start] == '\n') start++;
+        if (sumTree[end] == '\r' && start < sumTree.Length && sumTree[start] == '\n')
+        {
+            start++;
+        }
+
         return start;
     }
 
@@ -135,7 +143,11 @@ public static class SumTreeHelpers
         }
 
         var lineEnd = sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= lineNumber);
-        if (lineEnd < 0) lineEnd = sumTree.Length;
+        if (lineEnd < 0)
+        {
+            lineEnd = sumTree.Length;
+        }
+
         return string.Create(checked((int)(lineEnd - lineStart)), (sumTree, lineStart),
             static (destination, state) => state.sumTree.CopyTo(state.lineStart, destination));
     }
@@ -252,16 +264,27 @@ public static class SumTreeHelpers
     /// <returns>A new SumTree with the text inserted.</returns>
     public static SumTree<char> InsertAtLineColumn(this SumTree<char> sumTree, int line, int column, string text)
     {
-        if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
+        if (column <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(column));
+        }
+
         var lineStart = sumTree.FindLineStart(line);
         if (lineStart == -1)
         {
             throw new ArgumentOutOfRangeException(nameof(line), "Line number not found.");
         }
         var lineEnd = sumTree.FindPosition<LineNumberSummary>(summary => summary.Lines >= line);
-        if (lineEnd < 0) lineEnd = sumTree.Length;
+        if (lineEnd < 0)
+        {
+            lineEnd = sumTree.Length;
+        }
+
         if ((long)column - 1 > lineEnd - lineStart)
+        {
             throw new ArgumentOutOfRangeException(nameof(column), "Column exceeds the line's insertion positions.");
+        }
+
         var insertIndex = lineStart + column - 1;
 
         return sumTree.InsertRange(insertIndex, text.AsMemory());

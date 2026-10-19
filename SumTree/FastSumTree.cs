@@ -22,7 +22,7 @@ public readonly struct FastSumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquat
     const int LargeObjectHeapBytes = 85_000 - 24;
 
     [ThreadStatic]
-static int t_balancedCallDepth;
+    static int t_balancedCallDepth;
 
     public static readonly int MaxLeafLength = CalculateMaxLeafLength();
     public static readonly FastSumTree<T> Empty = new();
@@ -123,7 +123,7 @@ static int t_balancedCallDepth;
     public T this[int index] => this[(long)index];
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-T GetElementAtIndex(long index)
+    T GetElementAtIndex(long index)
     {
         var current = this;
         var currentIndex = index;
@@ -322,7 +322,7 @@ T GetElementAtIndex(long index)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-static FastSumTree<T> Concat(FastSumTree<T> left, FastSumTree<T> right)
+    static FastSumTree<T> Concat(FastSumTree<T> left, FastSumTree<T> right)
     {
         if (left.IsEmpty)
         {
@@ -412,7 +412,7 @@ static FastSumTree<T> Concat(FastSumTree<T> left, FastSumTree<T> right)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-static bool CalculateIsBalanced(long length, int depth)
+    static bool CalculateIsBalanced(long length, int depth)
     {
         return depth < MaxTreeDepth && (depth == 0 || length >= s_fibonacciPlusTwo[depth]);
     }

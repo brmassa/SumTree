@@ -163,7 +163,7 @@ public class BPlusTreeTests
         var before = GC.GetAllocatedBytesForCurrentThread();
         var edited = tree.RemoveAt(1_048_575);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        Assert.IsTrue(allocated < 2048, $"Backspace allocated {allocated} bytes");
+        Assert.IsLessThan(2048, allocated, $"Backspace allocated {allocated} bytes");
         edited.ValidateStructure();
         Assert.AreEqual(2_097_151L, edited.Length);
         Assert.AreEqual(2_097_152L, tree.Length);
@@ -182,29 +182,29 @@ public class BPlusTreeTests
         var budget = 8L * CountTree.MaximumChildren * (tree.Depth + 2) * (tree.Depth + 2);
         CountOperations.Reset();
         var inserted = tree.InsertRange(length / 2 + 17, "edit\n".AsMemory());
-        Assert.IsTrue(CountOperations.Combines <= budget, $"Insertion combined {CountOperations.Combines} summaries");
-        Assert.IsTrue(CountOperations.Scanned <= 2 * CountTree.ChunkLength + 10);
+        Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Insertion combined {CountOperations.Combines} summaries");
+        Assert.IsLessThanOrEqualTo(2 * CountTree.ChunkLength + 10, CountOperations.Scanned);
         inserted.ValidateStructure();
         Assert.AreEqual((long)length + 5, inserted.Summary);
 
         CountOperations.Reset();
         var deleted = inserted.RemoveRange(length / 2 + 17, 5);
-        Assert.IsTrue(CountOperations.Combines <= budget, $"Deletion combined {CountOperations.Combines} summaries");
-        Assert.IsTrue(CountOperations.Scanned <= 4 * CountTree.ChunkLength);
+        Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Deletion combined {CountOperations.Combines} summaries");
+        Assert.IsLessThanOrEqualTo(4 * CountTree.ChunkLength, CountOperations.Scanned);
         deleted.ValidateStructure();
-        Assert.AreEqual((long)length, deleted.Summary);
+        Assert.AreEqual(length, deleted.Summary);
 
         var fragment = new CountTree(new string('b', CountTree.ChunkLength).AsMemory());
         for (var i = 0; i < 80; i++)
         {
             CountOperations.Reset();
             tree += fragment;
-            Assert.IsTrue(CountOperations.Combines <= budget, $"Append combined {CountOperations.Combines} summaries");
+            Assert.IsLessThanOrEqualTo(budget, CountOperations.Combines, $"Append combined {CountOperations.Combines} summaries");
             Assert.AreEqual(0L, CountOperations.Scanned, "Appending full prepared leaves must not rescan text");
         }
         tree.ValidateStructure();
         before.ValidateStructure();
-        Assert.AreEqual((long)length, before.Summary);
+        Assert.AreEqual(length, before.Summary);
         Assert.AreEqual((long)length + 80 * CountTree.ChunkLength, tree.Summary);
     }
 
@@ -212,13 +212,13 @@ public class BPlusTreeTests
     {
         tree.ValidateStructure();
         Assert.AreEqual(text, tree.ToString());
-        Assert.AreEqual((long)text.Length, tree.Length);
+        Assert.AreEqual(text.Length, tree.Length);
         Assert.AreEqual(TextSummaryOperations.SummarizeSpan(text), tree.Summary);
     }
 }
 
 // Instrumentation is confined to tests; real operations must remain pure.
-internal readonly struct CountOperations : ISummaryOperations<char, long>
+readonly struct CountOperations : ISummaryOperations<char, long>
 {
     internal static long Combines;
     internal static long Scanned;

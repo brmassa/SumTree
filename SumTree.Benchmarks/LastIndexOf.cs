@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using Rope;
 
 namespace Benchmarks;
+
 [MemoryDiagnoser]
 public class LastIndexOf
 {
@@ -32,6 +33,6 @@ public class LastIndexOf
     [Benchmark]
     public void String()
     {
-        _ = BenchmarkData.LongDiffText1String.LastIndexOf("[[New Haven Register]]");
+        _ = BenchmarkData.LongDiffText1String.LastIndexOf("[[New Haven Register]]", StringComparison.Ordinal);
     }
 }

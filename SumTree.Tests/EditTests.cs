@@ -247,7 +247,7 @@ public class EditTests
 
         var merged = EditOperations.MergeEdits(edits);
 
-        Assert.AreEqual(1, merged.Count);
+        Assert.HasCount(1, merged);
         Assert.IsInstanceOfType(merged[0], typeof(InsertEdit<char>));
 
         var insertEdit = (InsertEdit<char>)merged[0];
@@ -266,7 +266,7 @@ public class EditTests
 
         var merged = EditOperations.MergeEdits(edits);
 
-        Assert.AreEqual(1, merged.Count);
+        Assert.HasCount(1, merged);
         Assert.IsInstanceOfType(merged[0], typeof(RemoveEdit<char>));
 
         var removeEdit = (RemoveEdit<char>)merged[0];
@@ -285,7 +285,7 @@ public class EditTests
 
         var merged = EditOperations.MergeEdits(edits);
 
-        Assert.AreEqual(2, merged.Count);
+        Assert.HasCount(2, merged);
     }
 
     [TestMethod]
@@ -324,7 +324,7 @@ public class EditTests
     public void ApplyEditsEmptyEditListShouldReturnOriginalTree()
     {
         var tree = "hello".ToSumTree();
-        var edits = new List<Edit<char>>();
+        Edit<char>[] edits = [];
 
         var result = tree.ApplyEdits(edits);
 
@@ -365,7 +365,7 @@ public class EditTests
         var result = tree.ApplyEditsWithAdjustment(edits);
 
         Assert.AreEqual(largeText.Length + 18, result.Length); // 6 + 6 + 6 = 18 additional chars
-        Assert.IsTrue(new string([.. result]).StartsWith("PREFIX"));
-        Assert.IsTrue(new string([.. result]).EndsWith("SUFFIX"));
+        Assert.StartsWith("PREFIX", new string([.. result]));
+        Assert.EndsWith("SUFFIX", new string([.. result]));
     }
 }

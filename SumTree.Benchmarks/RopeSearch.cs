@@ -7,7 +7,7 @@ namespace Benchmarks;
 public class RopeSearch
 {
     static readonly Rope<int> Ints = (from x in Enumerable.Range(0, 100)
-                                              select Enumerable.Range(0, 100).Select(i => x + i).ToRope()).ToRope().Combine();
+                                      select Enumerable.Range(0, 100).Select(i => x + i).ToRope()).ToRope().Combine();
 
     static readonly Rope<int> PrefixInts = Enumerable.Range(0, 1000).ToRope();
 

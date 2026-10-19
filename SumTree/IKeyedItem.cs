@@ -262,12 +262,12 @@ public readonly struct KeyedItem<TKey, TValue> : IKeyedItem<TKey>
     /// </summary>
     /// <param name="pair">The key-value pair to convert.</param>
     /// <returns>A new keyed item.</returns>
-    public static implicit operator KeyedItem<TKey, TValue>(KeyValuePair<TKey, TValue> pair) => new KeyedItem<TKey, TValue>(pair.Key, pair.Value);
+    public static implicit operator KeyedItem<TKey, TValue>(KeyValuePair<TKey, TValue> pair) => new(pair.Key, pair.Value);
 
     /// <summary>
     /// Implicitly converts a keyed item to a key-value pair.
     /// </summary>
     /// <param name="item">The keyed item to convert.</param>
     /// <returns>A new key-value pair.</returns>
-    public static implicit operator KeyValuePair<TKey, TValue>(KeyedItem<TKey, TValue> item) => new KeyValuePair<TKey, TValue>(item.Key, item.Value);
+    public static implicit operator KeyValuePair<TKey, TValue>(KeyedItem<TKey, TValue> item) => new(item.Key, item.Value);
 }

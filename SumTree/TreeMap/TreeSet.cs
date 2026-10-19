@@ -60,7 +60,6 @@ public class TreeSet<T> : IEnumerable<T>
     where T : IComparable<T>, IEquatable<T>
 {
     readonly TreeMap<T, Unit> _map;
-    static readonly Unit Marker = new();
 
     /// <summary>
     /// Initializes a new empty TreeSet.
@@ -79,7 +78,7 @@ public class TreeSet<T> : IEnumerable<T>
         _map = new TreeMap<T, Unit>();
         foreach (var entry in orderedEntries)
         {
-            _map.Insert(entry, Marker);
+            _map.Insert(entry, default);
         }
     }
 
@@ -101,7 +100,7 @@ public class TreeSet<T> : IEnumerable<T>
     public bool Add(T item)
     {
         var existed = _map.ContainsKey(item);
-        _map.Insert(item, Marker);
+        _map.Insert(item, default);
         return !existed;
     }
 

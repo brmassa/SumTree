@@ -17,27 +17,11 @@ namespace SumTree;
 /// or external synchronization rather than concurrently assigning this multi-field struct.
 /// </remarks>
 /// <typeparam name="T">The type of elements, must be <see cref="IEquatable{T}"/>.</typeparam>
-public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable<SumTree<T>>
+public readonly struct SumTree<T> : IReadOnlyList<T>, IEquatable<SumTree<T>>
     where T : IEquatable<T>
 {
-    /// <summary>
-    /// Maximum tree depth allowed.
-    /// </summary>
-    const int MaxTreeDepth = 46;
-
-    /// <summary>
-    /// Maximum depth discrepancy between left and right to cause a re-split of one side when balancing.
-    /// </summary>
-    const int MaxDepthImbalance = 4;
-
-    /// <summary>
-    /// Maximum number of bytes before the GC puts buffers on the large object heap.
-    /// </summary>
-    const int LargeObjectHeapBytes = 85_000 - 24;
-
-    [ThreadStatic]
-    static int t_balancedCallDepth;
-
+    // Leaf capacity depends on Unsafe.SizeOf<T>(), so each closed SumTree<T> keeps its own value.
+    // ReSharper disable once StaticMemberInGenericType
     /// <summary>
     /// Static size of the maximum length of a leaf node. This is calculated to never require Large Object Heap allocations.
     /// </summary>
@@ -47,12 +31,6 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// Defines the Empty leaf.
     /// </summary>
     public static readonly SumTree<T> Empty = new();
-
-    /// <summary>
-    /// Defines the minimum lengths the leaves should be in relation to the depth of the tree.
-    /// </summary>
-    static readonly int[] s_fibonacciPlusTwo =
-        [.. Enumerable.Range(0, MaxTreeDepth).Select(d => Fibonacci(d) + 2)];
 
     readonly object _data;
     readonly Dictionary<Type, object>? _dimensions;
@@ -881,7 +859,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         var (leafLeft, leafRight) = current._data switch
         {
             ReadOnlyMemory<T> memory => SplitMemory(memory, (int)currentIndex),
-            ValueTuple<T> single => currentIndex == 0
+            ValueTuple<T> => currentIndex == 0
                 ? (Empty.WithDimensions(_dimensions), current)
                 : (current, Empty.WithDimensions(_dimensions)),
             _ => throw new InvalidOperationException("Invalid data type")
@@ -1051,10 +1029,10 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
             return this;
         }
 
-        t_balancedCallDepth++;
+        TreeLayout.BalancedCallDepth++;
         try
         {
-            if (t_balancedCallDepth > MaxTreeDepth)
+            if (TreeLayout.BalancedCallDepth > TreeLayout.MaxTreeDepth)
             {
                 throw new InvalidOperationException("Tree depth exceeded maximum");
             }
@@ -1065,7 +1043,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         }
         finally
         {
-            t_balancedCallDepth--;
+            TreeLayout.BalancedCallDepth--;
         }
     }
 
@@ -1217,18 +1195,25 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         where TSummary : IEquatable<TSummary>
     {
         ArgumentNullException.ThrowIfNull(dimension);
-        if (start < 0 || start > Length) throw new ArgumentOutOfRangeException(nameof(start));
-        if (length < 0 || length > Length - start) throw new ArgumentOutOfRangeException(nameof(length));
-        if (length == 0) return dimension.Identity;
-        if (start == 0 && length == Length) return GetSummary(dimension);
-        if (!IsNode) return _data switch
+        if (start < 0 || start > Length) { throw new ArgumentOutOfRangeException(nameof(start)); }
+        if (length < 0 || length > Length - start) { throw new ArgumentOutOfRangeException(nameof(length)); }
+        if (length == 0) { return dimension.Identity; }
+        if (start == 0 && length == Length) { return GetSummary(dimension); }
+        if (!IsNode)
         {
-            ReadOnlyMemory<T> memory => dimension.SummarizeSpan(memory.Span.Slice((int)start, (int)length)),
-            ValueTuple<T> single => dimension.SummarizeElement(single.Item1),
-            _ => dimension.Identity
-        };
+            return _data switch
+            {
+                ReadOnlyMemory<T> memory => dimension.SummarizeSpan(memory.Span.Slice((int)start, (int)length)),
+                ValueTuple<T> single => dimension.SummarizeElement(single.Item1),
+                _ => dimension.Identity
+            };
+        }
+
         var left = Left;
-        if (start >= left.Length) return Right.GetRangeSummary(start - left.Length, length, dimension);
+        if (start >= left.Length)
+        {
+            return Right.GetRangeSummary(start - left.Length, length, dimension);
+        }
         var count = Math.Min(length, left.Length - start);
         var prefix = left.GetRangeSummary(start, count, dimension);
         return count == length ? prefix : dimension.Combine(prefix, Right.GetRangeSummary(0, length - count, dimension));
@@ -1237,20 +1222,29 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     /// <summary>Copies exactly destination.Length elements starting at start.</summary>
     public void CopyTo(long start, Span<T> destination)
     {
-        if (start < 0 || start > Length) throw new ArgumentOutOfRangeException(nameof(start));
-        if (destination.Length > Length - start) throw new ArgumentException("Range exceeds tree length.", nameof(destination));
-        if (destination.IsEmpty) return;
+        if (start < 0 || start > Length) { throw new ArgumentOutOfRangeException(nameof(start)); }
+        if (destination.Length > Length - start) { throw new ArgumentException("Range exceeds tree length.", nameof(destination)); }
+        if (destination.IsEmpty) { return; }
         if (!IsNode)
         {
-            if (_data is ReadOnlyMemory<T> memory) memory.Span.Slice((int)start, destination.Length).CopyTo(destination);
-            else if (_data is ValueTuple<T> single) destination[0] = single.Item1;
+            if (_data is ReadOnlyMemory<T> memory)
+            {
+                memory.Span.Slice((int)start, destination.Length).CopyTo(destination);
+            }
+            else if (_data is ValueTuple<T> single)
+            {
+                destination[0] = single.Item1;
+            }
             return;
         }
         var left = Left;
         if (start >= left.Length) { Right.CopyTo(start - left.Length, destination); return; }
         var count = (int)Math.Min(destination.Length, left.Length - start);
         left.CopyTo(start, destination[..count]);
-        if (count < destination.Length) Right.CopyTo(0, destination[count..]);
+        if (count < destination.Length)
+        {
+            Right.CopyTo(0, destination[count..]);
+        }
     }
 
     TSummary ComputeSummaryForTree<TSummary>(ISummaryDimension<T, TSummary> dimension)
@@ -1307,7 +1301,7 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
         return result;
     }
 
-    static Dictionary<Type, object>? ComputeCombinedSummaries(
+    static Dictionary<Type, object> ComputeCombinedSummaries(
         SumTree<T> left,
         SumTree<T> right,
         Dictionary<Type, object> dimensions)
@@ -1447,30 +1441,13 @@ public readonly struct SumTree<T> : IEnumerable<T>, IReadOnlyList<T>, IEquatable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool CalculateIsBalanced(long length, int depth)
     {
-        return depth < MaxTreeDepth && (depth == 0 || length >= s_fibonacciPlusTwo[depth]);
-    }
-
-    static int Fibonacci(int n)
-    {
-        if (n <= 1)
-        {
-            return n;
-        }
-
-        int a = 0, b = 1;
-        for (var i = 2; i <= n; i++)
-        {
-            var temp = a + b;
-            a = b;
-            b = temp;
-        }
-        return b;
+        return depth < TreeLayout.MaxTreeDepth && (depth == 0 || length >= TreeLayout.FibonacciPlusTwo[depth]);
     }
 
     static int CalculateMaxLeafLength()
     {
         var elementSize = Unsafe.SizeOf<T>();
-        var maxElements = LargeObjectHeapBytes / elementSize;
+        var maxElements = TreeLayout.LargeObjectHeapBytes / elementSize;
         const int cacheLineSize = 64;
         var alignedElements = (maxElements / cacheLineSize) * cacheLineSize;
         return Math.Max(alignedElements, cacheLineSize);

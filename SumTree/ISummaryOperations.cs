@@ -10,10 +10,10 @@ namespace SumTree;
 /// </remarks>
 public interface ISummaryOperations<T, TSummary> where TSummary : struct
 {
-    static abstract TSummary Identity { get; }
-    static abstract TSummary SummarizeElement(T element);
-    static abstract TSummary SummarizeSpan(ReadOnlySpan<T> elements);
-    static abstract TSummary Combine(in TSummary left, in TSummary right);
+    abstract static TSummary Identity { get; }
+    abstract static TSummary SummarizeElement(T element);
+    abstract static TSummary SummarizeSpan(ReadOnlySpan<T> elements);
+    abstract static TSummary Combine(in TSummary left, in TSummary right);
 }
 
 /// <summary>A monotonic seek target evaluated against accumulated prefix summaries.</summary>

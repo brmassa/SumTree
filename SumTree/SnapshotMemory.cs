@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SumTree;
 
-internal static class SnapshotMemory
+static class SnapshotMemory
 {
     /// <summary>Copies mutable storage once at the API boundary; strings are already immutable.</summary>
     internal static ReadOnlyMemory<T> Copy<T>(ReadOnlyMemory<T> memory)

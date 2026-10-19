@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using Rope;
@@ -20,10 +19,6 @@ public class Equals
     string? _strX;
     string? _strY;
 
-    ImmutableArray<char> _arrayX;
-
-    ImmutableArray<char> _arrayY;
-
     SumTree<char> _sumTreeX;
     SumTree<char> _sumTreeY;
     SumTree<char> _sumTreeWithLinesX;
@@ -38,8 +33,6 @@ public class Equals
         _sbX = new StringBuilder(BenchmarkData.LoremIpsum[..Length]);
         _strX = BenchmarkData.LoremIpsum[..Length];
         _strY = BenchmarkData.LoremIpsum[..Length];
-        _arrayX = [.. BenchmarkData.LoremIpsum[..Length].AsSpan()];
-        _arrayY = [.. BenchmarkData.LoremIpsum[..Length].AsSpan()];
         _sumTreeX = BenchmarkData.LoremIpsum[..Length].ToSumTree();
         _sumTreeY = BenchmarkData.LoremIpsum[..Length].ToSumTree();
         _sumTreeWithLinesX = BenchmarkData.LoremIpsum[..Length].ToSumTreeWithLines();
@@ -47,32 +40,17 @@ public class Equals
     }
 
     [Benchmark(Description = "Rope<char>")]
-    public void RopeOfChar()
-    {
-        _ = _ropeX.Equals(_ropeY);
-    }
+    public void RopeOfChar() => _ = _ropeX.Equals(_ropeY);
 
     [Benchmark(Description = "StringBuilder")]
-    public void StringBuilder()
-    {
-        _ = _sbX!.Equals(_sbY.Span);
-    }
+    public void StringBuilder() => _ = _sbX!.Equals(_sbY.Span);
 
     [Benchmark(Description = "string")]
-    public void String()
-    {
-        _ = _strX!.Equals(_strY);
-    }
+    public void String() => _ = _strX!.Equals(_strY);
 
     [Benchmark(Description = "SumTree<char>")]
-    public void SumTree()
-    {
-        _ = _sumTreeX.Equals(_sumTreeY);
-    }
+    public void SumTree() => _ = _sumTreeX.Equals(_sumTreeY);
 
     [Benchmark(Description = "SumTree<char> with Lines")]
-    public void SumTreeWithLines()
-    {
-        _ = _sumTreeWithLinesX.Equals(_sumTreeWithLinesY);
-    }
+    public void SumTreeWithLines() => _ = _sumTreeWithLinesX.Equals(_sumTreeWithLinesY);
 }

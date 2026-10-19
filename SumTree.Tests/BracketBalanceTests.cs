@@ -35,10 +35,11 @@ public class BracketBalanceTests
         const string alphabet = "()[]{} x\r\n";
         for (var sample = 0; sample < 100; sample++)
         {
-            var text = new string(Enumerable.Range(0, 25).Select(_ => alphabet[random.Next(alphabet.Length)]).ToArray());
+            var text = new string([.. Enumerable.Range(0, 25).Select(_ => alphabet[random.Next(alphabet.Length)])]);
             var expected = Reference(text);
             Assert.AreEqual(expected, BracketBalanceSummaryOperations.SummarizeSpan(text));
             for (var first = 0; first <= text.Length; first++)
+            {
                 for (var second = first; second <= text.Length; second++)
                 {
                     var a = BracketBalanceSummaryOperations.SummarizeSpan(text.AsSpan(0, first));
@@ -47,8 +48,12 @@ public class BracketBalanceTests
                     Assert.AreEqual(expected, (a + b) + c);
                     Assert.AreEqual(expected, a + (b + c));
                 }
+            }
             var composed = BracketBalanceSummary.Identity;
-            foreach (var element in text) composed += BracketBalanceSummary.FromCharacter(element);
+            foreach (var element in text)
+            {
+                composed += BracketBalanceSummary.FromCharacter(element);
+            }
             Assert.AreEqual(expected, composed);
         }
     }
@@ -81,8 +86,8 @@ public class BracketBalanceTests
             long expected = -1;
             for (var i = 0; i < text.Length; i++)
             {
-                if (text[i] == '(') depth++;
-                if (text[i] == ')') depth--;
+                if (text[i] == '(') { depth++; }
+                if (text[i] == ')') { depth--; }
                 if (depth < 0) { expected = i; break; }
             }
             Assert.AreEqual(expected, tree.FindPosition(new NegativeParenthesisPrefix()));
@@ -114,15 +119,15 @@ public class BracketBalanceTests
     public void LargeSharedSnapshotsRejectIntCounterOverflowWithoutChangingEarlierVersions()
     {
         var tree = new SumTree<char, TextSummary, TextSummaryOperations>(new string('x', 1024).AsMemory());
-        for (var i = 0; i < 20; i++) tree += tree;
+        for (var i = 0; i < 20; i++) { tree += tree; }
         Assert.AreEqual(1_073_741_824L, tree.Length);
         Assert.ThrowsExactly<OverflowException>(() => tree + tree);
         Assert.AreEqual(1_073_741_824, tree.Summary.Lines.TotalCharacters);
 
         var newlines = new SumTree<char, TextSummary, TextSummaryOperations>(new string('\n', 1024).AsMemory());
-        for (var i = 0; i < 20; i++) newlines += newlines;
+        for (var i = 0; i < 20; i++) { newlines += newlines; }
         newlines += newlines.RemoveAt(newlines.Length - 1);
-        Assert.AreEqual((long)int.MaxValue, newlines.Length);
+        Assert.AreEqual(int.MaxValue, newlines.Length);
         Assert.ThrowsExactly<OverflowException>(() => newlines.GetLineAndColumn(newlines.Length));
     }
 

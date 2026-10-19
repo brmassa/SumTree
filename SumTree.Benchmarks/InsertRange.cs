@@ -24,7 +24,7 @@ public class InsertRange
     }
 
     [Benchmark]
-    public void ListOfChar()
+    public List<char> ListOfChar()
     {
         var lorem = BenchmarkData.LoremIpsum.ToCharArray();
         var s = new List<char>(lorem);
@@ -33,7 +33,7 @@ public class InsertRange
             s.InsertRange(321, lorem);
         }
 
-        ////s.ToString();
+        return s;
     }
 
     [Benchmark]

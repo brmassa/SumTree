@@ -121,7 +121,12 @@ public class SumTreeTests
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
     [TestMethod]
-    public void StringEqualsOperator() => Assert.IsTrue("abc".ToSumTree() == "abc".ToSumTree());
+    public void StringEqualsOperator()
+    {
+        var left = "abc".ToSumTree();
+        var right = "abc".ToSumTree();
+        Assert.IsTrue(left == right);
+    }
 
     [TestMethod]
     public void StructuralEqualsOperator()

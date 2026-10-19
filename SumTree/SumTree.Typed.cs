@@ -11,7 +11,7 @@ namespace SumTree;
 /// Elements and summaries must be immutable. Publish versions through a snapshot store or
 /// external synchronization. Index/range arguments are validated strictly.
 /// </remarks>
-public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyList<T>
+public readonly struct SumTree<T, TSummary, TOps> : IReadOnlyList<T>
     where T : IEquatable<T>
     where TSummary : struct
     where TOps : struct, ISummaryOperations<T, TSummary>
@@ -159,8 +159,16 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
 
     static TSummary SummarizeRange(Node node, long start, long length)
     {
-        if (start == 0 && length == node.Length) return node.Summary;
-        if (node is Leaf leaf) return TOps.SummarizeSpan(leaf.Memory.Span.Slice((int)start, (int)length));
+        if (start == 0 && length == node.Length)
+        {
+            return node.Summary;
+        }
+
+        if (node is Leaf leaf)
+        {
+            return TOps.SummarizeSpan(leaf.Memory.Span.Slice((int)start, (int)length));
+        }
+
         var summary = TOps.Identity;
         var branch = (Branch)node;
         for (var i = 0; i < branch.ChildCount && length > 0; i++)
@@ -221,7 +229,7 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
             _remaining = length;
             Current = default;
         }
-        public ChunkEnumerator GetEnumerator() => this;
+        public readonly ChunkEnumerator GetEnumerator() => this;
         public bool MoveNext()
         {
             if (_remaining == 0) { Current = default; return false; }
@@ -238,7 +246,11 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
             while (node is Branch branch)
             {
                 var index = 0;
-                while (_start >= branch[index].Length) _start -= branch[index++].Length;
+                while (_start >= branch[index].Length)
+                {
+                    _start -= branch[index++].Length;
+                }
+
                 _path[_depth++] = new Frame(branch, index);
                 node = branch[index];
             }
@@ -259,16 +271,24 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
         int _index;
         internal Enumerator(SumTree<T, TSummary, TOps> tree)
         { _chunks = tree.GetChunks(); _span = default; _index = -1; }
-        public T Current => _span[_index];
+        public readonly T Current => _span[_index];
         public bool MoveNext()
         {
-            if (++_index < _span.Length) return true;
-            if (!_chunks.MoveNext()) return false;
+            if (++_index < _span.Length)
+            {
+                return true;
+            }
+
+            if (!_chunks.MoveNext())
+            {
+                return false;
+            }
+
             _span = _chunks.Current;
             _index = 0;
             return true;
         }
-        public void Dispose() { }
+        public readonly void Dispose() { }
     }
 
     /// <summary>Finds the first element whose inclusive prefix reaches a monotonic target.</summary>
@@ -373,19 +393,29 @@ public readonly struct SumTree<T, TSummary, TOps> : IEnumerable<T>, IReadOnlyLis
     // stack rather than allocating recursive iterators for every node.
     static IEnumerable<T> Enumerate(Node? node)
     {
-        if (node is null) yield break;
+        if (node is null)
+        {
+            yield break;
+        }
+
         var pending = new Stack<Node>();
         pending.Push(node);
         while (pending.TryPop(out node))
         {
             if (node is Leaf leaf)
             {
-                for (var i = 0; i < leaf.Memory.Length; i++) yield return leaf.Memory.Span[i];
+                for (var i = 0; i < leaf.Memory.Length; i++)
+                {
+                    yield return leaf.Memory.Span[i];
+                }
             }
             else
             {
                 var branch = (Branch)node;
-                for (var i = branch.ChildCount - 1; i >= 0; i--) pending.Push(branch[i]);
+                for (var i = branch.ChildCount - 1; i >= 0; i--)
+                {
+                    pending.Push(branch[i]);
+                }
             }
         }
     }

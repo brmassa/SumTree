@@ -12,17 +12,11 @@ public class GetHashCode
     public int Length;
 
     [Benchmark(Description = "Rope<char>")]
-    public void RopeOfChar()
-    {
-        _ = BenchmarkData.LoremIpsum.ToRope().Slice(Length).GetHashCode();
-    }
+    public void RopeOfChar() => _ = BenchmarkData.LoremIpsum.ToRope().Slice(Length).GetHashCode();
 
 
     [Benchmark(Description = "string")]
-    public void String()
-    {
-        _ = BenchmarkData.LoremIpsum[..Length].GetHashCode();
-    }
+    public void String() => _ = BenchmarkData.LoremIpsum[..Length].GetHashCode();
 
 
     [Benchmark(Description = "ImmutableArray<char>")]
@@ -33,14 +27,8 @@ public class GetHashCode
     }
 
     [Benchmark(Description = "SumTree<char>")]
-    public void SumTree()
-    {
-        _ = BenchmarkData.LoremIpsum[..Length].ToSumTree().GetHashCode();
-    }
+    public void SumTree() => _ = BenchmarkData.LoremIpsum[..Length].ToSumTree().GetHashCode();
 
     [Benchmark(Description = "SumTree<char> with Lines")]
-    public void SumTreeWithLines()
-    {
-        _ = BenchmarkData.LoremIpsum[..Length].ToSumTreeWithLines().GetHashCode();
-    }
+    public void SumTreeWithLines() => _ = BenchmarkData.LoremIpsum[..Length].ToSumTreeWithLines().GetHashCode();
 }

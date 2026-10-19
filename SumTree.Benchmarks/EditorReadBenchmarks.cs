@@ -161,7 +161,10 @@ public class EditorReadBenchmarks
     public long TypedTraverse()
     {
         long sum = 0;
-        foreach (var item in _typed) sum += item;
+        foreach (var item in _typed)
+        {
+            sum += item;
+        }
         return sum;
     }
 
@@ -169,7 +172,10 @@ public class EditorReadBenchmarks
     public long TypedInterfaceTraverse()
     {
         long sum = 0;
-        foreach (var item in (IEnumerable<char>)_typed) sum += item;
+        foreach (var item in (IEnumerable<char>)_typed)
+        {
+            sum += item;
+        }
         return sum;
     }
 

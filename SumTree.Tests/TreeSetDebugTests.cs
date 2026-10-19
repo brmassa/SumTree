@@ -142,7 +142,7 @@ public class TreeSetDebugTests
     {
         var set = new TreeSet<int>();
         var random = new Random(42); // Fixed seed for reproducibility
-        var numbers = Enumerable.Range(0, 100).OrderBy(x => random.Next()).ToList();
+        var numbers = Enumerable.Range(0, 100).OrderBy(_ => random.Next()).ToList();
 
         // Add in random order
         foreach (var num in numbers)

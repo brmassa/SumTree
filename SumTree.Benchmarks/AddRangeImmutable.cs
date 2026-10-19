@@ -22,7 +22,7 @@ public class AddRangeImmutable
     }
 
     [Benchmark(Description = "ImmutableList\n.Builder")]
-    public void ImmutableListBuilderOfChar()
+    public ImmutableList<char>.Builder ImmutableListBuilderOfChar()
     {
         var s = ImmutableList<char>.Empty.ToBuilder();
         s.AddRange(BenchmarkData.LoremIpsum);
@@ -31,6 +31,8 @@ public class AddRangeImmutable
         {
             s.AddRange(BenchmarkData.LoremIpsum);
         }
+
+        return s;
     }
 
     [Benchmark(Description = "ImmutableList")]

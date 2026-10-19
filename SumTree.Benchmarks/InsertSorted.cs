@@ -8,9 +8,9 @@ public class InsertSorted
 {
     static readonly Random random = new(42);
 
-    static readonly long[] RandomLongs = [.. Enumerable.Range(0, 65000).Select(s => random.NextInt64(32000))];
+    static readonly long[] RandomLongs = [.. Enumerable.Range(0, 65000).Select(_ => random.NextInt64(32000))];
 
-    static readonly float[] RandomFloats = [.. Enumerable.Range(0, 65000).Select(s => random.NextSingle())];
+    static readonly float[] RandomFloats = [.. Enumerable.Range(0, 65000).Select(_ => random.NextSingle())];
 
     [Benchmark]
     public void AddRangeThenOrderLong()

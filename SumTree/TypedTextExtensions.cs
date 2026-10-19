@@ -14,12 +14,28 @@ public static class TypedTextExtensions
     public static long FindLineStart<TOps>(this SumTree<char, TextSummary, TOps> tree, int lineNumber)
         where TOps : struct, ISummaryOperations<char, TextSummary>
     {
-        if (lineNumber <= 0) throw new ArgumentOutOfRangeException(nameof(lineNumber));
-        if (lineNumber == 1) return 0;
+        if (lineNumber <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lineNumber));
+        }
+
+        if (lineNumber == 1)
+        {
+            return 0;
+        }
+
         var end = tree.FindPosition(new LineTarget(lineNumber - 1));
-        if (end < 0) return -1;
+        if (end < 0)
+        {
+            return -1;
+        }
+
         var start = end + 1;
-        if (tree[end] == '\r' && start < tree.Length && tree[start] == '\n') start++;
+        if (tree[end] == '\r' && start < tree.Length && tree[start] == '\n')
+        {
+            start++;
+        }
+
         return start;
     }
 
@@ -28,9 +44,17 @@ public static class TypedTextExtensions
         where TOps : struct, ISummaryOperations<char, TextSummary>
     {
         var start = tree.FindLineStart(lineNumber);
-        if (start < 0) return null;
+        if (start < 0)
+        {
+            return null;
+        }
+
         var end = tree.FindPosition(new LineTarget(lineNumber));
-        if (end < 0) end = tree.Length;
+        if (end < 0)
+        {
+            end = tree.Length;
+        }
+
         return string.Create(checked((int)(end - start)), (tree, start),
             static (destination, state) => state.tree.CopyTo(state.start, destination));
     }

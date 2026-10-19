@@ -81,7 +81,7 @@ public class SnapshotOwnershipTests
 
         Assert.AreEqual("a\nb", tree.ToString());
         Assert.AreEqual("a\nb", fast.ToStringFast());
-        Assert.IsTrue(owner.SpanRequests >= 2, "Borrowed trees should read their retained memory owner");
+        Assert.IsGreaterThanOrEqualTo(2, owner.SpanRequests, "Borrowed trees should read their retained memory owner");
         Assert.AreEqual(1, tree.GetSummary<LineNumberSummary>().Lines);
     }
 
@@ -90,13 +90,13 @@ public class SnapshotOwnershipTests
     {
         var input = Enumerable.Range(0, 73).ToArray();
         IReadOnlyList<int> list = new ReadOnlyCollection<int>(input);
-        var tree = ((IEnumerable<int>)list).ToSumTree();
+        var tree = list.ToSumTree();
         Array.Fill(input, -1);
         var rented = ArrayPool<int>.Shared.Rent(73);
         try
         {
             Array.Fill(rented, -2);
-            CollectionAssert.AreEqual(Enumerable.Range(0, 73).ToArray(), tree.ToArray());
+            Assert.AreSequenceEqual(Enumerable.Range(0, 73), tree.ToArray());
         }
         finally
         {
@@ -118,7 +118,7 @@ public class SnapshotOwnershipTests
         var fastParts = fast.SplitAt(456_789);
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        Assert.IsTrue(allocated < 100_000, $"Splits allocated {allocated} bytes; backing buffers should be shared");
+        Assert.IsLessThan(100_000, allocated, $"Splits allocated {allocated} bytes; backing buffers should be shared");
         Assert.AreEqual(456_789L, parts.Left.Length);
         Assert.AreEqual(543_211L, parts.Right.Length);
         Assert.AreEqual(parts.Left.Length, fastParts.Left.Length);
@@ -135,12 +135,16 @@ public class SnapshotOwnershipTests
         var readers = Enumerable.Range(0, 3).Select(_ => Task.Run(() =>
         {
             var retained = store.Current;
+            // Both signals are disposed only after `await Task.WhenAll(readers)` below.
+            // ReSharper disable once AccessToDisposedClosure
             ready.Signal();
+            // Both signals are disposed only after `await Task.WhenAll(readers)` below.
+            // ReSharper disable once AccessToDisposedClosure
             do
             {
                 var snapshot = store.Current;
                 var text = snapshot.ToString();
-                Assert.AreEqual(snapshot.Length, (long)text.Length);
+                Assert.AreEqual(snapshot.Length, text.Length);
                 Assert.AreEqual(text.Length / 2, snapshot.GetSummary<LineNumberSummary>().Lines);
                 for (var i = 0; i < text.Length; i++)
                 {
@@ -150,7 +154,7 @@ public class SnapshotOwnershipTests
 
             Assert.AreEqual("x\n", retained.ToString());
             Assert.AreEqual(1, retained.GetSummary<LineNumberSummary>().Lines);
-        })).ToArray();
+        }, TestContext.CancellationToken)).ToArray();
 
         try
         {
@@ -190,4 +194,6 @@ public class SnapshotOwnershipTests
         protected override void Dispose(bool disposing) => _disposed = true;
         public void Release() => ((IDisposable)this).Dispose();
     }
+
+    public TestContext TestContext { get; set; }
 }

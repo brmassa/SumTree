@@ -63,10 +63,10 @@ public sealed class EditorWorkload
         InitialSummaryTree = InitialText.ToSumTreeWithLinesAndBrackets();
         InitialTypedTree = new TextTree(InitialText.AsMemory());
         InitialRope = InitialText.ToRope();
-        PreparedTrees = Changes.Select(c => c.Text.ToSumTree()).ToArray();
-        PreparedSummaryTrees = Changes.Select(c => c.Text.ToSumTreeWithLinesAndBrackets()).ToArray();
-        PreparedTypedTrees = Changes.Select(c => new TextTree(c.Text.AsMemory())).ToArray();
-        PreparedRopes = Changes.Select(c => c.Text.ToRope()).ToArray();
+        PreparedTrees = [.. Changes.Select(c => c.Text.ToSumTree())];
+        PreparedSummaryTrees = [.. Changes.Select(c => c.Text.ToSumTreeWithLinesAndBrackets())];
+        PreparedTypedTrees = [.. Changes.Select(c => new TextTree(c.Text.AsMemory()))];
+        PreparedRopes = [.. Changes.Select(c => c.Text.ToRope())];
     }
 
     public static string CreateText(int length)
@@ -191,11 +191,8 @@ public sealed class EditorWorkload
         var configured = Environment.GetEnvironmentVariable("SUMTREE_BENCHMARK_DOCUMENT_SIZES");
         var sizes = string.IsNullOrWhiteSpace(configured) ? [4096, 131072, 2097152] :
             configured.Split(',').Select(int.Parse).ToArray();
-        if (sizes.Length == 0 || sizes.Any(size => size < 1024))
-        {
-            throw new ArgumentException("Document sizes must be at least 1024 UTF-16 code units.");
-        }
-
-        return sizes;
+        return sizes.Length == 0 || sizes.Any(size => size < 1024)
+            ? throw new ArgumentException("Document sizes must be at least 1024 UTF-16 code units.")
+            : sizes;
     }
 }

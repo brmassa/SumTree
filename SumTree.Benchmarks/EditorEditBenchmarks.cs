@@ -97,7 +97,11 @@ public class EditorInsertComparison
 public class EditorEditBenchmarks
 {
     public IEnumerable<int> DocumentSizes => EditorWorkload.DocumentSizes;
+    // BenchmarkDotNet assigns [Params] properties through reflection in parameter setup.
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global
     [ParamsSource(nameof(DocumentSizes))] public int DocumentLength { get; set; }
+    // BenchmarkDotNet assigns [Params] properties through reflection in parameter setup.
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global
     [ParamsAllValues] public EditorPattern Pattern { get; set; }
     EditorWorkload _workload = null!;
 

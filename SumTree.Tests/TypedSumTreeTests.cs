@@ -139,7 +139,11 @@ public class TypedSumTreeTests
             Assert.AreEqual(1, owner.SpanRequests, "A seek should access only the final leaf's memory");
             owner.SpanRequests = 0;
             long count = 0;
-            foreach (var item in tree) count++;
+            foreach (var _ in tree)
+            {
+                count++;
+            }
+
             Assert.AreEqual(tree.Length, count);
             Assert.AreEqual(tree.BufferCount, owner.SpanRequests, "Traversal obtains each leaf span once");
         }
@@ -210,7 +214,7 @@ public class TypedSumTreeTests
     {
         tree.ValidateStructure();
         Assert.AreEqual(expected, tree.ToString());
-        Assert.AreEqual((long)expected.Length, tree.Length);
+        Assert.AreEqual(expected.Length, tree.Length);
         Assert.AreEqual(TextSummaryOperations.SummarizeSpan(expected), tree.Summary);
     }
 

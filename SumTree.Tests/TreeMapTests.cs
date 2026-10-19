@@ -257,7 +257,7 @@ public class TreeMapTests
         map.Insert(3, "three");
         map.Insert(4, "four");
 
-        map.Retain((key, value) => key % 2 == 0);
+        map.Retain((key, _) => key % 2 == 0);
 
         Assert.AreEqual(2, map.Count);
         Assert.IsTrue(map.ContainsKey(2));

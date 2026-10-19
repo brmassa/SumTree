@@ -20,8 +20,12 @@ public class LineScanBenchmarks
             _ => string.Concat(Enumerable.Repeat("\r\n\r\n\nx", 171))
         };
         for (var length = 0; length <= _text.Length; length++)
+        {
             if (Scan(_text.AsSpan(0, length)) != LineNumberDimension.Instance.SummarizeSpan(_text.AsSpan(0, length)))
+            {
                 throw new InvalidOperationException("Newline scanners disagree.");
+            }
+        }
     }
 
     [Benchmark(Baseline = true)] public LineNumberSummary Scalar() => LineNumberDimension.Instance.SummarizeSpan(_text);
@@ -29,17 +33,29 @@ public class LineScanBenchmarks
 
     static LineNumberSummary Scan(ReadOnlySpan<char> text)
     {
-        if (text.IsEmpty) return LineNumberSummary.Zero;
+        if (text.IsEmpty)
+        {
+            return LineNumberSummary.Zero;
+        }
+
         var offset = 0;
         var lines = 0;
         var lastEnd = 0;
         while (offset < text.Length)
         {
             var next = text[offset..].IndexOfAny('\r', '\n');
-            if (next < 0) break;
+            if (next < 0)
+            {
+                break;
+            }
+
             offset += next;
             var cr = text[offset++] == '\r';
-            if (cr && offset < text.Length && text[offset] == '\n') offset++;
+            if (cr && offset < text.Length && text[offset] == '\n')
+            {
+                offset++;
+            }
+
             lines++;
             lastEnd = offset;
         }

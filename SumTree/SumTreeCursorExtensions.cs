@@ -35,7 +35,7 @@ public static class SumTreeCursorExtensions
         where T : IEquatable<T>
         where TDimension : IEquatable<TDimension>
     {
-        if (!tree.TryGetSummary<TDimension>(out var summary))
+        if (!tree.TryGetSummary<TDimension>(out _))
         {
             throw new InvalidOperationException($"Tree does not have dimension of type {typeof(TDimension).Name}");
         }

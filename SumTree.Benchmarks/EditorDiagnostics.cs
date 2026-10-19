@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Rope;
 using SumTree;
 using TextTree = SumTree.SumTree<char, SumTree.TextSummary, SumTree.TextSummaryOperations>;
 
@@ -47,8 +46,12 @@ public static class EditorDiagnostics
                 workload.Validate();
                 if (pattern == EditorPattern.LocalTyping)
                 {
-                    layouts.Add(new { DocumentLength = size, workload.InitialTypedTree.Depth,
-                        workload.InitialTypedTree.BufferCount });
+                    layouts.Add(new
+                    {
+                        DocumentLength = size,
+                        workload.InitialTypedTree.Depth,
+                        workload.InitialTypedTree.BufferCount
+                    });
                 }
                 latencies.Add(Measure("SumTree", size, pattern, () => workload.InitialTree,
                     (tree, i) => workload.Apply(tree, i), workload.ExpectedText));
@@ -235,8 +238,12 @@ public static class EditorDiagnostics
         ? File.ReadLines("/proc/cpuinfo").FirstOrDefault(line => line.StartsWith("model name", StringComparison.Ordinal)) ?? "Unknown"
         : Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "Unknown";
 
+    // Consumed by System.Text.Json when serializing the report, not referenced in code.
+    // ReSharper disable once NotAccessedPositionalProperty.Local
     sealed record LatencyResult(string Backend, int DocumentLength, string Pattern, int Samples,
         double MeanNanoseconds, double P50Nanoseconds, double P95Nanoseconds, double P99Nanoseconds,
         double MaxNanoseconds, double AllocatedBytesPerEdit, int[] GcCollections);
+    // Consumed by System.Text.Json when serializing the report, not referenced in code.
+    // ReSharper disable once NotAccessedPositionalProperty.Local
     sealed record RetentionResult(string Backend, int DocumentLength, long ApproximateAdditionalRetainedBytes);
 }

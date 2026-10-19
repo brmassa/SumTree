@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using Rope;
 
 namespace Benchmarks;
+
 [MemoryDiagnoser]
 public class IndexOf
 {
@@ -15,29 +16,17 @@ public class IndexOf
     public int Length;
 
     [Benchmark(Description = "Rope")]
-    public void RopeOfChar()
-    {
-        _ = BenchmarkData.LongDiffText1[..Length].IndexOf(Find);
-    }
+    public void RopeOfChar() => _ = BenchmarkData.LongDiffText1[..Length].IndexOf(Find);
 
     [BenchmarkCategory("Fragmented\nRope")]
     [Benchmark(Description = "IndexOf")]
-    public void FragmentedRopeOfChar()
-    {
-        _ = FragmentedRope[..Length].IndexOf(Find);
-    }
+    public void FragmentedRopeOfChar() => _ = FragmentedRope[..Length].IndexOf(Find);
 
     [BenchmarkCategory("Fragmented\nRope")]
     [Benchmark(Description = "IndexOf (Fragmented Find)")]
-    public void FragmentedRopeOfCharLarge()
-    {
-        _ = FragmentedRope[..Length].IndexOf(FragmentedFind);
-    }
+    public void FragmentedRopeOfCharLarge() => _ = FragmentedRope[..Length].IndexOf(FragmentedFind);
 
     [BenchmarkCategory("string")]
     [Benchmark(Description = "string")]
-    public void String()
-    {
-        _ = BenchmarkData.LongDiffText1String[..Length].IndexOf("[[New Haven Register]]");
-    }
+    public void String() => _ = BenchmarkData.LongDiffText1String[..Length].IndexOf("[[New Haven Register]]", StringComparison.Ordinal);
 }

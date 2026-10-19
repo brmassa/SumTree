@@ -30,8 +30,9 @@ public class EditingPerformanceTests
         var source = text.ToString();
         for (var line = 1; line < 40; line++)
         {
+            var target = line;
             var expected = IndexOfNth(source, '\n', line);
-            Assert.AreEqual(expected, tree.FindPosition<LineNumberSummary>(summary => summary.Lines >= line));
+            Assert.AreEqual(expected, tree.FindPosition<LineNumberSummary>(summary => summary.Lines >= target));
         }
 
         Assert.AreEqual(-1, tree.FindPosition<LineNumberSummary>(summary => summary.Lines > source.Count(c => c == '\n')));
@@ -77,7 +78,8 @@ public class EditingPerformanceTests
         var found = 0L;
         for (var line = 1; line < 200_000; line += 199)
         {
-            found += tree.FindPosition<LineNumberSummary>(summary => summary.Lines >= line);
+            var target = line;
+            found += tree.FindPosition<LineNumberSummary>(summary => summary.Lines >= target);
         }
 
         watch.Stop();

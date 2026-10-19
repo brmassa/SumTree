@@ -33,13 +33,15 @@ public class AddRange
     }
 
     [Benchmark(Description = "List")]
-    public void ListOfChar()
+    public List<char> ListOfChar()
     {
         var s = new List<char>(BenchmarkData.LoremIpsum);
         for (var i = 0; i < EditCount; i++)
         {
             s.AddRange(BenchmarkData.LoremIpsum);
         }
+
+        return s;
     }
 
     [Benchmark(Description = "SumTree (no dimensions)")]
